@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>Tổng hợp số liệu Phòng Y tế</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</p>
+      <h1>Tổng hợp số liệu Phòng Y tế</h1>
+    </div>
+    <button id="btnSeed" class="btn secondary">Khôi phục dữ liệu mẫu 2026</button>
+  </header>
+
+  <main class="container">
+    <section class="toolbar card">
+      <label>Năm
+        <select id="yearSelect"></select>
+      </label>
+      <label>Tháng
+        <select id="monthSelect"></select>
+      </label>
+      <button id="btnNew" class="btn primary">Nhập / cập nhật tháng</button>
+      <button id="btnExport" class="btn secondary">Xuất CSV</button>
+    </section>
+
+    <nav class="tabs" aria-label="Chức năng">
+      <button class="tab active" data-tab="dashboard">Tổng quan</button>
+      <button class="tab" data-tab="entry">Nhập liệu</button>
+      <button class="tab" data-tab="lookup">Tra cứu</button>
+      <button class="tab" data-tab="report">Báo cáo</button>
+      <button class="tab" data-tab="history">Nhật ký</button>
+    </nav>
+
+    <section id="dashboard" class="panel active">
+      <div id="kpiGrid" class="kpi-grid"></div>
+      <div class="card">
+        <div class="section-heading">
+          <div><p class="eyebrow">TÌNH HÌNH THEO THÁNG</p><h2>So sánh chỉ tiêu chính</h2></div>
+        </div>
+        <div id="trendTable" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <section id="entry" class="panel">
+      <form id="entryForm" class="card">
+        <div class="section-heading">
+          <div><p class="eyebrow">NHẬP SỐ LIỆU</p><h2 id="entryTitle">Tháng</h2></div>
+          <button type="submit" class="btn primary">Lưu số liệu</button>
+        </div>
+        <div id="entryFields" class="form-grid"></div>
+        <label class="full-width">Ghi chú chung
+          <textarea id="generalNote" rows="3" placeholder="Nhập nội dung cần lưu ý trong tháng"></textarea>
+        </label>
+      </form>
+    </section>
+
+    <section id="lookup" class="panel">
+      <div class="card">
+        <div class="section-heading">
+          <div><p class="eyebrow">TRA CỨU</p><h2>Tìm chỉ tiêu</h2></div>
+          <input id="searchInput" class="search" type="search" placeholder="Nhập tên chỉ tiêu..." />
+        </div>
+        <div id="lookupTable" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <section id="report" class="panel">
+      <div class="card">
+        <div class="section-heading">
+          <div><p class="eyebrow">BÁO CÁO TỰ ĐỘNG</p><h2>Tháng, quý, 6 tháng và năm</h2></div>
+        </div>
+        <div id="reportTable" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <section id="history" class="panel">
+      <div class="card">
+        <div class="section-heading"><div><p class="eyebrow">NHẬT KÝ</p><h2>Lịch sử cập nhật</h2></div></div>
+        <div id="historyList"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
