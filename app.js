@@ -1,3 +1,5 @@
+const APPS_SCRIPT_URL =
+  'https://script.google.com/macros/s/AKfycbx0BHA-P1sAuGXEtrQatvEsMXMn3d7Pb024mCbu9tRTvaAr0xdy_cA0GPvJ_kFne6dOgw/exec';
 const STORAGE_KEY = 'thyt-data-v1';
 const HISTORY_KEY = 'thyt-history-v1';
 
