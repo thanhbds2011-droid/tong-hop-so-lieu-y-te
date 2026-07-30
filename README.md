@@ -1,25 +1,20 @@
-# Tổng hợp số liệu Phòng Y tế
+# Tổng hợp số liệu Phòng Y tế — Google Sheet
 
-Ứng dụng tĩnh chạy trên GitHub Pages, dùng để nhập, tra cứu và tự động tổng hợp số liệu tháng, quý, 6 tháng, năm.
+## Cấu trúc
+- `index.html`, `styles.css`, `app.js`: dán đè toàn bộ repository GitHub Pages.
+- `apps-script/Code.gs`, `apps-script/Index.html`: dán vào dự án Apps Script gắn với Google Sheet.
 
-## Chức năng
-- Nhập/cập nhật số liệu theo tháng.
-- Tra cứu từng chỉ tiêu.
-- Tự cộng Quý I, Quý II, 6 tháng và cả năm.
-- Dashboard chỉ tiêu chính.
-- Nhật ký cập nhật.
-- Xuất CSV mở bằng Excel.
-- Có sẵn dữ liệu mẫu năm 2026 lấy từ bảng Excel ban đầu.
+## Thiết lập nhanh
+1. Mở Google Sheet → Tiện ích mở rộng → Apps Script.
+2. Dán đè `Code.gs`, tạo file HTML tên `Index` và dán `Index.html`.
+3. Chạy hàm `setupSheets()` một lần và cấp quyền.
+4. Vào sheet `NGƯỜI DÙNG`, thêm email theo 5 cột: Email | Họ tên | Vai trò | Được nhập liệu | Trạng thái.
+5. Giá trị hợp lệ: `TRUE` và `Hoạt động`.
+6. Triển khai Apps Script thành Web App. Dùng URL kết thúc bằng `/exec`.
+7. Nếu URL mới khác URL có sẵn, sửa duy nhất hằng số `APPS_SCRIPT_URL` ở đầu `app.js`.
+8. Dán đè 4 file GitHub và chờ GitHub Pages cập nhật.
 
-## Chạy thử
-Mở `index.html` bằng trình duyệt hoặc dùng GitHub Pages.
-
-## Lưu ý dữ liệu
-Phiên bản đầu lưu dữ liệu bằng `localStorage` trên trình duyệt. Dữ liệu chỉ tồn tại trên thiết bị đang nhập. Giai đoạn tiếp theo nên kết nối Firebase Firestore để nhiều máy cùng sử dụng và đồng bộ dữ liệu.
-
-## Đưa lên GitHub Pages
-1. Tạo repository mới, ví dụ `tong-hop-so-lieu-y-te`.
-2. Upload toàn bộ các file trong thư mục này vào nhánh `main`.
-3. Vào **Settings → Pages**.
-4. Chọn **Deploy from a branch**.
-5. Chọn nhánh `main`, thư mục `/ (root)`, rồi Save.
+## Quyền sử dụng
+- GitHub Pages: ai có đường link đều được xem dữ liệu.
+- Trang Apps Script: chỉ email có trong sheet `NGƯỜI DÙNG` mới nhập được.
+- Không còn localStorage và không còn dữ liệu mẫu cứng trong GitHub.
