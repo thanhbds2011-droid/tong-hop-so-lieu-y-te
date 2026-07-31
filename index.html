@@ -16,22 +16,35 @@
   <div class="brand-block">
     <p class="eyebrow">TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</p>
     <h1>Tổng hợp số liệu Phòng Y tế</h1>
-    <p class="subtitle">Theo dõi hằng ngày · Tổng hợp tự động · Tra cứu minh bạch</p>
+    <p class="subtitle">Theo dõi số liệu hằng ngày và tổng hợp tự động theo khoảng thời gian</p>
   </div>
   <div class="top-actions">
-    <button id="btnSync" class="btn btn-ghost" type="button"><span class="icon">↻</span> Đồng bộ</button>
-    <button id="btnAccount" class="btn btn-white" type="button">Tài khoản / Nhập số liệu</button>
+    <button id="btnSync" class="btn btn-glass" type="button" aria-label="Đồng bộ dữ liệu">
+      <span class="btn-icon" aria-hidden="true">↻</span>
+      <span>Đồng bộ</span>
+    </button>
+    <button id="btnAccount" class="btn btn-white" type="button">
+      <span class="btn-icon" aria-hidden="true">👤</span>
+      <span>Tài khoản / Nhập số liệu</span>
+    </button>
   </div>
 </header>
 
 <main class="container">
-  <section class="filter-card card">
-    <div class="filter-header">
-      <div><p class="section-kicker">BỘ LỌC THỐNG KÊ</p><h2>Chọn phạm vi cần xem</h2></div>
-      <div class="sync-status"><span id="statusDot" class="status-dot"></span><span id="syncText">Chưa đồng bộ</span></div>
+  <section class="card filter-card" aria-labelledby="filterTitle">
+    <div class="filter-heading">
+      <div>
+        <p class="eyebrow dark">BỘ LỌC</p>
+        <h2 id="filterTitle">Phạm vi thống kê</h2>
+      </div>
+      <div class="sync-status" aria-live="polite">
+        <span id="statusDot" class="status-dot"></span>
+        <span id="syncText">Chưa đồng bộ</span>
+      </div>
     </div>
+
     <div class="filter-grid">
-      <label>Phạm vi
+      <label class="field">Phạm vi
         <select id="periodType">
           <option value="day">Theo ngày</option>
           <option value="range">Từ ngày đến ngày</option>
@@ -40,24 +53,36 @@
           <option value="year">Theo năm</option>
         </select>
       </label>
-      <label id="dayField">Ngày
+
+      <label id="dayField" class="field">Ngày
         <input id="daySelect" type="date">
       </label>
-      <label id="fromField" hidden>Từ ngày
+
+      <label id="fromField" class="field" hidden>Từ ngày
         <input id="fromDate" type="date">
       </label>
-      <label id="toField" hidden>Đến ngày
+
+      <label id="toField" class="field" hidden>Đến ngày
         <input id="toDate" type="date">
       </label>
-      <label id="monthField" hidden>Tháng
+
+      <label id="monthField" class="field" hidden>Tháng
         <input id="monthSelect" type="month">
       </label>
-      <label id="quarterField" hidden>Quý
-        <select id="quarterSelect"><option value="1">Quý I</option><option value="2">Quý II</option><option value="3">Quý III</option><option value="4">Quý IV</option></select>
+
+      <label id="quarterField" class="field" hidden>Quý
+        <select id="quarterSelect">
+          <option value="1">Quý I</option>
+          <option value="2">Quý II</option>
+          <option value="3">Quý III</option>
+          <option value="4">Quý IV</option>
+        </select>
       </label>
-      <label id="yearField">Năm
+
+      <label id="yearField" class="field" hidden>Năm
         <select id="yearSelect"></select>
       </label>
+
       <div class="filter-actions">
         <button id="btnApply" class="btn btn-primary" type="button">Áp dụng</button>
         <button id="btnExport" class="btn btn-secondary" type="button">Xuất CSV</button>
@@ -65,7 +90,7 @@
     </div>
   </section>
 
-  <div id="notice" class="notice" hidden></div>
+  <div id="notice" class="notice" hidden role="alert"></div>
 
   <nav class="tabs" aria-label="Chức năng">
     <button class="tab active" data-tab="dashboard" type="button">Tổng quan</button>
@@ -77,52 +102,85 @@
   <section id="dashboard" class="panel active">
     <div id="kpiGrid" class="kpi-grid"></div>
     <div class="card">
-      <div class="section-heading"><div><p class="section-kicker">TỔNG HỢP</p><h2 id="summaryTitle">Số liệu theo phạm vi đã chọn</h2></div></div>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow dark">TỔNG HỢP</p>
+          <h2 id="summaryTitle">Số liệu theo phạm vi đã chọn</h2>
+        </div>
+      </div>
       <div id="summaryTable" class="table-wrap"></div>
     </div>
   </section>
 
   <section id="lookup" class="panel">
     <div class="card">
-      <div class="section-heading"><div><p class="section-kicker">TRA CỨU</p><h2>Tìm kiếm chỉ tiêu</h2></div><input id="searchInput" class="search" type="search" placeholder="Nhập tên hoặc nhóm chỉ tiêu..."></div>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow dark">TRA CỨU</p>
+          <h2>Tìm kiếm chỉ tiêu</h2>
+        </div>
+        <input id="searchInput" class="search" type="search" placeholder="Nhập tên chỉ tiêu hoặc nhóm...">
+      </div>
       <div id="lookupTable" class="table-wrap"></div>
     </div>
   </section>
 
   <section id="report" class="panel">
     <div class="card">
-      <div class="section-heading"><div><p class="section-kicker">BÁO CÁO</p><h2 id="reportTitle">Tổng hợp 12 tháng</h2></div></div>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow dark">BÁO CÁO</p>
+          <h2 id="reportTitle">Chi tiết theo thời gian</h2>
+        </div>
+      </div>
       <div id="reportTable" class="table-wrap"></div>
     </div>
   </section>
 
   <section id="history" class="panel">
     <div class="card">
-      <div class="section-heading"><div><p class="section-kicker">NHẬT KÝ</p><h2>Lịch sử cập nhật</h2></div><input id="historySearch" class="search" type="search" placeholder="Tìm tài khoản, người cập nhật..."></div>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow dark">NHẬT KÝ</p>
+          <h2>Lịch sử cập nhật theo phạm vi</h2>
+        </div>
+        <input id="historySearch" class="search" type="search" placeholder="Tìm họ tên hoặc nội dung...">
+      </div>
       <div id="historyList" class="history-list"></div>
     </div>
   </section>
 </main>
 
 <div id="accountModal" class="modal" hidden>
-  <div class="modal-backdrop" data-close-modal></div>
-  <section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-backdrop" data-close-account></div>
+  <section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
     <header class="modal-header">
-      <div><p class="section-kicker">PHÒNG Y TẾ</p><h2 id="modalTitle">Tài khoản và nhập số liệu</h2></div>
-      <button class="modal-close" type="button" aria-label="Đóng" data-close-modal>×</button>
+      <div>
+        <p class="eyebrow dark">PHÒNG Y TẾ</p>
+        <h2 id="accountModalTitle">Tài khoản và nhập số liệu</h2>
+      </div>
+      <button class="modal-close" type="button" aria-label="Đóng cửa sổ" data-close-account>×</button>
     </header>
+
     <div class="modal-body">
-      <div id="frameLoading" class="frame-loading"><div class="spinner small"></div><span>Đang mở hệ thống tài khoản...</span></div>
-      <iframe id="accountFrame" title="Đăng ký, đăng nhập và nhập số liệu Phòng Y tế" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      <div id="frameLoading" class="frame-loading">
+        <div class="spinner"></div>
+        <p>Đang mở hệ thống tài khoản...</p>
+      </div>
+      <iframe id="accountFrame" title="Tài khoản và nhập số liệu Phòng Y tế" referrerpolicy="strict-origin-when-cross-origin"></iframe>
     </div>
+
     <footer class="modal-footer">
       <a id="openSeparate" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">Mở cửa sổ riêng</a>
-      <button id="btnCloseSync" class="btn btn-primary" type="button">Đóng và đồng bộ</button>
+      <button id="btnCloseAndSync" class="btn btn-primary" type="button">Đóng và đồng bộ</button>
     </footer>
   </section>
 </div>
 
-<div id="loading" class="loading-overlay" hidden><div class="spinner"></div><p>Đang tải dữ liệu...</p></div>
+<div id="loading" class="loading-overlay" hidden>
+  <div class="spinner"></div>
+  <p>Đang tải dữ liệu...</p>
+</div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="app.js"></script>
 </body>
