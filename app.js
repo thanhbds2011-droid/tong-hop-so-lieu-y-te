@@ -1,5 +1,5 @@
 'use strict';
-const APPS_SCRIPT_URL='DAN_LINK_APPS_SCRIPT_EXEC_VAO_DAY';
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbx0BHA-P1sAuGXEtrQatvEsMXMn3d7Pb024mCbu9tRTvaAr0xdy_cA0GPvJ_kFne6dOgw/exec';
 const state={year:new Date().getFullYear(),categories:[],records:[],logs:[],generatedAt:''};
 const $=id=>document.getElementById(id);const num=v=>Number(v||0);const fmt=v=>new Intl.NumberFormat('vi-VN').format(num(v));
 function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
