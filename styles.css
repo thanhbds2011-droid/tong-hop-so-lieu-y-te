@@ -310,5 +310,6 @@ body.modal-open { overflow: hidden; }
   .search { max-width: none; }
   .top-actions { width: 100%; }
   .top-actions .btn { flex: 1; }
-  .modal-footer { display: grid; grid-template-columns: 1fr 1fr; }
+  .modal-footer { display: flex; }
+  .modal-footer .btn { width: 100%; }
 }

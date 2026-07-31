@@ -520,7 +520,6 @@ function openAccountModal() {
   $('accountModal').hidden = false;
   $('frameLoading').hidden = false;
   $('accountFrame').src = url;
-  $('openSeparate').href = APPS_SCRIPT_URL;
   document.body.classList.add('modal-open');
 }
 
