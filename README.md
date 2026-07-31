@@ -1,20 +1,19 @@
-# Tổng hợp số liệu Phòng Y tế — Google Sheet
+# Tổng hợp số liệu Phòng Y tế — bản tài khoản tự đăng ký
 
-## Cấu trúc
-- `index.html`, `styles.css`, `app.js`: dán đè toàn bộ repository GitHub Pages.
-- `apps-script/Code.gs`, `apps-script/Index.html`: dán vào dự án Apps Script gắn với Google Sheet.
+## Thành phần
+- `Code.gs`: dán đè toàn bộ Apps Script. HTML đăng ký/đăng nhập/nhập liệu đã gộp trong file này.
+- `index.html`, `styles.css`, `app.js`: dán đè vào GitHub Pages.
 
-## Thiết lập nhanh
-1. Mở Google Sheet → Tiện ích mở rộng → Apps Script.
-2. Dán đè `Code.gs`, tạo file HTML tên `Index` và dán `Index.html`.
-3. Chạy hàm `setupSheets()` một lần và cấp quyền.
-4. Vào sheet `NGƯỜI DÙNG`, thêm email theo 5 cột: Email | Họ tên | Vai trò | Được nhập liệu | Trạng thái.
-5. Giá trị hợp lệ: `TRUE` và `Hoạt động`.
-6. Triển khai Apps Script thành Web App. Dùng URL kết thúc bằng `/exec`.
-7. Nếu URL mới khác URL có sẵn, sửa duy nhất hằng số `APPS_SCRIPT_URL` ở đầu `app.js`.
-8. Dán đè 4 file GitHub và chờ GitHub Pages cập nhật.
+## Cấu hình duy nhất
+Trong `app.js`, thay `DAN_URL_APPS_SCRIPT_EXEC_VAO_DAY` bằng URL Apps Script kết thúc `/exec`.
 
-## Quyền sử dụng
-- GitHub Pages: ai có đường link đều được xem dữ liệu.
-- Trang Apps Script: chỉ email có trong sheet `NGƯỜI DÙNG` mới nhập được.
-- Không còn localStorage và không còn dữ liệu mẫu cứng trong GitHub.
+## Triển khai Apps Script
+- Thực thi dưới dạng: **Tôi**.
+- Người có quyền truy cập: **Bất kỳ ai**.
+- Chạy `setupSheets()` một lần trước khi triển khai.
+
+## Tài khoản
+Người dùng tự đăng ký bằng họ tên, tài khoản và mật khẩu. Mật khẩu được băm SHA-256 với muối riêng; không lưu mật khẩu chữ rõ. Tài khoản mới mặc định ở trạng thái `Hoạt động`. Quản trị viên có thể đổi cột Trạng thái thành `Khóa` để chặn đăng nhập.
+
+## Dữ liệu
+Dữ liệu nhập theo ngày và được tổng hợp theo ngày, khoảng ngày, tháng, quý, năm. Bộ lọc khoảng ngày hỗ trợ tối đa 3 năm trong một lần tra cứu.
