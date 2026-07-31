@@ -1,32 +1,49 @@
-# Ứng dụng Tổng hợp số liệu Phòng Y tế — Giao diện chuyên nghiệp V3
+# Bản giao diện V4 – chuyên nghiệp hơn cho desktop và điện thoại
 
-## Thành phần
+## Điểm đã chỉnh
+1. Chỉ còn **1 nút Đăng xuất** duy nhất ở góc phải trên.
+2. Nút **Đồng bộ** đổi thành nút icon **↻** gọn hơn.
+3. Font đổi sang **Be Vietnam Pro**.
+4. Giao diện mobile chỉnh lại theo kiểu ứng dụng hơn:
+   - header gọn hơn,
+   - các tab nằm dạng lưới cố định dưới đáy màn hình,
+   - nút thao tác lớn, dễ bấm.
+5. GitHub Pages được nâng thành **PWA**:
+   - có `manifest.json`,
+   - có `sw.js`,
+   - khi cài ra màn hình chính sẽ mở ở chế độ **standalone** (không hiện thanh địa chỉ như mở web thông thường, tùy thiết bị/trình duyệt hỗ trợ).
 
-- `Code.gs`: dán đè toàn bộ vào Google Apps Script.
-- `index.html`: dán đè toàn bộ vào GitHub Pages.
+## File cần cập nhật
+### Apps Script
+- `Code.gs`
 
-## Điểm mới
+### GitHub
+- `index.html`
+- `manifest.json`
+- `sw.js`
+- `icon-192.png`
+- `icon-512.png`
 
-- Giao diện thẻ hiện đại, không trình bày giống bảng Excel.
-- Bộ lọc theo ngày, từ ngày đến ngày, tháng, quý và năm.
-- Bộ lọc nội dung: chọn một chỉ tiêu hoặc “Tất cả nội dung”.
-- Tra cứu bằng thẻ trực quan; báo cáo theo từng ngày; nhật ký dạng dòng thời gian.
-- Nhập liệu dạng thẻ 2 cột, tối ưu máy tính và điện thoại.
-- Sau khi lưu thành công, toàn bộ số liệu về `0`, ghi chú trở về trống.
-- Có nút “Nạp dữ liệu đã lưu” khi cần chỉnh sửa ngày cũ.
-- Máy đang nhập đồng bộ ngay sau khi lưu; thiết bị khác tự kiểm tra dữ liệu mới mỗi 8 giây và khi quay lại tab.
+## Cách cập nhật
+### 1) Apps Script
+- Mở Apps Script.
+- Xóa toàn bộ file `Code.gs` cũ.
+- Dán file `Code.gs` mới.
+- Lưu.
+- Triển khai phiên bản mới.
 
-## Cài đặt
+### 2) GitHub Pages
+Trong repo GitHub, thay/đưa thêm:
+- `index.html`
+- `manifest.json`
+- `sw.js`
+- `icon-192.png`
+- `icon-512.png`
 
-1. Apps Script: mở `Mã.gs`/`Code.gs`, xóa toàn bộ, dán nội dung `Code.gs` mới.
-2. Chạy `setupSheets()` một lần.
-3. Triển khai → Quản lý tùy chọn triển khai → Chỉnh sửa → Phiên bản mới → Triển khai.
-4. GitHub: dán đè file `index.html`.
-5. Nếu URL `/exec` của Apps Script thay đổi, sửa thuộc tính `src` của iframe trong `index.html`.
-6. Chờ GitHub Pages cập nhật rồi nhấn `Ctrl + F5`.
+Commit thay đổi.
 
-## Lưu ý vận hành
-
-- “Làm trống biểu mẫu” chỉ xóa số đang hiển thị trên màn hình, không xóa dữ liệu trong Sheet.
-- “Nạp dữ liệu đã lưu” dùng để sửa số liệu đã nhập của ngày được chọn.
-- Bộ lọc nội dung ảnh hưởng tới Tổng quan, Báo cáo và file CSV.
+## Sau khi cập nhật
+- Mở domain GitHub.
+- Nhấn `Ctrl + F5` trên máy tính để xóa cache.
+- Trên điện thoại, đóng tab cũ rồi mở lại.
+- Nếu đã cài ứng dụng trước đó, nên gỡ bản cũ rồi cài lại từ GitHub Pages để nhận manifest/PWA mới.
