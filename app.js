@@ -9,11 +9,6 @@
   var loadingText = document.getElementById('loadingText');
   var timeoutPanel = document.getElementById('timeoutPanel');
   var offlineBanner = document.getElementById('offlineBanner');
-  var connectionStatus = document.getElementById('connectionStatus');
-  var connectionText = document.getElementById('connectionText');
-  var openDirectButton = document.getElementById('openDirectButton');
-  var timeoutDirectLink = document.getElementById('timeoutDirectLink');
-  var refreshButton = document.getElementById('refreshButton');
   var retryButton = document.getElementById('retryButton');
   var retrySetupButton = document.getElementById('retrySetupButton');
 
@@ -35,49 +30,31 @@
     }
   }
 
-  function setConnection(mode, text) {
-    connectionStatus.className = 'connection-status ' + mode;
-    connectionText.textContent = text;
-  }
-
   function updateNetworkUi() {
-    var online = navigator.onLine;
-    offlineBanner.hidden = online;
-    if (!online) setConnection('offline', 'Mất kết nối');
-    else if (!isConfigured) setConnection('warning', 'Chưa cấu hình');
-    else if (!loadingLayer.hidden) setConnection('loading', 'Đang kết nối');
-    else setConnection('online', 'Đã kết nối');
+    offlineBanner.hidden = navigator.onLine;
   }
 
   function showSetup() {
     isConfigured = false;
     setupPanel.hidden = false;
     viewer.hidden = true;
-    openDirectButton.hidden = true;
-    setConnection('warning', 'Chưa cấu hình');
   }
 
   function showLoading(message) {
     loadingText.textContent = message || 'Đang kết nối đến hệ thống dữ liệu…';
     loadingLayer.hidden = false;
     timeoutPanel.hidden = true;
-    setConnection('loading', 'Đang kết nối');
   }
 
   function showReady() {
     window.clearTimeout(loadTimer);
     loadingLayer.hidden = true;
     timeoutPanel.hidden = true;
-    setConnection(navigator.onLine ? 'online' : 'offline', navigator.onLine ? 'Đã kết nối' : 'Mất kết nối');
   }
 
   function showTimeout() {
     loadingLayer.hidden = true;
     timeoutPanel.hidden = false;
-    setConnection(
-      navigator.onLine ? 'warning' : 'offline',
-      navigator.onLine ? 'Phản hồi chậm' : 'Mất kết nối'
-    );
   }
 
   function cacheBustedUrl(url) {
@@ -101,9 +78,6 @@
     isConfigured = true;
     setupPanel.hidden = true;
     viewer.hidden = false;
-    openDirectButton.hidden = false;
-    openDirectButton.href = currentUrl;
-    timeoutDirectLink.href = currentUrl;
     showLoading(forceRefresh ? 'Đang tải lại phiên làm việc…' : 'Đang kết nối đến hệ thống dữ liệu…');
 
     if (!navigator.onLine) {
@@ -112,20 +86,12 @@
       return;
     }
 
-    frame.removeAttribute('src');
-    window.requestAnimationFrame(function () {
-      frame.src = forceRefresh ? cacheBustedUrl(currentUrl) : currentUrl;
-      startTimeout();
-    });
+    startTimeout();
+    frame.src = forceRefresh ? cacheBustedUrl(currentUrl) : currentUrl;
   }
 
   frame.addEventListener('load', function () {
     if (frame.getAttribute('src')) showReady();
-  });
-
-  refreshButton.addEventListener('click', function () {
-    if (isConfigured) loadApplication(true);
-    else loadApplication(false);
   });
 
   retryButton.addEventListener('click', function () {

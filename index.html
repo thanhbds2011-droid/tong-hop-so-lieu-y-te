@@ -12,82 +12,60 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css">
-  <script src="./app-config.js" defer></script>
-  <script src="./app.js" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=6.1.0">
+  <script src="./app-config.js?v=6.1.0" defer></script>
+  <script src="./app.js?v=6.1.0" defer></script>
 </head>
 <body>
-  <div class="site-shell">
-    <header class="topbar">
-      <div class="brand" aria-label="Trung tâm Bảo trợ xã hội Tân Hiệp">
-        <div class="brand-mark" aria-hidden="true">+</div>
-        <div class="brand-copy">
-          <span>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</span>
-          <strong>Tổng hợp số liệu Phòng Y tế</strong>
-        </div>
-      </div>
-
-      <div class="topbar-actions">
-        <div id="connectionStatus" class="connection-status" role="status" aria-live="polite">
-          <span class="status-dot" aria-hidden="true"></span>
-          <span id="connectionText">Đang kết nối</span>
-        </div>
-        <button id="refreshButton" class="icon-button" type="button" title="Tải lại ứng dụng" aria-label="Tải lại ứng dụng">↻</button>
-        <a id="openDirectButton" class="button button-light" href="#" target="_blank" rel="noopener noreferrer" hidden>Mở toàn màn hình</a>
-      </div>
-    </header>
-
+  <main class="app-stage">
     <div id="offlineBanner" class="offline-banner" role="alert" hidden>
       <strong>Thiết bị đang mất kết nối mạng.</strong>
       <span>Giao diện sẽ tự kết nối lại khi có Internet.</span>
     </div>
 
-    <main class="app-stage">
-      <section id="setupPanel" class="setup-panel" hidden aria-labelledby="setupTitle">
-        <div class="setup-icon" aria-hidden="true">⚙</div>
-        <p class="eyebrow">Thiết lập lần đầu</p>
-        <h1 id="setupTitle">Chưa cấu hình URL Apps Script</h1>
-        <p>
-          Mở tệp <code>app-config.js</code> và dán URL Web App kết thúc bằng
-          <code>/exec</code> vào mục <code>APPS_SCRIPT_URL</code>.
-        </p>
-        <div class="setup-example">https://script.google.com/macros/s/…/exec</div>
-        <button id="retrySetupButton" class="button button-primary" type="button">Kiểm tra lại cấu hình</button>
-      </section>
+    <section id="setupPanel" class="setup-panel" hidden aria-labelledby="setupTitle">
+      <div class="setup-icon" aria-hidden="true">⚙</div>
+      <p class="eyebrow">Thiết lập lần đầu</p>
+      <h1 id="setupTitle">Chưa cấu hình URL Apps Script</h1>
+      <p>
+        Mở tệp <code>app-config.js</code> và dán URL Web App kết thúc bằng
+        <code>/exec</code> vào mục <code>APPS_SCRIPT_URL</code>.
+      </p>
+      <div class="setup-example">https://script.google.com/macros/s/…/exec</div>
+      <button id="retrySetupButton" class="button button-primary" type="button">Kiểm tra lại cấu hình</button>
+    </section>
 
-      <section id="viewer" class="viewer" hidden aria-label="Ứng dụng số liệu Phòng Y tế">
-        <iframe
-          id="appFrame"
-          title="Tổng hợp số liệu Phòng Y tế"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allow="clipboard-read; clipboard-write"
-        ></iframe>
+    <section id="viewer" class="viewer" hidden aria-label="Ứng dụng số liệu Phòng Y tế">
+      <iframe
+        id="appFrame"
+        title="Tổng hợp số liệu Phòng Y tế"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allow="clipboard-read; clipboard-write"
+      ></iframe>
 
-        <div id="loadingLayer" class="loading-layer" role="status" aria-live="polite">
-          <div class="loading-card">
-            <div class="loader-mark" aria-hidden="true">+</div>
-            <div class="loading-copy">
-              <strong>Đang mở ứng dụng</strong>
-              <span id="loadingText">Đang kết nối đến hệ thống dữ liệu…</span>
-            </div>
-            <div class="progress-track" aria-hidden="true"><span></span></div>
+      <div id="loadingLayer" class="loading-layer" role="status" aria-live="polite">
+        <div class="loading-card">
+          <div class="loader-mark" aria-hidden="true">+</div>
+          <div class="loading-copy">
+            <strong>Đang mở ứng dụng</strong>
+            <span id="loadingText">Đang kết nối đến hệ thống dữ liệu…</span>
+          </div>
+          <div class="progress-track" aria-hidden="true"><span></span></div>
+        </div>
+      </div>
+
+      <div id="timeoutPanel" class="timeout-panel" hidden>
+        <div class="timeout-card">
+          <div class="timeout-icon" aria-hidden="true">!</div>
+          <h2>Ứng dụng phản hồi chậm</h2>
+          <p>Hãy kiểm tra Internet hoặc thử tải lại. Dữ liệu trong Google Sheet không bị ảnh hưởng.</p>
+          <div class="timeout-actions">
+            <button id="retryButton" class="button button-primary" type="button">Tải lại</button>
           </div>
         </div>
-
-        <div id="timeoutPanel" class="timeout-panel" hidden>
-          <div class="timeout-card">
-            <div class="timeout-icon" aria-hidden="true">!</div>
-            <h2>Ứng dụng phản hồi chậm</h2>
-            <p>Hãy kiểm tra Internet hoặc thử tải lại. Dữ liệu trong Google Sheet không bị ảnh hưởng.</p>
-            <div class="timeout-actions">
-              <button id="retryButton" class="button button-primary" type="button">Tải lại</button>
-              <a id="timeoutDirectLink" class="button button-soft" href="#" target="_blank" rel="noopener noreferrer">Mở trực tiếp</a>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
+      </div>
+    </section>
+  </main>
 
   <noscript>
     <div class="noscript">Ứng dụng cần JavaScript để hoạt động. Vui lòng bật JavaScript và tải lại trang.</div>

@@ -1,12 +1,12 @@
 'use strict';
 
-var CACHE_NAME = 'y-te-shell-v6.0.0';
+var CACHE_NAME = 'y-te-shell-v6.1.0';
 var APP_SHELL = [
   './',
   './index.html',
-  './styles.css',
-  './app-config.js',
-  './app.js',
+  './styles.css?v=6.1.0',
+  './app-config.js?v=6.1.0',
+  './app.js?v=6.1.0',
   './manifest.webmanifest',
   './offline.html',
   './assets/favicon-32.png',
