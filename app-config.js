@@ -11,7 +11,7 @@
 window.YTE_APP_CONFIG = Object.freeze({
   APP_NAME: 'Tổng hợp số liệu Phòng Y tế',
   ORGANIZATION: 'Trung tâm Bảo trợ xã hội Tân Hiệp',
-  APPS_SCRIPT_URL: 'DAN_URL_WEB_APP_APPS_SCRIPT_VAO_DAY',
+  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbx0BHA-P1sAuGXEtrQatvEsMXMn3d7Pb024mCbu9tRTvaAr0xdy_cA0GPvJ_kFne6dOgw/exec',
   LOAD_TIMEOUT_MS: 30000,
   VERSION: '6.0.0'
 });
