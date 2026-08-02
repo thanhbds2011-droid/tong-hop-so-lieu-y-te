@@ -106,16 +106,23 @@
   }
 
   frame.addEventListener('load', function () {
-    if (frame.getAttribute('src') && !appReady) {
-      loadingText.textContent = 'Đang khởi tạo giao diện ứng dụng…';
-    }
-  });
+  if (!frame.getAttribute('src')) return;
 
-  window.addEventListener('message', function (event) {
-    if (event.source !== frame.contentWindow || !isAllowedGoogleOrigin(event.origin)) return;
-    if (!event.data || event.data.type !== 'YTE_APP_READY') return;
-    showReady();
-  });
+  loadingText.textContent = 'Đang khởi tạo giao diện ứng dụng…';
+
+  window.setTimeout(function () {
+    if (!appReady) {
+      showReady();
+    }
+  }, 800);
+});
+
+ window.addEventListener('message', function (event) {
+  if (!isAllowedGoogleOrigin(event.origin)) return;
+  if (!event.data || event.data.type !== 'YTE_APP_READY') return;
+
+  showReady();
+});
 
   retryButton.addEventListener('click', function () {
     loadApplication(true);
