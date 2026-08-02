@@ -1,110 +1,80 @@
-# Tổng hợp số liệu Phòng Y tế — GitHub Pages V6
+# Tổng hợp số liệu Phòng Y tế — V6.2.0
 
-Bộ mã nguồn này là lớp giao diện GitHub Pages/PWA dùng để mở Web App Google Apps Script của **Trung tâm Bảo trợ xã hội Tân Hiệp**.
+Ứng dụng sử dụng ba lớp:
 
-## Chức năng
+1. **GitHub Pages/PWA** làm cổng truy cập.
+2. **Google Apps Script Web App** xử lý giao diện và nghiệp vụ.
+3. **Google Sheet** lưu dữ liệu tập trung.
 
-- Hiển thị Web App Apps Script trong một khung toàn màn hình.
-- Giao diện chờ nhẹ, rõ trạng thái kết nối.
-- Tự phát hiện mất mạng và tự kết nối lại.
-- Nút tải lại và mở Web App trực tiếp.
-- Hỗ trợ cài lên màn hình chính dưới dạng PWA.
-- Hoạt động tốt trên máy tính, máy tính bảng và điện thoại.
-- Tự động triển khai bằng GitHub Actions.
-- Không dùng thư viện ngoài, không cần cài Node.js hay chạy lệnh build.
+## Nội dung đã hoàn thiện
 
-## Bước 1 — Lấy URL Apps Script
+- Bỏ hoàn toàn mục Báo cáo và xuất CSV.
+- Tài khoản Nhập liệu chỉ thấy **Tổng quan** và **Nhập liệu**.
+- Chỉ tài khoản Quản trị thấy **Nhật ký** và **Quản trị**.
+- Backend bắt buộc kiểm tra quyền Quản trị khi đọc nhật ký hoặc quản lý tài khoản.
+- Nhật ký ghi thêm vai trò, đăng nhập và đăng xuất.
+- Quản trị viên có thể khóa, mở khóa, đổi vai trò và xóa mềm tài khoản.
+- Quy trình quên mật khẩu chuyển sang yêu cầu chờ Quản trị viên xác nhận.
+- Sau khi duyệt, mật khẩu tạm chỉ hiển thị một lần và người dùng bị buộc đổi mật khẩu.
+- Trang Tổng quan hiển thị `Xin chào, Họ và tên`.
+- Không còn thông báo `Đăng nhập thành công`.
+- Giao diện Quản trị hiển thị đúng trạng thái đang tải.
+- Giữ nguyên cơ chế nhập bổ sung, chỉnh sửa tổng, chống ghi đè và `LockService`.
 
-1. Mở dự án Google Apps Script.
-2. Chọn **Triển khai → Quản lý quá trình triển khai**.
-3. Chỉnh sửa bản triển khai Web App hiện tại hoặc tạo bản mới.
-4. Sao chép URL có dạng:
-
-   ```text
-   https://script.google.com/macros/s/MA_TRIEN_KHAI/exec
-   ```
-
-Luôn dùng URL kết thúc bằng `/exec`, không dùng URL `/dev` khi đưa vào sử dụng chính thức.
-
-## Bước 2 — Cấu hình GitHub
-
-Mở tệp `app-config.js` và thay:
-
-```js
-APPS_SCRIPT_URL: 'DAN_URL_WEB_APP_APPS_SCRIPT_VAO_DAY',
-```
-
-thành URL thật:
-
-```js
-APPS_SCRIPT_URL: 'https://script.google.com/macros/s/MA_TRIEN_KHAI/exec',
-```
-
-Chỉ cần thay đúng một dòng này. Không đưa mật khẩu, token hoặc thông tin bí mật vào mã GitHub.
-
-## Bước 3 — Đưa toàn bộ mã lên GitHub
-
-1. Tạo repository mới trên GitHub.
-2. Đặt nhánh chính là `main`.
-3. Tải **toàn bộ nội dung trong thư mục này** lên thư mục gốc của repository.
-4. Vào **Settings → Pages**.
-5. Tại **Build and deployment → Source**, chọn **GitHub Actions**.
-6. Mở thẻ **Actions** và đợi quy trình `Deploy GitHub Pages` hoàn thành.
-
-Địa chỉ ứng dụng thường có dạng:
+## Cấu trúc
 
 ```text
-https://TEN_TAI_KHOAN.github.io/TEN_REPOSITORY/
+.
+├── .github/workflows/deploy-pages.yml
+├── apps-script/Code.gs
+├── assets/
+├── .nojekyll
+├── app-config.js
+├── app.js
+├── index.html
+├── manifest.webmanifest
+├── offline.html
+├── robots.txt
+├── service-worker.js
+└── styles.css
 ```
 
-Quy trình triển khai sử dụng các phiên bản action được tài liệu GitHub Pages hiện hành hướng dẫn: `checkout@v6`, `configure-pages@v5`, `upload-pages-artifact@v4`, `deploy-pages@v4`.
+## Cập nhật Google Apps Script
 
-## Cấu trúc mã nguồn
+1. Mở dự án Apps Script hiện tại.
+2. Sao lưu mã cũ.
+3. Mở `apps-script/Code.gs`, sao chép toàn bộ và dán đè vào `Code.gs` của dự án.
+4. Chạy thủ công hàm `initializeApplication()` một lần và cấp quyền khi Google yêu cầu.
+5. Hàm này chỉ tạo sheet/cột còn thiếu; không xóa dữ liệu hiện hữu.
+6. Chọn **Triển khai → Quản lý quá trình triển khai → Chỉnh sửa**.
+7. Chọn **Phiên bản mới** và triển khai lại Web App.
+8. Giữ nguyên URL `/exec` nếu chỉnh sửa deployment hiện tại.
 
-```text
-github-pages-v6/
-├── .github/workflows/deploy-pages.yml  # Tự động triển khai GitHub Pages
-├── apps-script/Code.gs                 # Bản Apps Script V6 đi kèm
-├── assets/                             # Biểu tượng PWA
-├── app-config.js                       # Nơi dán URL Apps Script
-├── app.js                              # Điều khiển tải, mạng và khung ứng dụng
-├── index.html                          # Trang chính GitHub Pages
-├── manifest.webmanifest                # Cấu hình cài ứng dụng PWA
-├── offline.html                        # Màn hình mất mạng
-├── service-worker.js                   # Bộ nhớ đệm giao diện PWA
-├── styles.css                          # Toàn bộ giao diện
-├── robots.txt                          # Không cho máy tìm kiếm lập chỉ mục
-└── .nojekyll                           # Tắt xử lý Jekyll không cần thiết
-```
+Các cột mới được thêm ở cuối sheet `NGƯỜI DÙNG`:
 
-## Cập nhật phiên bản sau này
+- Yêu cầu đổi mật khẩu
+- Thời gian yêu cầu
+- Trạng thái yêu cầu
+- Người xác nhận
+- Thời gian xác nhận
 
-1. Cập nhật `apps-script/Code.gs` trong Apps Script và triển khai phiên bản mới.
-2. Nếu sửa đúng bản triển khai hiện tại thì URL `/exec` không đổi, GitHub không cần sửa.
-3. Nếu tạo một deployment hoàn toàn mới, cập nhật lại `APPS_SCRIPT_URL` trong `app-config.js`.
-4. Đẩy thay đổi lên nhánh `main`; GitHub Actions tự triển khai.
+Sheet `NHẬT KÝ` được thêm cột `Vai trò` ở cuối.
 
-## Xử lý lỗi thường gặp
+## Cập nhật GitHub Pages
 
-### Trang báo “Chưa cấu hình URL Apps Script”
+1. Tải toàn bộ nội dung thư mục này lên thư mục gốc repository.
+2. Kiểm tra `APPS_SCRIPT_URL` trong `app-config.js` vẫn là URL `/exec` đúng.
+3. Vào **Settings → Pages → Source**, chọn **GitHub Actions**.
+4. Mở thẻ **Actions** và đợi workflow `Deploy GitHub Pages` hoàn tất.
+5. Sau khi triển khai, nhấn `Ctrl + F5` để bỏ cache cũ.
 
-Kiểm tra `APPS_SCRIPT_URL` trong `app-config.js` và bảo đảm URL kết thúc bằng `/exec`.
+Workflow dùng các action theo mẫu GitHub Pages: `checkout@v6`, `configure-pages@v5`, `upload-pages-artifact@v4`, `deploy-pages@v4`.
 
-### Khung ứng dụng trắng hoặc không đăng nhập được
+## Kiểm tra nghiệm thu
 
-- Kiểm tra Apps Script đã được triển khai dưới dạng **Web App**.
-- Kiểm tra quyền truy cập của deployment phù hợp với người sử dụng.
-- Bảo đảm `doGet()` trong Apps Script có `XFrameOptionsMode.ALLOWALL`.
-- Mở URL `/exec` trực tiếp trong trình duyệt để xác nhận Web App hoạt động.
-
-### GitHub Pages vẫn hiện giao diện cũ
-
-- Đợi quy trình trong thẻ **Actions** hoàn thành.
-- Nhấn `Ctrl + F5` trên máy tính.
-- Với PWA trên điện thoại, đóng hoàn toàn ứng dụng rồi mở lại.
-
-## Lưu ý bảo mật
-
-GitHub Pages và URL Apps Script là công khai. Việc bảo vệ dữ liệu phải do phần Apps Script đảm nhiệm bằng tài khoản đăng nhập, phiên làm việc và phân quyền. Không lưu mật khẩu hoặc khóa bí mật trong repository.
-
-Tài liệu tham khảo: [GitHub Pages — Using custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+- Tài khoản Nhập liệu không thấy Nhật ký và Quản trị.
+- Quản trị viên thấy đủ bốn mục Tổng quan, Nhật ký, Nhập liệu, Quản trị.
+- Người dùng gửi yêu cầu quên mật khẩu; Quản trị viên thấy trạng thái Chờ duyệt.
+- Quản trị viên xác nhận và nhận mật khẩu tạm một lần.
+- Người dùng đăng nhập bằng mật khẩu tạm nhưng chưa thể nhập dữ liệu cho đến khi đổi mật khẩu.
+- Xóa tài khoản không làm mất nhật ký hoặc dữ liệu đã nhập.

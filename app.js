@@ -15,6 +15,7 @@
   var loadTimer = null;
   var currentUrl = '';
   var isConfigured = false;
+  var appReady = false;
 
   function getConfiguredUrl() {
     var raw = String(config.APPS_SCRIPT_URL || '').trim();
@@ -30,6 +31,17 @@
     }
   }
 
+  function isAllowedGoogleOrigin(origin) {
+    try {
+      var hostname = new URL(origin).hostname;
+      return hostname === 'script.google.com' ||
+        hostname === 'script.googleusercontent.com' ||
+        hostname.endsWith('.googleusercontent.com');
+    } catch (error) {
+      return false;
+    }
+  }
+
   function updateNetworkUi() {
     offlineBanner.hidden = navigator.onLine;
   }
@@ -41,18 +53,21 @@
   }
 
   function showLoading(message) {
+    appReady = false;
     loadingText.textContent = message || 'Đang kết nối đến hệ thống dữ liệu…';
     loadingLayer.hidden = false;
     timeoutPanel.hidden = true;
   }
 
   function showReady() {
+    appReady = true;
     window.clearTimeout(loadTimer);
     loadingLayer.hidden = true;
     timeoutPanel.hidden = true;
   }
 
   function showTimeout() {
+    if (appReady) return;
     loadingLayer.hidden = true;
     timeoutPanel.hidden = false;
   }
@@ -91,7 +106,15 @@
   }
 
   frame.addEventListener('load', function () {
-    if (frame.getAttribute('src')) showReady();
+    if (frame.getAttribute('src') && !appReady) {
+      loadingText.textContent = 'Đang khởi tạo giao diện ứng dụng…';
+    }
+  });
+
+  window.addEventListener('message', function (event) {
+    if (event.source !== frame.contentWindow || !isAllowedGoogleOrigin(event.origin)) return;
+    if (!event.data || event.data.type !== 'YTE_APP_READY') return;
+    showReady();
   });
 
   retryButton.addEventListener('click', function () {

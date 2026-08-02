@@ -1,12 +1,13 @@
 'use strict';
 
-var CACHE_NAME = 'y-te-shell-v6.1.0';
+var CACHE_PREFIX = 'tong-hop-so-lieu-y-te-';
+var CACHE_NAME = CACHE_PREFIX + 'v6.2.0';
 var APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=6.1.0',
-  './app-config.js?v=6.1.0',
-  './app.js?v=6.1.0',
+  './styles.css?v=6.2.0',
+  './app-config.js?v=6.2.0',
+  './app.js?v=6.2.0',
   './manifest.webmanifest',
   './offline.html',
   './assets/favicon-32.png',
@@ -27,9 +28,11 @@ self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys()
       .then(function (keys) {
-        return Promise.all(keys.map(function (key) {
-          return key === CACHE_NAME ? Promise.resolve() : caches.delete(key);
-        }));
+        return Promise.all(keys
+          .filter(function (key) {
+            return key.indexOf(CACHE_PREFIX) === 0 && key !== CACHE_NAME;
+          })
+          .map(function (key) { return caches.delete(key); }));
       })
       .then(function () { return self.clients.claim(); })
   );
