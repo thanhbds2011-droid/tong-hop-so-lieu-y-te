@@ -1,6 +1,6 @@
-# Tổng hợp số liệu Phòng Y tế — V6.3.1
+# Tổng hợp số liệu Phòng Y tế — V6.3.2
 
-> Bản 6.3.1 chỉ cho phép **bổ sung số phát sinh**; chức năng chỉnh sửa tổng đã bị loại bỏ ở cả giao diện và backend. Mục Nhật ký đã được bỏ khỏi giao diện, nhưng hệ thống vẫn ghi nhật ký nội bộ trong Google Sheet để bảo toàn truy vết.
+> Bản 6.3.2 chỉ cho phép **bổ sung số phát sinh**; chức năng chỉnh sửa tổng đã bị loại bỏ ở cả giao diện và backend. Mục Nhật ký đã được bỏ khỏi giao diện, nhưng hệ thống vẫn ghi nhật ký nội bộ trong Google Sheet để bảo toàn truy vết.
 
 Ứng dụng giữ nguyên ba lớp kiến trúc:
 
@@ -8,7 +8,16 @@
 2. **Google Apps Script Web App** xử lý giao diện và nghiệp vụ.
 3. **Google Sheet** lưu dữ liệu hiện hữu.
 
-## Điểm hoàn thiện của V6.3.1
+
+## Hoàn thiện giao diện V6.3.2
+
+- Không còn thanh thông báo xanh cố định sau khi lưu số liệu.
+- Kết quả lưu được cập nhật gọn tại trạng thái của khu vực Nhập liệu.
+- Thay toàn bộ hộp xác nhận mặc định của trình duyệt bằng hộp xác nhận đồng bộ với giao diện ứng dụng.
+- Thông báo thành công dùng toast ngắn; lỗi và cảnh báo quan trọng vẫn hiển thị rõ.
+- Không thay đổi dữ liệu, cấu trúc Sheet hoặc nguyên tắc chỉ bổ sung số phát sinh.
+
+## Điểm hoàn thiện của V6.3.2
 
 - Tổng quan được rút gọn, bỏ nhãn “Dữ liệu tập trung”.
 - Hiển thị lời chào theo họ tên tài khoản đang đăng nhập.
@@ -60,7 +69,7 @@
 2. Kiểm tra `APPS_SCRIPT_URL` trong `app-config.js`.
 3. Vào **Settings → Pages**, chọn nguồn **GitHub Actions**.
 4. Chờ workflow `Deploy GitHub Pages` hoàn tất.
-5. Mở ứng dụng và nhấn `Ctrl + F5` để nhận cache V6.3.1.
+5. Mở ứng dụng và nhấn `Ctrl + F5` để nhận cache V6.3.2.
 
 ## Nghiệm thu nhanh
 
