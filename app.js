@@ -13,13 +13,13 @@
   var retrySetupButton = document.getElementById('retrySetupButton');
 
   var loadTimer = null;
-  var currentUrl = '';
   var isConfigured = false;
   var appReady = false;
 
   function getConfiguredUrl() {
     var raw = String(config.APPS_SCRIPT_URL || '').trim();
     if (!raw || raw.indexOf('DAN_URL_') === 0) return '';
+
     try {
       var parsed = new URL(raw);
       var isGoogleHost = parsed.hostname === 'script.google.com';
@@ -80,11 +80,14 @@
 
   function startTimeout() {
     window.clearTimeout(loadTimer);
-    loadTimer = window.setTimeout(showTimeout, Number(config.LOAD_TIMEOUT_MS) || 30000);
+    loadTimer = window.setTimeout(
+      showTimeout,
+      Number(config.LOAD_TIMEOUT_MS) || 30000
+    );
   }
 
   function loadApplication(forceRefresh) {
-    currentUrl = getConfiguredUrl();
+    var currentUrl = getConfiguredUrl();
     if (!currentUrl) {
       showSetup();
       return;
@@ -93,7 +96,11 @@
     isConfigured = true;
     setupPanel.hidden = true;
     viewer.hidden = false;
-    showLoading(forceRefresh ? 'Đang tải lại phiên làm việc…' : 'Đang kết nối đến hệ thống dữ liệu…');
+    showLoading(
+      forceRefresh
+        ? 'Đang tải lại phiên làm việc…'
+        : 'Đang kết nối đến hệ thống dữ liệu…'
+    );
 
     if (!navigator.onLine) {
       updateNetworkUi();
@@ -106,23 +113,22 @@
   }
 
   frame.addEventListener('load', function () {
-  if (!frame.getAttribute('src')) return;
+    if (!frame.getAttribute('src')) return;
 
-  loadingText.textContent = 'Đang khởi tạo giao diện ứng dụng…';
+    loadingText.textContent = 'Đang khởi tạo giao diện ứng dụng…';
 
-  window.setTimeout(function () {
-    if (!appReady) {
-      showReady();
-    }
-  }, 800);
-});
+    // Apps Script có thể đi qua iframe trung gian của Google. Khi iframe đã
+    // tải xong, đây là cơ chế dự phòng để không giữ lớp chờ sai trạng thái.
+    window.setTimeout(function () {
+      if (!appReady) showReady();
+    }, 800);
+  });
 
- window.addEventListener('message', function (event) {
-  if (!isAllowedGoogleOrigin(event.origin)) return;
-  if (!event.data || event.data.type !== 'YTE_APP_READY') return;
-
-  showReady();
-});
+  window.addEventListener('message', function (event) {
+    if (!isAllowedGoogleOrigin(event.origin)) return;
+    if (!event.data || event.data.type !== 'YTE_APP_READY') return;
+    showReady();
+  });
 
   retryButton.addEventListener('click', function () {
     loadApplication(true);
@@ -142,11 +148,16 @@
   loadApplication(false);
   updateNetworkUi();
 
-  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  if (
+    'serviceWorker' in navigator &&
+    (location.protocol === 'https:' || location.hostname === 'localhost')
+  ) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('./service-worker.js', { scope: './' }).catch(function () {
-        // Ứng dụng vẫn hoạt động bình thường nếu trình duyệt không hỗ trợ PWA.
-      });
+      navigator.serviceWorker
+        .register('./service-worker.js', { scope: './' })
+        .catch(function () {
+          // Ứng dụng vẫn hoạt động nếu trình duyệt không hỗ trợ PWA.
+        });
     });
   }
 })();

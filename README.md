@@ -1,27 +1,29 @@
-# Tổng hợp số liệu Phòng Y tế — V6.2.0
+# Tổng hợp số liệu Phòng Y tế — V6.3.0
 
-Ứng dụng sử dụng ba lớp:
+Ứng dụng giữ nguyên ba lớp kiến trúc:
 
 1. **GitHub Pages/PWA** làm cổng truy cập.
 2. **Google Apps Script Web App** xử lý giao diện và nghiệp vụ.
-3. **Google Sheet** lưu dữ liệu tập trung.
+3. **Google Sheet** lưu dữ liệu hiện hữu.
 
-## Nội dung đã hoàn thiện
+## Điểm hoàn thiện của V6.3.0
 
-- Bỏ hoàn toàn mục Báo cáo và xuất CSV.
-- Tài khoản Nhập liệu chỉ thấy **Tổng quan** và **Nhập liệu**.
-- Chỉ tài khoản Quản trị thấy **Nhật ký** và **Quản trị**.
-- Backend bắt buộc kiểm tra quyền Quản trị khi đọc nhật ký hoặc quản lý tài khoản.
-- Nhật ký ghi thêm vai trò, đăng nhập và đăng xuất.
-- Quản trị viên có thể khóa, mở khóa, đổi vai trò và xóa mềm tài khoản.
-- Quy trình quên mật khẩu chuyển sang yêu cầu chờ Quản trị viên xác nhận.
-- Sau khi duyệt, mật khẩu tạm chỉ hiển thị một lần và người dùng bị buộc đổi mật khẩu.
-- Trang Tổng quan hiển thị `Xin chào, Họ và tên`.
-- Không còn thông báo `Đăng nhập thành công`.
-- Giao diện Quản trị hiển thị đúng trạng thái đang tải.
-- Giữ nguyên cơ chế nhập bổ sung, chỉnh sửa tổng, chống ghi đè và `LockService`.
+- Tổng quan được rút gọn, bỏ nhãn “Dữ liệu tập trung”.
+- Hiển thị lời chào theo họ tên tài khoản đang đăng nhập.
+- Nhập liệu chuyển sang giao diện danh sách/bảng gọn trên máy tính và thẻ trên điện thoại.
+- Chế độ **Bổ sung trong ngày** hiển thị trước tổng sau khi lưu.
+- Chế độ **Chỉnh sửa tổng** được phân biệt rõ và vẫn giữ chống ghi đè bằng phiên bản dữ liệu.
+- Dữ liệu ngày hiện tại được nạp cùng phiên đăng nhập/khôi phục phiên và lưu trong bộ nhớ đệm.
+- Bấm **Nhập liệu** hiển thị ngay, không bật lớp tải toàn màn hình.
+- Đổi ngày hoặc làm mới dữ liệu chỉ hiển thị trạng thái tải nhỏ ngay trong khu vực nhập liệu.
+- Tìm kiếm chỉ tiêu không làm mất nội dung đang nhập.
+- Nhật ký chỉ dành cho Quản trị; bỏ tiêu đề lặp, giữ chức năng truy vết.
+- Quản trị bỏ tiêu đề “Quản lý tài khoản”, dùng thanh công cụ gọn, tìm kiếm và bộ nhớ đệm.
+- Chỉ hiện hướng dẫn quên mật khẩu khi thực sự có yêu cầu chờ duyệt.
+- Giữ nguyên khóa/mở khóa, cấp/hạ quyền, xóa mềm và duyệt mật khẩu tạm.
+- Không xóa sheet, cột hoặc dữ liệu hiện hữu; cột thiếu chỉ được thêm ở cuối.
 
-## Cấu trúc
+## Cấu trúc bàn giao
 
 ```text
 .
@@ -39,42 +41,31 @@
 └── styles.css
 ```
 
-## Cập nhật Google Apps Script
+## Cập nhật Apps Script
 
-1. Mở dự án Apps Script hiện tại.
-2. Sao lưu mã cũ.
-3. Mở `apps-script/Code.gs`, sao chép toàn bộ và dán đè vào `Code.gs` của dự án.
-4. Chạy thủ công hàm `initializeApplication()` một lần và cấp quyền khi Google yêu cầu.
-5. Hàm này chỉ tạo sheet/cột còn thiếu; không xóa dữ liệu hiện hữu.
-6. Chọn **Triển khai → Quản lý quá trình triển khai → Chỉnh sửa**.
-7. Chọn **Phiên bản mới** và triển khai lại Web App.
-8. Giữ nguyên URL `/exec` nếu chỉnh sửa deployment hiện tại.
+1. Sao lưu `Code.gs` đang dùng.
+2. Mở `apps-script/Code.gs`, sao chép toàn bộ và dán đè vào dự án Apps Script.
+3. Lưu mã và chạy thủ công `initializeApplication()` một lần.
+4. Chọn **Triển khai → Quản lý quá trình triển khai → Chỉnh sửa**.
+5. Chọn **Phiên bản mới** và triển khai lại Web App.
+6. Giữ nguyên URL `/exec` nếu cập nhật deployment hiện tại.
 
-Các cột mới được thêm ở cuối sheet `NGƯỜI DÙNG`:
-
-- Yêu cầu đổi mật khẩu
-- Thời gian yêu cầu
-- Trạng thái yêu cầu
-- Người xác nhận
-- Thời gian xác nhận
-
-Sheet `NHẬT KÝ` được thêm cột `Vai trò` ở cuối.
+`initializeApplication()` chỉ tạo sheet/cột còn thiếu và không xóa dữ liệu.
 
 ## Cập nhật GitHub Pages
 
 1. Tải toàn bộ nội dung thư mục này lên thư mục gốc repository.
-2. Kiểm tra `APPS_SCRIPT_URL` trong `app-config.js` vẫn là URL `/exec` đúng.
-3. Vào **Settings → Pages → Source**, chọn **GitHub Actions**.
-4. Mở thẻ **Actions** và đợi workflow `Deploy GitHub Pages` hoàn tất.
-5. Sau khi triển khai, nhấn `Ctrl + F5` để bỏ cache cũ.
+2. Kiểm tra `APPS_SCRIPT_URL` trong `app-config.js`.
+3. Vào **Settings → Pages**, chọn nguồn **GitHub Actions**.
+4. Chờ workflow `Deploy GitHub Pages` hoàn tất.
+5. Mở ứng dụng và nhấn `Ctrl + F5` để nhận cache V6.3.0.
 
-Workflow dùng các action theo mẫu GitHub Pages: `checkout@v6`, `configure-pages@v5`, `upload-pages-artifact@v4`, `deploy-pages@v4`.
+## Nghiệm thu nhanh
 
-## Kiểm tra nghiệm thu
-
+- Nhập liệu mở tức thời sau đăng nhập.
+- Tìm kiếm chỉ tiêu không xóa nội dung chưa lưu.
+- Bổ sung hiển thị đúng “đã lưu + số nhập”.
+- Chỉnh sửa tổng chỉ cập nhật mục được thay đổi.
 - Tài khoản Nhập liệu không thấy Nhật ký và Quản trị.
-- Quản trị viên thấy đủ bốn mục Tổng quan, Nhật ký, Nhập liệu, Quản trị.
-- Người dùng gửi yêu cầu quên mật khẩu; Quản trị viên thấy trạng thái Chờ duyệt.
-- Quản trị viên xác nhận và nhận mật khẩu tạm một lần.
-- Người dùng đăng nhập bằng mật khẩu tạm nhưng chưa thể nhập dữ liệu cho đến khi đổi mật khẩu.
-- Xóa tài khoản không làm mất nhật ký hoặc dữ liệu đã nhập.
+- Quản trị viên xem được Nhật ký, quản lý tài khoản và duyệt quên mật khẩu.
+- Dữ liệu cũ trong Google Sheet không bị xóa hoặc đổi cấu trúc.
