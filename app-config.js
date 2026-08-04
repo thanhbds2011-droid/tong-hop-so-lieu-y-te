@@ -13,5 +13,5 @@ window.YTE_APP_CONFIG = Object.freeze({
   ORGANIZATION: 'Trung tâm Bảo trợ xã hội Tân Hiệp',
   APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbx0BHA-P1sAuGXEtrQatvEsMXMn3d7Pb024mCbu9tRTvaAr0xdy_cA0GPvJ_kFne6dOgw/exec',
   LOAD_TIMEOUT_MS: 30000,
-  VERSION: '6.4.0'
+  VERSION: '6.4.1'
 });

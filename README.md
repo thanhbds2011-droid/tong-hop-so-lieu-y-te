@@ -1,6 +1,6 @@
-# Tổng hợp số liệu Phòng Y tế — V6.4.0
+# Tổng hợp số liệu Phòng Y tế — V6.4.1
 
-Phiên bản 6.4.0 giữ nguyên kiến trúc:
+Phiên bản 6.4.1 giữ nguyên kiến trúc:
 
 1. **GitHub Pages/PWA** làm cổng truy cập.
 2. **Google Apps Script Web App** xử lý giao diện và nghiệp vụ.
@@ -18,21 +18,16 @@ Phiên bản 6.4.0 giữ nguyên kiến trúc:
 - Chỉ các chỉ tiêu vừa nhập mới được cập nhật.
 - Có kiểm tra phiên bản để tránh ghi đè khi dữ liệu vừa được cập nhật ở thiết bị khác.
 
-### 2. Điều chỉnh hoặc xóa số đã lưu
+### 2. Điều chỉnh số đã lưu
 
 Tại mỗi chỉ tiêu đã có dữ liệu, chọn **Điều chỉnh** để:
 
-- Sửa tổng đang lưu, ví dụ từ 30 thành 10.
-- Xóa số liệu của chỉ tiêu trong ngày.
+- Tăng hoặc giảm tổng đang lưu, ví dụ từ 30 thành 10 hoặc 40.
+- Nhập `0` nếu cần đưa số liệu của chỉ tiêu trong ngày về 0.
 - Bắt buộc nhập lý do ít nhất 5 ký tự.
 - Lưu giá trị trước, giá trị sau, lý do, người thực hiện và thời gian.
 
-Xóa số liệu là **xóa mềm**:
-
-- Dòng dữ liệu không bị xóa khỏi Google Sheet.
-- Trạng thái được chuyển thành `Đã xóa`.
-- Dashboard và màn hình nhập liệu không tính dòng đã xóa.
-- Khi bổ sung lại cùng ngày và cùng chỉ tiêu, hệ thống tái sử dụng dòng cũ và bắt đầu lại từ 0.
+Không có nút xóa riêng. Giá trị `0` vẫn được giữ ở trạng thái `Hoạt động`, giúp tiếp tục điều chỉnh hoặc bổ sung lại thuận tiện.
 
 ## Lịch sử truy vết
 
@@ -66,7 +61,7 @@ Sheet `NHẬT KÝ` hiện hữu vẫn được giữ nguyên và tiếp tục gh
 
 - Không xóa sheet hiện hữu.
 - Không xóa cột hiện hữu.
-- Không xóa vật lý bản ghi số liệu.
+- Không xóa vật lý bản ghi số liệu; điều chỉnh về 0 khi cần.
 - Cột hoặc sheet mới chỉ được bổ sung khi còn thiếu.
 - Dữ liệu cùng ngày và mã chỉ tiêu tiếp tục cập nhật tại dòng hiện hữu.
 
@@ -104,14 +99,14 @@ Sheet `NHẬT KÝ` hiện hữu vẫn được giữ nguyên và tiếp tục gh
 1. Tải toàn bộ nội dung thư mục này lên thư mục gốc repository.
 2. Kiểm tra `APPS_SCRIPT_URL` trong `app-config.js`.
 3. Chờ GitHub Actions triển khai hoàn tất.
-4. Mở ứng dụng và nhấn `Ctrl + F5` để nhận cache V6.4.0.
+4. Mở ứng dụng và nhấn `Ctrl + F5` để nhận cache V6.4.1.
 
 ## Nghiệm thu nhanh
 
 - Bổ sung 1 vào tổng 30 cho kết quả 31.
 - Chọn **Điều chỉnh**, nhập tổng mới 10 và lý do; kết quả còn 10.
-- Chọn **Xóa số liệu**, nhập lý do; chỉ tiêu không còn được tính trong ngày.
-- Bổ sung lại sau khi xóa bắt đầu từ 0.
-- Điều chỉnh hoặc xóa không thành công nếu dữ liệu vừa bị người khác thay đổi.
+- Chọn **Điều chỉnh**, nhập `0` và lý do; chỉ tiêu được đưa về 0.
+- Sau khi đưa về 0, có thể tiếp tục bổ sung hoặc điều chỉnh bình thường.
+- Điều chỉnh không thành công nếu dữ liệu vừa bị người khác thay đổi.
 - Sheet `LỊCH SỬ SỐ LIỆU` có đủ giá trị trước, sau, lý do và người thực hiện.
 - Dữ liệu, tài khoản và các sheet cũ vẫn còn nguyên.

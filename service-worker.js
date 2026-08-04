@@ -1,13 +1,13 @@
 'use strict';
 
 var CACHE_PREFIX = 'tong-hop-so-lieu-y-te-';
-var CACHE_NAME = CACHE_PREFIX + 'v6.4.0';
+var CACHE_NAME = CACHE_PREFIX + 'v6.4.1';
 var APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=6.4.0',
-  './app-config.js?v=6.4.0',
-  './app.js?v=6.4.0',
+  './styles.css?v=6.4.1',
+  './app-config.js?v=6.4.1',
+  './app.js?v=6.4.1',
   './manifest.webmanifest',
   './offline.html',
   './assets/favicon-32.png',
