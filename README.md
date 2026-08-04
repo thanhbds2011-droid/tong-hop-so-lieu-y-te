@@ -1,38 +1,74 @@
-# Tổng hợp số liệu Phòng Y tế — V6.3.2
+# Tổng hợp số liệu Phòng Y tế — V6.4.0
 
-> Bản 6.3.2 chỉ cho phép **bổ sung số phát sinh**; chức năng chỉnh sửa tổng đã bị loại bỏ ở cả giao diện và backend. Mục Nhật ký đã được bỏ khỏi giao diện, nhưng hệ thống vẫn ghi nhật ký nội bộ trong Google Sheet để bảo toàn truy vết.
-
-Ứng dụng giữ nguyên ba lớp kiến trúc:
+Phiên bản 6.4.0 giữ nguyên kiến trúc:
 
 1. **GitHub Pages/PWA** làm cổng truy cập.
 2. **Google Apps Script Web App** xử lý giao diện và nghiệp vụ.
-3. **Google Sheet** lưu dữ liệu hiện hữu.
+3. **Google Sheet** lưu dữ liệu tập trung.
 
+## Nghiệp vụ số liệu
 
-## Hoàn thiện giao diện V6.3.2
+Ứng dụng có hai luồng rõ ràng:
 
-- Không còn thanh thông báo xanh cố định sau khi lưu số liệu.
-- Kết quả lưu được cập nhật gọn tại trạng thái của khu vực Nhập liệu.
-- Thay toàn bộ hộp xác nhận mặc định của trình duyệt bằng hộp xác nhận đồng bộ với giao diện ứng dụng.
-- Thông báo thành công dùng toast ngắn; lỗi và cảnh báo quan trọng vẫn hiển thị rõ.
-- Không thay đổi dữ liệu, cấu trúc Sheet hoặc nguyên tắc chỉ bổ sung số phát sinh.
+### 1. Bổ sung số phát sinh
 
-## Điểm hoàn thiện của V6.3.2
+- Nhập số phát sinh mới.
+- Hệ thống cộng vào tổng đang lưu.
+- Số bổ sung phải là số nguyên lớn hơn 0.
+- Chỉ các chỉ tiêu vừa nhập mới được cập nhật.
+- Có kiểm tra phiên bản để tránh ghi đè khi dữ liệu vừa được cập nhật ở thiết bị khác.
 
-- Tổng quan được rút gọn, bỏ nhãn “Dữ liệu tập trung”.
-- Hiển thị lời chào theo họ tên tài khoản đang đăng nhập.
-- Nhập liệu chuyển sang giao diện danh sách/bảng gọn trên máy tính và thẻ trên điện thoại.
-- Chế độ **Bổ sung trong ngày** hiển thị trước tổng sau khi lưu.
-- Chế độ **Chỉnh sửa tổng** được phân biệt rõ và vẫn giữ chống ghi đè bằng phiên bản dữ liệu.
-- Dữ liệu ngày hiện tại được nạp cùng phiên đăng nhập/khôi phục phiên và lưu trong bộ nhớ đệm.
-- Bấm **Nhập liệu** hiển thị ngay, không bật lớp tải toàn màn hình.
-- Đổi ngày hoặc làm mới dữ liệu chỉ hiển thị trạng thái tải nhỏ ngay trong khu vực nhập liệu.
-- Tìm kiếm chỉ tiêu không làm mất nội dung đang nhập.
-- Nhật ký chỉ dành cho Quản trị; bỏ tiêu đề lặp, giữ chức năng truy vết.
-- Quản trị bỏ tiêu đề “Quản lý tài khoản”, dùng thanh công cụ gọn, tìm kiếm và bộ nhớ đệm.
-- Chỉ hiện hướng dẫn quên mật khẩu khi thực sự có yêu cầu chờ duyệt.
-- Giữ nguyên khóa/mở khóa, cấp/hạ quyền, xóa mềm và duyệt mật khẩu tạm.
-- Không xóa sheet, cột hoặc dữ liệu hiện hữu; cột thiếu chỉ được thêm ở cuối.
+### 2. Điều chỉnh hoặc xóa số đã lưu
+
+Tại mỗi chỉ tiêu đã có dữ liệu, chọn **Điều chỉnh** để:
+
+- Sửa tổng đang lưu, ví dụ từ 30 thành 10.
+- Xóa số liệu của chỉ tiêu trong ngày.
+- Bắt buộc nhập lý do ít nhất 5 ký tự.
+- Lưu giá trị trước, giá trị sau, lý do, người thực hiện và thời gian.
+
+Xóa số liệu là **xóa mềm**:
+
+- Dòng dữ liệu không bị xóa khỏi Google Sheet.
+- Trạng thái được chuyển thành `Đã xóa`.
+- Dashboard và màn hình nhập liệu không tính dòng đã xóa.
+- Khi bổ sung lại cùng ngày và cùng chỉ tiêu, hệ thống tái sử dụng dòng cũ và bắt đầu lại từ 0.
+
+## Lịch sử truy vết
+
+Phiên bản này bổ sung sheet:
+
+```text
+LỊCH SỬ SỐ LIỆU
+```
+
+Các cột gồm:
+
+- ID lịch sử
+- Thời gian
+- ID dữ liệu
+- Ngày số liệu
+- Mã chỉ tiêu
+- Tên chỉ tiêu
+- Thao tác
+- Giá trị trước
+- Giá trị sau
+- Ghi chú trước
+- Ghi chú sau
+- Lý do
+- Tài khoản
+- Họ và tên
+- Vai trò
+
+Sheet `NHẬT KÝ` hiện hữu vẫn được giữ nguyên và tiếp tục ghi hoạt động. Nhật ký không hiển thị trên giao diện.
+
+## Nguyên tắc bảo toàn dữ liệu
+
+- Không xóa sheet hiện hữu.
+- Không xóa cột hiện hữu.
+- Không xóa vật lý bản ghi số liệu.
+- Cột hoặc sheet mới chỉ được bổ sung khi còn thiếu.
+- Dữ liệu cùng ngày và mã chỉ tiêu tiếp tục cập nhật tại dòng hiện hữu.
 
 ## Cấu trúc bàn giao
 
@@ -55,28 +91,27 @@
 ## Cập nhật Apps Script
 
 1. Sao lưu `Code.gs` đang dùng.
-2. Mở `apps-script/Code.gs`, sao chép toàn bộ và dán đè vào dự án Apps Script.
-3. Lưu mã và chạy thủ công `initializeApplication()` một lần.
-4. Chọn **Triển khai → Quản lý quá trình triển khai → Chỉnh sửa**.
-5. Chọn **Phiên bản mới** và triển khai lại Web App.
-6. Giữ nguyên URL `/exec` nếu cập nhật deployment hiện tại.
+2. Sao chép toàn bộ `apps-script/Code.gs` và dán đè vào dự án Apps Script.
+3. Lưu mã.
+4. Chạy thủ công `initializeApplication()` một lần.
+5. Chọn **Triển khai → Quản lý quá trình triển khai → Chỉnh sửa**.
+6. Chọn **Phiên bản mới** và triển khai lại Web App.
 
-`initializeApplication()` chỉ tạo sheet/cột còn thiếu và không xóa dữ liệu.
+`initializeApplication()` chỉ tạo sheet/cột còn thiếu; không xóa dữ liệu.
 
 ## Cập nhật GitHub Pages
 
 1. Tải toàn bộ nội dung thư mục này lên thư mục gốc repository.
 2. Kiểm tra `APPS_SCRIPT_URL` trong `app-config.js`.
-3. Vào **Settings → Pages**, chọn nguồn **GitHub Actions**.
-4. Chờ workflow `Deploy GitHub Pages` hoàn tất.
-5. Mở ứng dụng và nhấn `Ctrl + F5` để nhận cache V6.3.2.
+3. Chờ GitHub Actions triển khai hoàn tất.
+4. Mở ứng dụng và nhấn `Ctrl + F5` để nhận cache V6.4.0.
 
 ## Nghiệm thu nhanh
 
-- Nhập liệu mở tức thời sau đăng nhập.
-- Tìm kiếm chỉ tiêu không xóa nội dung chưa lưu.
-- Bổ sung hiển thị đúng “đã lưu + số nhập”.
-- Chỉnh sửa tổng chỉ cập nhật mục được thay đổi.
-- Tài khoản Nhập liệu không thấy Nhật ký và Quản trị.
-- Quản trị viên xem được Nhật ký, quản lý tài khoản và duyệt quên mật khẩu.
-- Dữ liệu cũ trong Google Sheet không bị xóa hoặc đổi cấu trúc.
+- Bổ sung 1 vào tổng 30 cho kết quả 31.
+- Chọn **Điều chỉnh**, nhập tổng mới 10 và lý do; kết quả còn 10.
+- Chọn **Xóa số liệu**, nhập lý do; chỉ tiêu không còn được tính trong ngày.
+- Bổ sung lại sau khi xóa bắt đầu từ 0.
+- Điều chỉnh hoặc xóa không thành công nếu dữ liệu vừa bị người khác thay đổi.
+- Sheet `LỊCH SỬ SỐ LIỆU` có đủ giá trị trước, sau, lý do và người thực hiện.
+- Dữ liệu, tài khoản và các sheet cũ vẫn còn nguyên.
