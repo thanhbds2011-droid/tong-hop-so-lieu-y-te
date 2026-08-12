@@ -1,7 +1,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'tong-hop-so-lieu-y-te-firebase-';
-const CACHE_NAME = CACHE_PREFIX + 'v7.0.1';
+const CACHE_NAME = CACHE_PREFIX + 'v7.0.2';
 const APP_SHELL = [
   './',
   './index.html',
