@@ -1,13 +1,13 @@
 'use strict';
 
-var CACHE_PREFIX = 'tong-hop-so-lieu-y-te-';
-var CACHE_NAME = CACHE_PREFIX + 'v6.7.0';
-var APP_SHELL = [
+const CACHE_PREFIX = 'tong-hop-so-lieu-y-te-firebase-';
+const CACHE_NAME = CACHE_PREFIX + 'v7.0.0';
+const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=6.7.0',
-  './app-config.js?v=6.7.0',
-  './app.js?v=6.7.0',
+  './styles.css?v=7.0.0',
+  './app-config.js?v=7.0.0',
+  './app.js?v=7.0.0',
   './manifest.webmanifest',
   './offline.html',
   './assets/favicon-32.png',
@@ -16,72 +16,65 @@ var APP_SHELL = [
   './assets/apple-touch-icon.png'
 ];
 
-self.addEventListener('install', function (event) {
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(function (cache) { return cache.addAll(APP_SHELL); })
-      .then(function () { return self.skipWaiting(); })
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('activate', function (event) {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then(function (keys) {
-        return Promise.all(keys
-          .filter(function (key) {
-            return key.indexOf(CACHE_PREFIX) === 0 && key !== CACHE_NAME;
-          })
-          .map(function (key) { return caches.delete(key); }));
-      })
-      .then(function () { return self.clients.claim(); })
+      .then((keys) => Promise.all(
+        keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', function (event) {
-  var request = event.request;
-  var url = new URL(request.url);
-
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then(function (response) {
-          var copy = response.clone();
-          caches.open(CACHE_NAME).then(function (cache) { cache.put(request, copy); });
+      fetch(request, { cache: 'no-store' })
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
         })
-        .catch(function () {
-          return caches.match(request).then(function (cached) {
-            return cached || caches.match('./offline.html');
-          });
-        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('./offline.html')))
     );
     return;
   }
 
-  if (url.pathname.endsWith('/app-config.js')) {
+  const networkFirst = /(?:app-config|app)\.js$/.test(url.pathname);
+  if (networkFirst) {
     event.respondWith(
       fetch(request, { cache: 'no-store' })
-        .then(function (response) {
+        .then((response) => {
           if (response && response.ok) {
-            var copy = response.clone();
-            caches.open(CACHE_NAME).then(function (cache) { cache.put(request, copy); });
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           }
           return response;
         })
-        .catch(function () { return caches.match(request); })
+        .catch(() => caches.match(request))
     );
     return;
   }
 
   event.respondWith(
-    caches.match(request).then(function (cached) {
-      var network = fetch(request).then(function (response) {
+    caches.match(request).then((cached) => {
+      const network = fetch(request).then((response) => {
         if (response && response.ok) {
-          var copy = response.clone();
-          caches.open(CACHE_NAME).then(function (cache) { cache.put(request, copy); });
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
         return response;
       });

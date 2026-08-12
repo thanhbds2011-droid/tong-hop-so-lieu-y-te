@@ -1,26 +1,42 @@
-# Tổng hợp số liệu Phòng Y tế — V6.7.0
+# Tổng hợp số liệu Phòng Y tế – Firebase Production 7.0.0
 
-Kiến trúc được giữ nguyên:
+## Kiến trúc
 
-- GitHub Pages làm khung PWA.
-- Google Apps Script xử lý giao diện và nghiệp vụ.
-- Google Sheet lưu dữ liệu tập trung.
+```text
+GitHub Pages / PWA
+        ↓
+Firebase Authentication
+        ↓
+Firebase Realtime Database
+        ↓
+tongHopYTe/
+```
 
-## Nội dung V6.7.0
+Ứng dụng dùng chung Firebase project và Firebase Authentication với HSBA nhưng quyền nghiệp vụ tách riêng:
 
-- Bỏ thời gian “Đã đồng bộ/Cập nhật lúc” khỏi Tổng quan.
-- Bỏ bốn thẻ dashboard thống kê; Tổng quan tập trung vào bộ lọc và danh sách chỉ tiêu.
-- Không hiển thị thông báo thành công kỹ thuật “Dữ liệu đã sẵn sàng” hoặc “Danh sách đã sẵn sàng”.
-- Quản trị được tách thành hai thẻ: Tài khoản và Chỉ tiêu.
-- Quản trị viên có thể thêm, sửa, ngừng sử dụng và khôi phục chỉ tiêu.
-- Mã chỉ tiêu được tự tạo từ tên nếu để trống; mã được khóa sau khi tạo để bảo toàn liên kết lịch sử.
-- Xóa chỉ tiêu là xóa mềm: chỉ chuyển sang “Ngừng sử dụng”; số liệu lịch sử không bị xóa.
+- HSBA: `phanQuyen/{UID}` — giữ nguyên.
+- Tổng hợp Y tế: `tongHopYTe/phanQuyen/{UID}`.
 
-## Cập nhật
+Không sử dụng Cloud Firestore.
 
-1. Dán đè toàn bộ `apps-script/Code.gs` vào dự án Apps Script.
-2. Triển khai một phiên bản Web App mới nhưng giữ nguyên deployment `/exec` hiện tại.
-3. Tải toàn bộ tệp GitHub lên thư mục gốc repository và ghi đè bản cũ.
-4. Nhấn `Ctrl + F5`, hoặc đóng/mở lại PWA để nhận cache V6.7.0.
+## Các file chính
 
-Không cần chạy lại `initializeApplication()` nếu các sheet hiện tại đã hoạt động bình thường.
+- `index.html`: giao diện production.
+- `styles.css`: giao diện hồng hiện hành, chuyển từ Apps Script sang GitHub.
+- `app.js`: toàn bộ nghiệp vụ Firebase.
+- `app-config.js`: Firebase Web config dùng chung với HSBA.
+- `firebase-rules.json`: Rules hoàn chỉnh của cả project; phần HSBA giữ nguyên, chỉ bổ sung `tongHopYTe`.
+- `migration/Code.gs`: migration Google Sheet → Realtime Database.
+- `migration/appsscript.json`: OAuth scopes cho migration.
+- `MIGRATION_PRECHECK.md`: kết quả kiểm tra file Excel đã cung cấp.
+- `DEPLOYMENT.md`: trình tự triển khai.
+- `ROLLBACK.md`: phương án quay lại hệ thống cũ.
+
+## Nguyên tắc an toàn
+
+1. Không sửa `accessAccounts`, `phanQuyen`, `doiTuong`, `quyenHoSo`, `hoSoTuVong`, `nhatKy`, `khoaThaoTac`, `congKhai` của HSBA.
+2. Không xóa Firebase Authentication user khi thu hồi quyền Tổng hợp Y tế.
+3. Không migration mật khẩu băm, muối, token phiên cũ.
+4. Tổng quan công khai chỉ đọc `tongHopYTe/congKhai`.
+5. Người dùng đăng ký Firebase không tự có quyền; admin phải duyệt.
+6. Migration không ghi đè nếu `tongHopYTe` đã có dữ liệu ngoài migration hiện tại.
