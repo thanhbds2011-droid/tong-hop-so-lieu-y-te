@@ -1,14 +1,14 @@
 /**
- * Tổng hợp số liệu Phòng Y tế - Firebase production 7.0.5
+ * Tổng hợp số liệu Phòng Y tế - Ứng dụng Phòng Y tế - Firebase production 8.0.0
  *
  * Firebase Web config là thông tin cấu hình công khai của ứng dụng web,
  * không phải service-account secret. Tuyệt đối không đặt private key,
  * mật khẩu quản trị hoặc token bí mật trong GitHub.
  */
 window.YTE_APP_CONFIG = Object.freeze({
-  APP_NAME: 'Tổng hợp số liệu Phòng Y tế',
+  APP_NAME: 'Ứng dụng Phòng Y tế',
   ORGANIZATION: 'Trung tâm Bảo trợ xã hội Tân Hiệp',
-  VERSION: '7.0.5',
+  VERSION: '8.0.0',
   OWNER_EMAIL: 'thanhbds2011@gmail.com',
   FIREBASE: Object.freeze({
     apiKey: 'AIzaSyCDEcZZWhMbdNpDD6PEPmDgo68zo352jOU',

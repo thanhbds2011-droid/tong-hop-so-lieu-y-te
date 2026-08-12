@@ -1,46 +1,64 @@
-# Tổng hợp số liệu Phòng Y tế — Firebase production 7.0.5
+# Ứng dụng Phòng Y tế — Firebase Production 8.0.0
 
-Bản 7.0.5 làm mới màn hình đăng nhập: dùng logo ứng dụng `assets/icon-512.png`, bỏ toàn bộ logo Google khỏi giao diện, vẫn xác thực bằng nút “Đăng nhập bằng Google”. Toàn bộ nghiệp vụ Firebase/Realtime Database và phân quyền giữ nguyên.
+Bản 8.0.0 mở rộng ứng dụng hiện tại thành 2 phân hệ quyền độc lập:
 
-# Tổng hợp số liệu Phòng Y tế – Firebase Production 7.0.0
+1. **Tổng hợp số liệu** — giữ nguyên node `tongHopYTe` và nghiệp vụ production hiện có.
+2. **Báo cáo chuyển viện – tử vong** — module mới tại node `baoCaoYTe`.
 
-## Kiến trúc
+Firebase Authentication dùng chung. Một người có thể được cấp quyền Tổng hợp số liệu, Báo cáo, cả hai hoặc không có quyền.
+
+## Nguyên tắc dữ liệu
+
+- Không dùng Firestore.
+- Không thay đổi các node HSBA hiện có.
+- Không thay đổi cấu trúc `tongHopYTe` hiện có.
+- Báo cáo chuyển viện/tử vong **không tự động cập nhật** Tổng hợp số liệu.
+- Tên người nhập báo cáo lấy từ Firebase Authentication.
+- Báo cáo chỉ xóa mềm (`trangThai = deleted`).
+- Lịch sử và nhật ký của Báo cáo độc lập với Tổng hợp số liệu.
+
+## File production chính
+
+- `index.html`
+- `styles.css`
+- `ui-fixes.css`
+- `reports.css`
+- `app.js`
+- `reports.js`
+- `app-config.js`
+- `service-worker.js`
+- `manifest.webmanifest`
+- `firebase-rules.json`
+
+## Node mới
 
 ```text
-GitHub Pages / PWA
-        ↓
-Firebase Authentication
-        ↓
-Firebase Realtime Database
-        ↓
-tongHopYTe/
+yTeApp/
+  nguoiDung/{uid}
+
+baoCaoYTe/
+  phanQuyen/{uid}
+  baoCao/{reportId}
+  lichSu/{reportId}/{historyId}
+  nhatKy/{YYYY-MM}/{logId}
+  cauHinh/
+  _migration/
 ```
 
-Ứng dụng dùng chung Firebase project và Firebase Authentication với HSBA nhưng quyền nghiệp vụ tách riêng:
+`yTeApp/nguoiDung` chỉ là danh bạ tài khoản đã đăng nhập Google. Quyền thực tế vẫn nằm tại từng phân hệ.
 
-- HSBA: `phanQuyen/{UID}` — giữ nguyên.
-- Tổng hợp Y tế: `tongHopYTe/phanQuyen/{UID}`.
+## Quyền Báo cáo
 
-Không sử dụng Cloud Firestore.
+- `admin`: xem, lập, sửa, xóa mềm, quản lý quyền Báo cáo.
+- `nhaplieu`: xem, lập, sửa.
+- `viewer`: chỉ xem.
 
-## Các file chính
+Người dùng phải đăng nhập Google ít nhất một lần để xuất hiện trong danh sách cấp quyền Báo cáo.
 
-- `index.html`: giao diện production.
-- `styles.css`: giao diện hồng hiện hành, chuyển từ Apps Script sang GitHub.
-- `app.js`: toàn bộ nghiệp vụ Firebase.
-- `app-config.js`: Firebase Web config dùng chung với HSBA.
-- `firebase-rules.json`: Rules hoàn chỉnh của cả project; phần HSBA giữ nguyên, chỉ bổ sung `tongHopYTe`.
-- `migration/Code.gs`: migration Google Sheet → Realtime Database.
-- `migration/appsscript.json`: OAuth scopes cho migration.
-- `MIGRATION_PRECHECK.md`: kết quả kiểm tra file Excel đã cung cấp.
-- `DEPLOYMENT.md`: trình tự triển khai.
-- `ROLLBACK.md`: phương án quay lại hệ thống cũ.
+## Migration dữ liệu cũ
 
-## Nguyên tắc an toàn
+Thư mục `migration-bao-cao/` chứa Apps Script một lần để chuyển dữ liệu từ 2 sheet:
+- `BÁO CÁO CHUYỂN VIỆN`
+- `BÁO CÁO TỬ VONG`
 
-1. Không sửa `accessAccounts`, `phanQuyen`, `doiTuong`, `quyenHoSo`, `hoSoTuVong`, `nhatKy`, `khoaThaoTac`, `congKhai` của HSBA.
-2. Không xóa Firebase Authentication user khi thu hồi quyền Tổng hợp Y tế.
-3. Không migration mật khẩu băm, muối, token phiên cũ.
-4. Tổng quan công khai chỉ đọc `tongHopYTe/congKhai`.
-5. Người dùng đăng ký Firebase không tự có quyền; admin phải duyệt.
-6. Migration không ghi đè nếu `tongHopYTe` đã có dữ liệu ngoài migration hiện tại.
+Ứng dụng production không phụ thuộc Apps Script migration.

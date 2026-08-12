@@ -34,6 +34,8 @@ import {
 const APP_CONFIG = window.YTE_APP_CONFIG || {};
 const OWNER_EMAIL = String(APP_CONFIG.OWNER_EMAIL || '').trim().toLowerCase();
 const ROOT = 'tongHopYTe';
+const REPORT_ROOT = 'baoCaoYTe';
+const YTE_APP_ROOT = 'yTeApp';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -95,6 +97,53 @@ function snapshotObject(snapshot) {
 }
 function ownerUser(user) {
   return !!(user && normalizeEmail(user.email) === OWNER_EMAIL);
+}
+
+async function ensureYteUserProfile(user) {
+  if (!user) return;
+  const profileRef = ref(firebaseDatabase, `${YTE_APP_ROOT}/nguoiDung/${user.uid}`);
+  const snap = await get(profileRef);
+  const old = snapshotObject(snap);
+  const now = Date.now();
+  await update(profileRef, {
+    email: normalizeEmail(user.email),
+    displayName: String(user.displayName || old.displayName || user.email || '').slice(0, 150),
+    photoURL: String(user.photoURL || old.photoURL || '').slice(0, 1000),
+    provider: providerId(user),
+    active: true,
+    createdAt: old.createdAt || now,
+    updatedAt: now,
+    lastLoginAt: now
+  });
+}
+
+async function ensureReportOwnerPermission(user) {
+  if (!ownerUser(user)) return;
+  const permissionRef = ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen/${user.uid}`);
+  const snap = await get(permissionRef);
+  const old = snapshotObject(snap);
+  if (old.active === true && old.role === 'admin' && normalizeEmail(old.email) === normalizeEmail(user.email)) return;
+  const now = Date.now();
+  await update(permissionRef, {
+    email: normalizeEmail(user.email),
+    displayName: String(user.displayName || old.displayName || 'Quản trị hệ thống').slice(0, 150),
+    role: 'admin',
+    active: true,
+    source: old.source || 'OWNER_BOOTSTRAP',
+    createdAt: old.createdAt || now,
+    updatedAt: now
+  });
+}
+
+async function getOwnReportPermission(user) {
+  if (!user) return null;
+  if (ownerUser(user)) await ensureReportOwnerPermission(user);
+  const snap = await get(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen/${user.uid}`));
+  return snap.exists() ? snap.val() : null;
+}
+
+function validModulePermission(permission) {
+  return !!(permission && permission.active === true && ['admin', 'nhaplieu', 'viewer'].includes(permission.role));
 }
 
 async function writeAuditLog(user, action, content, dataDate) {
@@ -185,23 +234,54 @@ async function resolveApplicationAccess(user, profile) {
   if (!user) return {
     success: true,
     active: false,
+    tongHopActive: false,
     authenticated: false,
     pending: false,
     user: null,
     authUser: null,
+    reportPermission: null,
     categories: []
   };
 
-  const permission = await getOwnPermission(user);
+  await ensureYteUserProfile(user);
+
+  const [permission, reportPermission] = await Promise.all([
+    getOwnPermission(user),
+    getOwnReportPermission(user)
+  ]);
+
+  const reportActive = validModulePermission(reportPermission);
+
   if (permission && (permission.role === 'admin' || permission.role === 'nhaplieu')) {
     const appUser = permissionToUser(user, permission);
-    if (permission.active !== true) {
+    if (permission.active === true) {
+      return {
+        success: true,
+        active: true,
+        tongHopActive: true,
+        authenticated: true,
+        pending: false,
+        token: 'FIREBASE_AUTH',
+        authUser: {
+          uid: user.uid,
+          email: normalizeEmail(user.email),
+          name: user.displayName || user.email || '',
+          provider: providerId(user)
+        },
+        user: appUser,
+        reportPermission: reportPermission || null,
+        categories: await readPrivateCategories(true)
+      };
+    }
+
+    if (reportActive) {
       return {
         success: true,
         active: false,
+        tongHopActive: false,
         authenticated: true,
-        locked: true,
         pending: false,
+        tongHopLocked: true,
         authUser: {
           uid: user.uid,
           email: normalizeEmail(user.email),
@@ -209,31 +289,59 @@ async function resolveApplicationAccess(user, profile) {
           provider: providerId(user)
         },
         user: null,
-        categories: [],
-        message: 'Tài khoản Tổng hợp Y tế đang bị khóa. HSBA (nếu có quyền) không bị ảnh hưởng.'
+        reportPermission: reportPermission,
+        categories: []
       };
     }
+
     return {
       success: true,
-      active: true,
+      active: false,
+      tongHopActive: false,
       authenticated: true,
+      locked: true,
       pending: false,
-      token: 'FIREBASE_AUTH',
       authUser: {
         uid: user.uid,
         email: normalizeEmail(user.email),
         name: user.displayName || user.email || '',
         provider: providerId(user)
       },
-      user: appUser,
-      categories: await readPrivateCategories(true)
+      user: null,
+      reportPermission: reportPermission || null,
+      categories: [],
+      message: 'Tài khoản Tổng hợp số liệu đang bị khóa.'
     };
   }
 
-  const request = await ensureRegistrationRequest(user, profile);
+  if (reportActive) {
+    return {
+      success: true,
+      active: false,
+      tongHopActive: false,
+      authenticated: true,
+      pending: false,
+      authUser: {
+        uid: user.uid,
+        email: normalizeEmail(user.email),
+        name: user.displayName || user.email || '',
+        provider: providerId(user)
+      },
+      user: null,
+      reportPermission: reportPermission,
+      categories: []
+    };
+  }
+
+  // Giữ tương thích với các yêu cầu cấp quyền Tổng hợp số liệu đã tồn tại trước đây,
+  // nhưng không tự tạo yêu cầu mới. Người dùng mới được ghi vào yTeApp/nguoiDung
+  // để Quản trị viên có thể cấp đúng phân hệ.
+  const requestSnap = await get(ref(firebaseDatabase, `${ROOT}/yeuCauDangKy/${user.uid}`));
+  const request = snapshotObject(requestSnap);
   return {
     success: true,
     active: false,
+    tongHopActive: false,
     authenticated: true,
     pending: request.status === 'pending',
     rejected: request.status === 'rejected',
@@ -244,10 +352,11 @@ async function resolveApplicationAccess(user, profile) {
       provider: providerId(user)
     },
     user: null,
+    reportPermission: reportPermission || null,
     categories: [],
     message: request.status === 'rejected'
-      ? 'Yêu cầu cấp quyền Tổng hợp Y tế đã bị từ chối. Bạn có thể liên hệ Quản trị viên để được xem xét.'
-      : 'Đăng nhập Firebase thành công. Tài khoản đang chờ Quản trị viên cấp quyền Tổng hợp Y tế.'
+      ? 'Tài khoản chưa được cấp quyền sử dụng ứng dụng.'
+      : 'Đăng nhập thành công. Tài khoản đang chờ Quản trị viên cấp quyền sử dụng ứng dụng.'
   };
 }
 
@@ -620,45 +729,38 @@ async function adminSetCategoryStatusFirebase(codeValue, statusValue) {
 
 async function getAdminUsersFirebase() {
   await requireAppUser('admin');
-  const [permissionSnap, requestSnap] = await Promise.all([
+  const [permissionSnap, requestSnap, directorySnap] = await Promise.all([
     get(ref(firebaseDatabase, `${ROOT}/phanQuyen`)),
-    get(ref(firebaseDatabase, `${ROOT}/yeuCauDangKy`))
+    get(ref(firebaseDatabase, `${ROOT}/yeuCauDangKy`)),
+    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/nguoiDung`))
   ]);
   const permissions = snapshotObject(permissionSnap);
   const requests = snapshotObject(requestSnap);
+  const directory = snapshotObject(directorySnap);
+  const allUids = new Set([
+    ...Object.keys(directory),
+    ...Object.keys(permissions),
+    ...Object.keys(requests)
+  ]);
   const users = [];
-  Object.keys(permissions).forEach((uid) => {
+  allUids.forEach((uid) => {
     const item = permissions[uid] || {};
     const request = requests[uid] || {};
+    const profile = directory[uid] || {};
+    const hasPermission = !!permissions[uid];
+    const requestStatus = request.status || (hasPermission ? 'approved' : 'unassigned');
     users.push({
       id: uid,
       uid,
-      name: item.displayName || request.displayName || item.email || '',
+      name: item.displayName || request.displayName || profile.displayName || item.email || request.email || profile.email || '',
       username: item.username || request.username || '',
-      email: item.email || request.email || '',
-      role: uiRole(item.role),
-      status: uiStatus(item.active),
-      isPending: false,
-      requestStatus: request.status || '',
-      requestedAt: request.requestedAt ? formatDateTime(request.requestedAt) : '',
-      lastLogin: item.lastLoginAt ? formatDateTime(item.lastLoginAt) : ''
-    });
-  });
-  Object.keys(requests).forEach((uid) => {
-    if (permissions[uid]) return;
-    const item = requests[uid] || {};
-    users.push({
-      id: uid,
-      uid,
-      name: item.displayName || item.email || '',
-      username: item.username || '',
-      email: item.email || '',
-      role: '',
-      status: item.status === 'rejected' ? 'Từ chối' : 'Chờ duyệt',
-      isPending: item.status !== 'approved',
-      requestStatus: item.status || 'pending',
-      requestedAt: item.requestedAt ? formatDateTime(item.requestedAt) : '',
-      lastLogin: ''
+      email: item.email || request.email || profile.email || '',
+      role: hasPermission ? uiRole(item.role) : '',
+      status: hasPermission ? uiStatus(item.active) : 'Chưa cấp',
+      isPending: !hasPermission,
+      requestStatus,
+      requestedAt: request.requestedAt ? formatDateTime(request.requestedAt) : (profile.createdAt ? formatDateTime(profile.createdAt) : ''),
+      lastLogin: item.lastLoginAt ? formatDateTime(item.lastLoginAt) : (profile.lastLoginAt ? formatDateTime(profile.lastLoginAt) : '')
     });
   });
   users.sort((a, b) => (a.isPending === b.isPending ? String(a.name).localeCompare(String(b.name), 'vi') : a.isPending ? -1 : 1));
@@ -668,18 +770,23 @@ async function getAdminUsersFirebase() {
 async function adminApproveRegistrationFirebase(uid, roleValue) {
   const admin = await requireAppUser('admin');
   const role = dbRole(roleValue);
-  const requestRef = ref(firebaseDatabase, `${ROOT}/yeuCauDangKy/${uid}`);
-  const requestSnap = await get(requestRef);
-  if (!requestSnap.exists()) throw new Error('Không tìm thấy yêu cầu đăng ký.');
-  const request = requestSnap.val() || {};
-  const oldPermSnap = await get(ref(firebaseDatabase, `${ROOT}/phanQuyen/${uid}`));
+  const [requestSnap, profileSnap, oldPermSnap] = await Promise.all([
+    get(ref(firebaseDatabase, `${ROOT}/yeuCauDangKy/${uid}`)),
+    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/nguoiDung/${uid}`)),
+    get(ref(firebaseDatabase, `${ROOT}/phanQuyen/${uid}`))
+  ]);
+  const request = snapshotObject(requestSnap);
+  const profile = snapshotObject(profileSnap);
   const oldPerm = snapshotObject(oldPermSnap);
+  const email = normalizeEmail(request.email || profile.email || oldPerm.email);
+  if (!email) throw new Error('Không tìm thấy thông tin tài khoản đã đăng nhập Google.');
+  const displayName = String(request.displayName || profile.displayName || oldPerm.displayName || email).slice(0, 150);
   const now = Date.now();
   const updates = {};
   updates[`${ROOT}/phanQuyen/${uid}`] = {
-    email: normalizeEmail(request.email),
-    displayName: String(request.displayName || request.email || '').slice(0, 150),
-    username: normalizeUsername(request.username || String(request.email || '').split('@')[0]),
+    email,
+    displayName,
+    username: normalizeUsername(request.username || oldPerm.username || String(email).split('@')[0]),
     role,
     active: true,
     legacyUserId: oldPerm.legacyUserId || '',
@@ -689,11 +796,13 @@ async function adminApproveRegistrationFirebase(uid, roleValue) {
     approvedAt: now,
     approvedByUid: admin.uid
   };
-  updates[`${ROOT}/yeuCauDangKy/${uid}/status`] = 'approved';
-  updates[`${ROOT}/yeuCauDangKy/${uid}/reviewedAt`] = now;
-  updates[`${ROOT}/yeuCauDangKy/${uid}/reviewedByUid`] = admin.uid;
+  if (requestSnap.exists()) {
+    updates[`${ROOT}/yeuCauDangKy/${uid}/status`] = 'approved';
+    updates[`${ROOT}/yeuCauDangKy/${uid}/reviewedAt`] = now;
+    updates[`${ROOT}/yeuCauDangKy/${uid}/reviewedByUid`] = admin.uid;
+  }
   await update(ref(firebaseDatabase), updates);
-  await writeAuditLog(admin, 'Cấp quyền tài khoản', `${request.email} → ${uiRole(role)}`, '');
+  await writeAuditLog(admin, 'Cấp quyền tài khoản', `${email} → ${uiRole(role)}`, '');
   return { success: true, message: `Đã cấp quyền ${uiRole(role)} cho tài khoản.` };
 }
 
@@ -724,7 +833,7 @@ async function adminSetUserStatusFirebase(uid, statusValue) {
     : { active: false, updatedAt: Date.now(), updatedByUid: admin.uid });
   const item = snap.val() || {};
   await writeAuditLog(admin, active ? 'Mở khóa tài khoản' : 'Khóa tài khoản', item.email || uid, '');
-  return { success: true, message: active ? 'Đã mở quyền sử dụng Tổng hợp Y tế.' : 'Đã khóa quyền Tổng hợp Y tế. HSBA không bị ảnh hưởng.' };
+  return { success: true, message: active ? 'Đã mở quyền sử dụng Tổng hợp Y tế.' : 'Đã khóa quyền Tổng hợp số liệu.' };
 }
 
 async function adminSetUserRoleFirebase(uid, roleValue) {
@@ -754,7 +863,7 @@ async function adminRevokeUserFirebase(uid) {
     revokedByUid: admin.uid,
     updatedAt: Date.now()
   });
-  await writeAuditLog(admin, 'Thu hồi quyền Tổng hợp Y tế', item.email || uid, '');
+  await writeAuditLog(admin, 'Thu hồi quyền Tổng hợp số liệu', item.email || uid, '');
   return { success: true, message: 'Đã thu hồi quyền Tổng hợp Y tế. Firebase Authentication và quyền HSBA (nếu có) được giữ nguyên.' };
 }
 
@@ -793,7 +902,7 @@ var AUTO_SYNC_MS = 300000;
 
     var state = {
       categories:[],records:[],from:'',to:'',
-      token:'FIREBASE_AUTH',user:null,authUser:null,
+      token:'FIREBASE_AUTH',user:null,authUser:null,reportPermission:null,
       syncTimer:null,syncPromise:null,lastSyncAt:0,busyCount:0,
       dailyByCode:{},loadedEntryDate:'',entryRequestId:0,
       entryCache:{},entryLoads:{},
@@ -828,14 +937,18 @@ var AUTO_SYNC_MS = 300000;
 
     function showView(name){
       var isAdmin=!!(state.user&&state.user.role==='Quản trị');
-      if(name==='admin'&&!isAdmin){name='dashboard';message('Bạn không có quyền truy cập chức năng này.','err')}
-      if(name==='entry'&&!state.user) name='auth';
+      var hasReport=!!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(state.reportPermission.role)>=0);
+      if(name==='admin'&&!isAdmin){name=state.authUser?'home':'dashboard';message('Bạn không có quyền truy cập chức năng này.','err')}
+      if(name==='entry'&&!state.user) name=state.authUser?'home':'auth';
+      if(name==='reports'&&!hasReport){name=state.authUser?'home':'auth';message('Tài khoản chưa được cấp quyền Báo cáo.','err')}
+      if(name==='home'&&!state.authUser) name='dashboard';
       document.querySelectorAll('.view').forEach(function(view){view.classList.remove('active')});
       var target=$(name+'View');if(target)target.classList.add('active');
       document.querySelectorAll('.nav-item').forEach(function(button){var active=button.getAttribute('data-view')===name;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false')});
       window.scrollTo({top:0,behavior:'smooth'});
       if(name==='entry') activateEntryView();
       if(name==='admin') showAdminSection(state.adminSection||'users');
+      if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.onViewChanged==='function')window.YTE_REPORTS.onViewChanged(name);
     }
 
     function setupDates(){
@@ -895,17 +1008,31 @@ var AUTO_SYNC_MS = 300000;
 
     function updateAuthUi(){
       var authenticated=!!state.authUser,loggedIn=!!state.user,isAdmin=!!(loggedIn&&state.user.role==='Quản trị');
-      $('btnAccount').hidden=authenticated;$('btnTopLogout').hidden=!authenticated;$('navEntry').hidden=!loggedIn;$('navAdmin').hidden=!isAdmin;
+      var hasReport=!!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(state.reportPermission.role)>=0);
+      var hasAnyAccess=loggedIn||hasReport;
+      $('btnAccount').hidden=authenticated;$('btnTopLogout').hidden=!authenticated;
+      if($('navHome'))$('navHome').hidden=!authenticated;
+      $('navEntry').hidden=!loggedIn;$('navAdmin').hidden=!isAdmin;
+      if($('navReports'))$('navReports').hidden=!hasReport;
       $('userGreeting').hidden=!authenticated;
       $('userGreeting').textContent=authenticated
-        ? 'Xin chào, '+(loggedIn?state.user.name:(state.authUser.name||state.authUser.email))+(loggedIn?'':' · Chờ cấp quyền')
+        ? 'Xin chào, '+(loggedIn?state.user.name:(state.authUser.name||state.authUser.email))+(hasAnyAccess?'':' · Chờ cấp quyền')
         : '';
+      if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.updateModuleUi==='function'){
+        window.YTE_REPORTS.updateModuleUi({
+          authenticated:authenticated,
+          tongHopActive:loggedIn,
+          tongHopRole:loggedIn?state.user.role:'',
+          reportPermission:state.reportPermission,
+          authUser:state.authUser
+        });
+      }
       if(!loggedIn){
         state.entryCache={};state.dailyByCode={};state.loadedEntryDate='';state.adminUsers=[];state.adminLoadedAt=0;state.adminCategories=[];state.categoryLoadedAt=0;
-        if(['entry','admin'].indexOf(currentViewName())>=0)showView('dashboard');
+        if(['entry','admin'].indexOf(currentViewName())>=0)showView(authenticated?'home':'dashboard');
         return;
       }
-      if(!isAdmin&&currentViewName()==='admin')showView('dashboard');
+      if(!isAdmin&&currentViewName()==='admin')showView(authenticated?'home':'dashboard');
       $('entryUserName').textContent=state.user.name;
       $('entryUserMeta').textContent=state.user.email+' · '+state.user.role;
       $('btnChangePassword').hidden=state.user.provider!=='password';
@@ -916,29 +1043,44 @@ var AUTO_SYNC_MS = 300000;
       result=result||{};
       state.authUser=result.authUser||null;
       state.user=result.active===true?result.user:null;
+      state.reportPermission=result.reportPermission||null;
       state.categories=result.categories||state.categories;
       hydrateDailyFromResult(result);
       updateAuthUi();
-      if(result.authenticated&&result.active!==true&&result.message)message(result.message,result.locked||result.rejected?'err':'warn');
+      var hasReport=!!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(state.reportPermission.role)>=0);
+      if(result.authenticated&&result.active!==true&&!hasReport&&result.message)message(result.message,result.locked||result.rejected?'err':'warn');
     }
+    async function refreshCurrentSession(){
+      try{var result=await call('restoreSession');applySessionResult(result);return result}catch(error){return null}
+    }
+    window.YTE_REFRESH_SESSION=refreshCurrentSession;
+
     async function restore(){
-      try{var result=await call('restoreSession');applySessionResult(result)}
-      catch(error){state.authUser=null;state.user=null;updateAuthUi()}
+      try{
+        var result=await call('restoreSession');applySessionResult(result);
+        if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.routeAfterRestore==='function')await window.YTE_REPORTS.routeAfterRestore(result);
+      }
+      catch(error){state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi()}
     }
     async function login(){
       setBusy(true,'Đang đăng nhập Firebase...');
       try{
         var result=await call('loginAccount',{identifier:$('loginIdentifier').value,password:$('loginPassword').value,entryDate:$('entryDate').value});
-        applySessionResult(result);clearMessage();showView('dashboard');
-        if(result.active)toast('Đăng nhập thành công.','ok');else if(result.message)message(result.message,'warn');
+        applySessionResult(result);clearMessage();
+        if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.routeAfterLogin==='function')await window.YTE_REPORTS.routeAfterLogin(result);else showView('dashboard');
+        var hasReport=!!(result.reportPermission&&result.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(result.reportPermission.role)>=0);
+        if(result.active||hasReport)toast('Đăng nhập thành công.','ok');else if(result.message)message(result.message,'warn');
       }catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function loginGoogle(){
       setBusy(true,'Đang mở đăng nhập Google...');
       try{
         var result=await call('googleLoginAccount');
-        applySessionResult(result);showView('dashboard');
-        if(result.active)toast('Đăng nhập Google thành công.','ok');else if(result.message)message(result.message,'warn');
+        applySessionResult(result);
+        if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.routeAfterLogin==='function')await window.YTE_REPORTS.routeAfterLogin(result);
+        else showView('dashboard');
+        var hasReport=!!(result.reportPermission&&result.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(result.reportPermission.role)>=0);
+        if(result.active||hasReport)toast('Đăng nhập Google thành công.','ok');else if(result.message)message(result.message,'warn');
       }catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function register(){
@@ -956,7 +1098,9 @@ var AUTO_SYNC_MS = 300000;
     }
     async function logout(){
       try{await call('logoutSession')}catch(error){}
-      state.authUser=null;state.user=null;updateAuthUi();showView('dashboard');message('Đã đăng xuất.','ok')
+      state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi();
+      if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.onLogout==='function')window.YTE_REPORTS.onLogout();
+      showView('dashboard');message('Đã đăng xuất.','ok')
     }
     function switchAuth(name){document.querySelectorAll('.auth-tab').forEach(function(tab){tab.classList.toggle('active',tab.getAttribute('data-auth-tab')===name)});document.querySelectorAll('.auth-panel').forEach(function(panel){panel.classList.remove('active')});$(name+'Panel').classList.add('active')}
 
@@ -1121,19 +1265,19 @@ var AUTO_SYNC_MS = 300000;
     function renderAdminUsers(){
       var query=String($('adminSearch').value||'').trim().toLowerCase();
       var rows=state.adminUsers.filter(function(user){return!query||String(user.name+' '+user.username+' '+user.email+' '+user.role+' '+user.status).toLowerCase().indexOf(query)>=0});
-      var pendingCount=state.adminUsers.filter(function(user){return user.isPending&&user.requestStatus==='pending'}).length;
+      var pendingCount=state.adminUsers.filter(function(user){return user.isPending&&(user.requestStatus==='pending'||user.requestStatus==='unassigned')}).length;
       $('adminCount').textContent=state.adminUsers.length+' tài khoản';
       $('adminPending').hidden=pendingCount===0;$('adminPending').textContent=pendingCount+' chờ duyệt';
       $('adminNote').hidden=pendingCount===0;
-      $('adminNote').textContent=pendingCount?'Có '+pendingCount+' tài khoản Firebase đã đăng ký và đang chờ cấp quyền Tổng hợp Y tế. Việc duyệt tại đây không làm thay đổi quyền HSBA.':'';
+      $('adminNote').textContent=pendingCount?'Có '+pendingCount+' tài khoản đã đăng nhập Google và chưa được cấp quyền Tổng hợp số liệu.':'';
       if(!rows.length){$('adminUsers').innerHTML='<div class="empty">Không có tài khoản phù hợp.</div>';return}
       $('adminUsers').innerHTML='<table class="admin-table"><thead><tr><th>Họ tên</th><th>Tài khoản</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th>Yêu cầu</th><th>Thao tác</th></tr></thead><tbody>'+rows.map(function(user){
         var isSelf=state.user&&user.id===state.user.id;
         var actions='';
-        if(user.isPending&&user.requestStatus==='pending'){
+        if(user.isPending&&(user.requestStatus==='pending'||user.requestStatus==='unassigned')){
           actions+='<button class="small-btn btn-soft admin-action" data-kind="approve-entry" data-id="'+esc(user.id)+'">Duyệt Nhập liệu</button>';
           actions+='<button class="small-btn btn-primary admin-action" data-kind="approve-admin" data-id="'+esc(user.id)+'">Duyệt Quản trị</button>';
-          actions+='<button class="small-btn btn-danger admin-action" data-kind="reject-registration" data-id="'+esc(user.id)+'">Từ chối</button>';
+          if(user.requestStatus==='pending')actions+='<button class="small-btn btn-danger admin-action" data-kind="reject-registration" data-id="'+esc(user.id)+'">Từ chối</button>';
         }else if(!user.isPending){
           var nextStatus=user.status==='Hoạt động'?'Khóa':'Hoạt động';
           var nextRole=user.role==='Quản trị'?'Nhập liệu':'Quản trị';
@@ -1141,8 +1285,9 @@ var AUTO_SYNC_MS = 300000;
           actions+='<button class="small-btn btn-soft admin-action" data-kind="role" data-id="'+esc(user.id)+'" data-value="'+esc(nextRole)+'"'+(isSelf?' disabled':'')+'>'+(user.role==='Quản trị'?'Hạ quyền':'Cấp quản trị')+'</button>';
           actions+='<button class="small-btn btn-danger admin-action" data-kind="delete" data-id="'+esc(user.id)+'"'+(isSelf?' disabled':'')+'>Thu hồi quyền</button>';
         }
+        var requestText=user.requestStatus==='rejected'?'Đã từ chối':(user.requestStatus==='unassigned'?'Chưa cấp':'Chờ duyệt');
         var requestLabel=user.isPending
-          ? '<span class="status-pill pending">'+(user.requestStatus==='rejected'?'Đã từ chối':'Chờ duyệt')+'</span><div class="meta">'+esc(user.requestedAt||'')+'</div>'
+          ? '<span class="status-pill pending">'+requestText+'</span><div class="meta">'+esc(user.requestedAt||'')+'</div>'
           : '<span class="status-pill">'+esc(user.requestStatus==='approved'?'Đã duyệt':'Đang sử dụng')+'</span>';
         return'<tr><td data-label="Họ tên">'+esc(user.name)+(isSelf?' <span class="meta">(Bạn)</span>':'')+'</td><td data-label="Tài khoản">'+esc(user.username||'—')+'</td><td data-label="Email">'+esc(user.email)+'</td><td data-label="Vai trò">'+esc(user.role||'Chưa cấp')+'</td><td data-label="Trạng thái">'+esc(user.status)+'</td><td data-label="Yêu cầu">'+requestLabel+'</td><td data-label="Thao tác">'+actions+'</td></tr>';
       }).join('')+'</tbody></table>';
@@ -1205,33 +1350,33 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function adminStatus(id,status){
-      var confirmed=await confirmAction({title:(status==='Khóa'?'Khóa':'Mở khóa')+' quyền Tổng hợp Y tế?',message:status==='Khóa'?'Tài khoản sẽ không dùng được Tổng hợp Y tế nhưng Firebase Authentication và HSBA không bị xóa.':'Tài khoản sẽ được dùng lại Tổng hợp Y tế.',confirmText:status==='Khóa'?'Khóa quyền':'Mở quyền',danger:status==='Khóa'});
+      var confirmed=await confirmAction({title:(status==='Khóa'?'Khóa':'Mở khóa')+' quyền Tổng hợp Y tế?',message:status==='Khóa'?'Tài khoản sẽ không dùng được Tổng hợp số liệu cho đến khi được mở quyền lại.':'Tài khoản sẽ được dùng lại Tổng hợp số liệu.',confirmText:status==='Khóa'?'Khóa quyền':'Mở quyền',danger:status==='Khóa'});
       if(!confirmed)return;setBusy(true,'Đang cập nhật quyền...');
       try{var result=await call('adminSetUserStatus',state.token,id,status);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function adminRole(id,role){
-      var confirmed=await confirmAction({title:'Thay đổi vai trò Tổng hợp Y tế?',message:'Vai trò chỉ thay đổi trong ứng dụng Tổng hợp Y tế, không thay đổi HSBA.',confirmText:'Cập nhật vai trò',danger:role!=='Quản trị'});
+      var confirmed=await confirmAction({title:'Thay đổi vai trò Tổng hợp Y tế?',message:'Vai trò chỉ thay đổi trong phân hệ Tổng hợp số liệu.',confirmText:'Cập nhật vai trò',danger:role!=='Quản trị'});
       if(!confirmed)return;setBusy(true,'Đang cập nhật vai trò...');
       try{var result=await call('adminSetUserRole',state.token,id,role);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function approveRegistration(id,role){
-      var confirmed=await confirmAction({title:'Cấp quyền '+role+'?',message:'Tài khoản sẽ được phép sử dụng Tổng hợp Y tế với vai trò '+role+'. Quyền HSBA không thay đổi.',confirmText:'Cấp quyền'});
+      var confirmed=await confirmAction({title:'Cấp quyền '+role+'?',message:'Tài khoản sẽ được phép sử dụng Tổng hợp số liệu với vai trò '+role+'. Quyền HSBA không thay đổi.',confirmText:'Cấp quyền'});
       if(!confirmed)return;setBusy(true,'Đang cấp quyền...');
       try{var result=await call('adminApproveRegistration',id,role);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function rejectRegistration(id){
-      var confirmed=await confirmAction({title:'Từ chối yêu cầu cấp quyền?',message:'Tài khoản Firebase vẫn tồn tại nhưng không được sử dụng Tổng hợp Y tế.',confirmText:'Từ chối',danger:true});
+      var confirmed=await confirmAction({title:'Từ chối yêu cầu cấp quyền?',message:'Tài khoản vẫn tồn tại nhưng chưa được sử dụng Tổng hợp số liệu.',confirmText:'Từ chối',danger:true});
       if(!confirmed)return;setBusy(true,'Đang từ chối yêu cầu...');
       try{var result=await call('adminRejectRegistration',id);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function adminDelete(id){
-      var confirmed=await confirmAction({title:'Thu hồi quyền Tổng hợp Y tế?',message:'Chỉ quyền của ứng dụng Tổng hợp Y tế bị thu hồi. Firebase Authentication và quyền HSBA (nếu có) được giữ nguyên.',confirmText:'Thu hồi quyền',danger:true});
+      var confirmed=await confirmAction({title:'Thu hồi quyền Tổng hợp số liệu?',message:'Quyền sử dụng Tổng hợp số liệu sẽ bị thu hồi.',confirmText:'Thu hồi quyền',danger:true});
       if(!confirmed)return;setBusy(true,'Đang thu hồi quyền...');
       try{var result=await call('adminDeleteUser',state.token,id);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'7.0.1'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'8.0.0'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});

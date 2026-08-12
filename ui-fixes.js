@@ -1,6 +1,6 @@
 'use strict';
 
-// UI production 7.0.5 — branded login screen
+// UI production 8.0.0 — compact Google-only login
 
 (function () {
   function prepareDashboardSearch() {

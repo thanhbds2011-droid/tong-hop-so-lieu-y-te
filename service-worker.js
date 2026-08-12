@@ -1,15 +1,17 @@
 'use strict';
 
 const CACHE_PREFIX = 'tong-hop-so-lieu-y-te-firebase-';
-const CACHE_NAME = CACHE_PREFIX + 'v7.0.6';
+const CACHE_NAME = CACHE_PREFIX + 'v8.0.0';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=7.0.5',
-  './ui-fixes.css?v=7.0.5',
-  './app-config.js?v=7.0.5',
-  './app.js?v=7.0.5',
-  './ui-fixes.js?v=7.0.5',
+  './styles.css?v=8.0.0',
+  './ui-fixes.css?v=8.0.0',
+  './reports.css?v=8.0.0',
+  './app-config.js?v=8.0.0',
+  './app.js?v=8.0.0',
+  './reports.js?v=8.0.0',
+  './ui-fixes.js?v=8.0.0',
   './manifest.webmanifest',
   './offline.html',
   './assets/favicon-32.png',
@@ -55,7 +57,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  const networkFirst = /(?:app-config|app)\.js$/.test(url.pathname);
+  const networkFirst = /(?:app-config|app|reports)\.js$/.test(url.pathname);
   if (networkFirst) {
     event.respondWith(
       fetch(request, { cache: 'no-store' })

@@ -1,19 +1,16 @@
-# TEST REPORT – BUILD 7.0.0
+# TEST REPORT — BUILD 8.0.0
 
-Các kiểm tra tĩnh đã chạy trên bộ build:
+Kiểm tra tĩnh đã thực hiện:
 
-- `app.js`: JavaScript syntax OK (`node --check`).
-- `service-worker.js`: JavaScript syntax OK.
-- `migration/Code.gs`: V8 JavaScript syntax OK.
-- `firebase-rules.json`: JSON syntax OK.
-- `migration/appsscript.json`: JSON syntax OK.
-- `manifest.webmanifest`: JSON syntax OK.
-- Đối chiếu DOM: không có ID tĩnh nào mà JavaScript tham chiếu nhưng HTML bị thiếu.
-- Đối chiếu Rules: tất cả node Rules HSBA cũ có nội dung giống 100% source đã cung cấp.
-- Node Rules mới duy nhất ở cấp root: `tongHopYTe`.
-- Frontend production không còn `google.script.run` hoặc `APPS_SCRIPT_URL`.
-- Frontend production không sử dụng Cloud Firestore.
+- `app.js`: syntax OK.
+- `reports.js`: syntax OK.
+- `service-worker.js`: syntax OK.
+- `migration-bao-cao/Code.gs`: syntax OK.
+- `firebase-rules.json`: JSON hợp lệ.
+- `manifest.webmanifest`: JSON hợp lệ.
+- Không có ID HTML trùng.
+- Mọi ID DOM tĩnh được `$()` sử dụng trong `app.js`/`reports.js` đều tồn tại; `entryNoMatch` là phần tử được tạo động.
+- So sánh Rules cũ và mới: các node Rules hiện hữu không thay đổi; chỉ bổ sung `yTeApp` và `baoCaoYTe`.
+- Service Worker cache version: `v8.0.0`.
 
-Lưu ý: kiểm thử runtime thực tế (Firebase Authentication provider, Authorized domains,
-Rules publish, quyền IAM Apps Script migration và dữ liệu production) phải thực hiện trong
-Firebase/GitHub của người dùng theo `DEPLOYMENT.md`.
+Kiểm thử production thực tế vẫn cần thực hiện sau khi Publish Rules và deploy GitHub Pages.
