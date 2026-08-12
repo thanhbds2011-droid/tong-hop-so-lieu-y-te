@@ -89,6 +89,15 @@ function uiRole(role) {
 function dbRole(role) {
   return role === 'Quản trị' || role === 'admin' ? 'admin' : 'nhaplieu';
 }
+function uiReportRole(role) {
+  return role === 'admin' ? 'Quản trị' : role === 'nhaplieu' ? 'Nhập liệu' : role === 'viewer' ? 'Chỉ xem' : 'Chưa cấp';
+}
+function dbReportRole(role) {
+  const value = String(role || '').trim().toLowerCase();
+  if (value === 'admin' || value === 'quản trị' || value === 'quan tri') return 'admin';
+  if (value === 'viewer' || value === 'chỉ xem' || value === 'chi xem') return 'viewer';
+  return 'nhaplieu';
+}
 function uiStatus(active) {
   return active === true ? 'Hoạt động' : 'Khóa';
 }
@@ -356,7 +365,7 @@ async function resolveApplicationAccess(user, profile) {
     categories: [],
     message: request.status === 'rejected'
       ? 'Tài khoản chưa được cấp quyền sử dụng ứng dụng.'
-      : 'Đăng nhập thành công. Tài khoản đang chờ Quản trị viên cấp quyền sử dụng ứng dụng.'
+      : ''
   };
 }
 
@@ -867,6 +876,85 @@ async function adminRevokeUserFirebase(uid) {
   return { success: true, message: 'Đã thu hồi quyền Tổng hợp Y tế. Firebase Authentication và quyền HSBA (nếu có) được giữ nguyên.' };
 }
 
+
+async function requireReportPermissionManager() {
+  await authReady;
+  const user = firebaseAuth.currentUser;
+  if (!user) throw new Error('Vui lòng đăng nhập.');
+  if (ownerUser(user)) return { user, tongHopAdmin: true, reportAdmin: true, owner: true };
+  const [tongHopSnap, reportSnap] = await Promise.all([
+    get(ref(firebaseDatabase, `${ROOT}/phanQuyen/${user.uid}`)),
+    get(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen/${user.uid}`))
+  ]);
+  const tongHop = snapshotObject(tongHopSnap);
+  const report = snapshotObject(reportSnap);
+  const tongHopAdmin = tongHop.active === true && tongHop.role === 'admin';
+  const reportAdmin = report.active === true && report.role === 'admin';
+  if (!tongHopAdmin && !reportAdmin) throw new Error('Bạn không có quyền quản trị tài khoản Báo cáo.');
+  return { user, tongHopAdmin, reportAdmin, owner: false };
+}
+
+async function getAdminReportUsersFirebase() {
+  await requireReportPermissionManager();
+  const [directorySnap, permissionSnap] = await Promise.all([
+    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/nguoiDung`)),
+    get(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen`))
+  ]);
+  const directory = snapshotObject(directorySnap);
+  const permissions = snapshotObject(permissionSnap);
+  const uids = new Set([...Object.keys(directory), ...Object.keys(permissions)]);
+  const users = Array.from(uids).map((uid) => {
+    const profile = directory[uid] || {};
+    const permission = permissions[uid] || {};
+    return {
+      id: uid,
+      uid,
+      name: permission.displayName || profile.displayName || permission.email || profile.email || '',
+      email: normalizeEmail(permission.email || profile.email || ''),
+      role: permission.role || '',
+      roleLabel: uiReportRole(permission.role),
+      active: permission.active === true,
+      status: permission.active === true ? 'Hoạt động' : 'Chưa cấp',
+      lastLoginAt: Number(profile.lastLoginAt || 0),
+      lastLogin: profile.lastLoginAt ? formatDateTime(profile.lastLoginAt) : ''
+    };
+  }).sort((a, b) => String(a.name || a.email).localeCompare(String(b.name || b.email), 'vi'));
+  return { success: true, users };
+}
+
+async function adminSetReportPermissionFirebase(uid, roleValue, activeValue) {
+  const manager = await requireReportPermissionManager();
+  const user = manager.user;
+  const role = dbReportRole(roleValue);
+  const active = activeValue === true || activeValue === 'true' || activeValue === 'Hoạt động';
+  if (uid === user.uid && manager.reportAdmin && !manager.tongHopAdmin && !manager.owner && (!active || role !== 'admin')) {
+    throw new Error('Bạn không thể tự thu hồi hoặc hạ quyền Quản trị Báo cáo đang sử dụng.');
+  }
+  const [profileSnap, oldPermSnap] = await Promise.all([
+    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/nguoiDung/${uid}`)),
+    get(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen/${uid}`))
+  ]);
+  const profile = snapshotObject(profileSnap);
+  const oldPerm = snapshotObject(oldPermSnap);
+  const email = normalizeEmail(profile.email || oldPerm.email);
+  if (!email) throw new Error('Tài khoản chưa đăng nhập Google nên chưa có thông tin để cấp quyền.');
+  const now = Date.now();
+  await set(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen/${uid}`), {
+    email,
+    displayName: String(profile.displayName || oldPerm.displayName || email).slice(0, 150),
+    role,
+    active,
+    source: oldPerm.source || 'APP_ADMIN',
+    createdAt: oldPerm.createdAt || now,
+    updatedAt: now,
+    updatedByUid: user.uid
+  });
+  return {
+    success: true,
+    message: active ? `Đã cấp quyền ${uiReportRole(role)} cho phân hệ Báo cáo.` : 'Đã thu hồi quyền Báo cáo.'
+  };
+}
+
 async function firebaseCall(name, ...args) {
   await authPersistenceReady;
   await authReady;
@@ -890,6 +978,8 @@ async function firebaseCall(name, ...args) {
     case 'adminApproveRegistration': return adminApproveRegistrationFirebase(args[0], args[1]);
     case 'adminRejectRegistration': return adminRejectRegistrationFirebase(args[0]);
     case 'adminDeleteUser': return adminRevokeUserFirebase(args[1] || args[0]);
+    case 'getAdminReportUsers': return getAdminReportUsersFirebase();
+    case 'adminSetReportPermission': return adminSetReportPermissionFirebase(args[0], args[1], args[2]);
     default: throw new Error(`Chức năng Firebase không hợp lệ: ${name}`);
   }
 }
@@ -908,6 +998,7 @@ var AUTO_SYNC_MS = 300000;
       entryCache:{},entryLoads:{},
       adminUsers:[],adminLoadedAt:0,adminPromise:null,
       adminCategories:[],categoryLoadedAt:0,categoryPromise:null,adminSection:'users',
+      adminReportUsers:[],adminReportLoadedAt:0,adminReportPromise:null,
       editingCategoryCode:'',categorySaving:false,
       adjustingCode:'',adjustSaving:false
     };
@@ -934,11 +1025,17 @@ var AUTO_SYNC_MS = 300000;
     function confirmAction(options){options=options||{};if(confirmResolver)closeConfirm(false);$('confirmTitle').textContent=options.title||'Xác nhận thao tác';$('confirmMessage').textContent=options.message||'';$('confirmAccept').textContent=options.confirmText||'Xác nhận';$('confirmCancel').textContent=options.cancelText||'Quay lại';$('confirmAccept').className='btn '+(options.danger?'btn-danger':'btn-primary');$('confirmLayer').hidden=false;document.body.style.overflow='hidden';window.setTimeout(function(){$('confirmAccept').focus()},0);return new Promise(function(resolve){confirmResolver=resolve})}
     function setBusy(active,text){state.busyCount=Math.max(0,state.busyCount+(active?1:-1));if(active&&text)$('loadingText').textContent=text;document.body.classList.toggle('is-busy',state.busyCount>0);if(state.busyCount===0)$('loadingText').textContent='Đang xử lý...'}
     function currentViewName(){var view=document.querySelector('.view.active');return view?view.id.replace(/View$/,''):''}
+    function hasReportAccess(){return!!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(state.reportPermission.role)>=0)}
+    function isTongHopAdmin(){return!!(state.user&&state.user.role==='Quản trị')}
+    function isReportAdmin(){return!!(state.reportPermission&&state.reportPermission.active===true&&state.reportPermission.role==='admin')}
+    function isOwnerAdmin(){return!!(state.authUser&&normalizeEmail(state.authUser.email)===OWNER_EMAIL)}
+    function isAnyAppAdmin(){return isOwnerAdmin()||isTongHopAdmin()||isReportAdmin()}
+    function canManageReportPermissionsUi(){return isOwnerAdmin()||isTongHopAdmin()||isReportAdmin()}
 
     function showView(name){
-      var isAdmin=!!(state.user&&state.user.role==='Quản trị');
-      var hasReport=!!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(state.reportPermission.role)>=0);
-      if(name==='admin'&&!isAdmin){name=state.authUser?'home':'dashboard';message('Bạn không có quyền truy cập chức năng này.','err')}
+      var isAdmin=isAnyAppAdmin();
+      var hasReport=hasReportAccess();
+      if(name==='admin'&&!isAdmin){name=state.authUser?(hasReport?'home':'dashboard'):'dashboard';message('Bạn không có quyền truy cập chức năng này.','err')}
       if(name==='entry'&&!state.user) name=state.authUser?'home':'auth';
       if(name==='reports'&&!hasReport){name=state.authUser?'home':'auth';message('Tài khoản chưa được cấp quyền Báo cáo.','err')}
       if(name==='home'&&!state.authUser) name='dashboard';
@@ -1007,13 +1104,17 @@ var AUTO_SYNC_MS = 300000;
     function setEntryLoadState(text,type,spinning){var box=$('entryLoadState');if(!spinning&&type==='ok'){box.hidden=true;box.textContent='';return}box.hidden=!text;box.className='inline-state '+(type||'');box.innerHTML=(spinning?'<span class="spinner"></span>':'')+'<span>'+esc(text||'')+'</span>'}
 
     function updateAuthUi(){
-      var authenticated=!!state.authUser,loggedIn=!!state.user,isAdmin=!!(loggedIn&&state.user.role==='Quản trị');
-      var hasReport=!!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(state.reportPermission.role)>=0);
+      var authenticated=!!state.authUser,loggedIn=!!state.user,isAdmin=isAnyAppAdmin();
+      var tongHopAdmin=isTongHopAdmin()||isOwnerAdmin(),reportAdmin=canManageReportPermissionsUi();
+      var hasReport=hasReportAccess();
       var hasAnyAccess=loggedIn||hasReport;
       $('btnAccount').hidden=authenticated;$('btnTopLogout').hidden=!authenticated;
-      if($('navHome'))$('navHome').hidden=!authenticated;
+      if($('navHome'))$('navHome').hidden=!hasReport;
       $('navEntry').hidden=!loggedIn;$('navAdmin').hidden=!isAdmin;
       if($('navReports'))$('navReports').hidden=!hasReport;
+      if($('adminUsersTab'))$('adminUsersTab').hidden=!tongHopAdmin;
+      if($('adminCategoriesTab'))$('adminCategoriesTab').hidden=!tongHopAdmin;
+      if($('adminReportPermissionsTab'))$('adminReportPermissionsTab').hidden=!reportAdmin;
       $('userGreeting').hidden=!authenticated;
       $('userGreeting').textContent=authenticated
         ? 'Xin chào, '+(loggedIn?state.user.name:(state.authUser.name||state.authUser.email))+(hasAnyAccess?'':' · Chờ cấp quyền')
@@ -1029,10 +1130,11 @@ var AUTO_SYNC_MS = 300000;
       }
       if(!loggedIn){
         state.entryCache={};state.dailyByCode={};state.loadedEntryDate='';state.adminUsers=[];state.adminLoadedAt=0;state.adminCategories=[];state.categoryLoadedAt=0;
-        if(['entry','admin'].indexOf(currentViewName())>=0)showView(authenticated?'home':'dashboard');
+        if(currentViewName()==='entry')showView(hasReport?'home':(authenticated?'home':'dashboard'));
+        if(currentViewName()==='admin'&&!isAdmin)showView(hasReport?'home':(authenticated?'home':'dashboard'));
         return;
       }
-      if(!isAdmin&&currentViewName()==='admin')showView(authenticated?'home':'dashboard');
+      if(!isAdmin&&currentViewName()==='admin')showView(hasReport?'home':'dashboard');
       $('entryUserName').textContent=state.user.name;
       $('entryUserMeta').textContent=state.user.email+' · '+state.user.role;
       $('btnChangePassword').hidden=state.user.provider!=='password';
@@ -1047,8 +1149,9 @@ var AUTO_SYNC_MS = 300000;
       state.categories=result.categories||state.categories;
       hydrateDailyFromResult(result);
       updateAuthUi();
-      var hasReport=!!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(state.reportPermission.role)>=0);
-      if(result.authenticated&&result.active!==true&&!hasReport&&result.message)message(result.message,result.locked||result.rejected?'err':'warn');
+      var hasReport=hasReportAccess();
+      if(result.authenticated&&result.active!==true&&!hasReport&&(result.locked||result.rejected)&&result.message)message(result.message,'err');
+      else if(result.authenticated&&result.active!==true&&!hasReport)clearMessage();
     }
     async function refreshCurrentSession(){
       try{var result=await call('restoreSession');applySessionResult(result);return result}catch(error){return null}
@@ -1069,7 +1172,7 @@ var AUTO_SYNC_MS = 300000;
         applySessionResult(result);clearMessage();
         if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.routeAfterLogin==='function')await window.YTE_REPORTS.routeAfterLogin(result);else showView('dashboard');
         var hasReport=!!(result.reportPermission&&result.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(result.reportPermission.role)>=0);
-        if(result.active||hasReport)toast('Đăng nhập thành công.','ok');else if(result.message)message(result.message,'warn');
+        if(result.active||hasReport)toast('Đăng nhập thành công.','ok');else clearMessage();
       }catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function loginGoogle(){
@@ -1080,7 +1183,7 @@ var AUTO_SYNC_MS = 300000;
         if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.routeAfterLogin==='function')await window.YTE_REPORTS.routeAfterLogin(result);
         else showView('dashboard');
         var hasReport=!!(result.reportPermission&&result.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(result.reportPermission.role)>=0);
-        if(result.active||hasReport)toast('Đăng nhập Google thành công.','ok');else if(result.message)message(result.message,'warn');
+        if(result.active||hasReport)toast('Đăng nhập Google thành công.','ok');else clearMessage();
       }catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function register(){
@@ -1299,11 +1402,49 @@ var AUTO_SYNC_MS = 300000;
       state.adminPromise=(async function(){try{var result=await call('getAdminUsers',state.token);state.adminUsers=result.users||[];state.adminLoadedAt=Date.now();renderAdminUsers();$('adminLoadState').hidden=true;$('adminLoadState').textContent=''}catch(error){$('adminLoadState').hidden=false;$('adminLoadState').className='inline-state err';$('adminLoadState').textContent=error.message||String(error);$('adminUsers').innerHTML='<div class="empty">Không thể tải danh sách tài khoản. Vui lòng thử lại.</div>'}finally{state.adminPromise=null}})();return state.adminPromise;
     }
     function showAdminSection(name){
-      name=name==='categories'?'categories':'users';state.adminSection=name;
+      var canTongHop=isTongHopAdmin()||isOwnerAdmin(),canReport=canManageReportPermissionsUi();
+      if(name!=='users'&&name!=='categories'&&name!=='reportPermissions')name=canTongHop?'users':'reportPermissions';
+      if((name==='users'||name==='categories')&&!canTongHop)name=canReport?'reportPermissions':'users';
+      if(name==='reportPermissions'&&!canReport)name=canTongHop?'users':'reportPermissions';
+      state.adminSection=name;
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.classList.toggle('active',tab.getAttribute('data-admin-tab')===name)});
-      $('adminUsersPanel').hidden=name!=='users';$('adminCategoriesPanel').hidden=name!=='categories';
-      if(name==='users')loadAdminUsers(false);else loadAdminCategories(false);
+      $('adminUsersPanel').hidden=name!=='users';$('adminCategoriesPanel').hidden=name!=='categories';$('adminReportPermissionsPanel').hidden=name!=='reportPermissions';
+      if(name==='users')loadAdminUsers(false);else if(name==='categories')loadAdminCategories(false);else loadAdminReportUsers(false);
     }
+    function renderAdminReportUsers(){
+      var query=String($('adminReportSearch').value||'').trim().toLowerCase();
+      var rows=state.adminReportUsers.filter(function(user){return!query||String(user.name+' '+user.email+' '+user.roleLabel+' '+user.status).toLowerCase().indexOf(query)>=0});
+      $('adminReportCount').textContent=state.adminReportUsers.length+' tài khoản';
+      if(!rows.length){$('adminReportUsers').innerHTML='<div class="empty">Không có tài khoản phù hợp.</div>';return}
+      var currentUid=state.authUser&&state.authUser.uid?state.authUser.uid:'';
+      var canChangeSelf=isTongHopAdmin()||isOwnerAdmin();
+      $('adminReportUsers').innerHTML='<table class="admin-table"><thead><tr><th>Họ tên</th><th>Email</th><th>Quyền Báo cáo</th><th>Trạng thái</th><th>Đăng nhập gần nhất</th><th>Thao tác</th></tr></thead><tbody>'+rows.map(function(user){
+        var isSelf=user.id===currentUid,protectSelf=isSelf&&!canChangeSelf,actions='';
+        if(!user.active){
+          actions+='<button class="small-btn btn-soft admin-report-action" data-kind="grant-entry" data-id="'+esc(user.id)+'">Cấp Nhập liệu</button>';
+          actions+='<button class="small-btn btn-primary admin-report-action" data-kind="grant-admin" data-id="'+esc(user.id)+'">Cấp Quản trị</button>';
+        }else{
+          var nextRole=user.role==='admin'?'nhaplieu':'admin';
+          actions+='<button class="small-btn btn-soft admin-report-action" data-kind="role" data-value="'+esc(nextRole)+'" data-id="'+esc(user.id)+'"'+(protectSelf?' disabled':'')+'>'+(user.role==='admin'?'Hạ quyền':'Cấp quản trị')+'</button>';
+          actions+='<button class="small-btn btn-danger admin-report-action" data-kind="revoke" data-id="'+esc(user.id)+'"'+(protectSelf?' disabled':'')+'>Thu hồi</button>';
+        }
+        return'<tr><td data-label="Họ tên">'+esc(user.name||'—')+(isSelf?' <span class="meta">(Bạn)</span>':'')+'</td><td data-label="Email">'+esc(user.email||'—')+'</td><td data-label="Quyền Báo cáo">'+esc(user.roleLabel||'Chưa cấp')+'</td><td data-label="Trạng thái">'+esc(user.status||'Chưa cấp')+'</td><td data-label="Đăng nhập gần nhất">'+esc(user.lastLogin||'—')+'</td><td data-label="Thao tác">'+actions+'</td></tr>';
+      }).join('')+'</tbody></table>';
+    }
+    async function loadAdminReportUsers(force){
+      if(!canManageReportPermissionsUi())return;
+      if(!force&&state.adminReportUsers.length&&Date.now()-state.adminReportLoadedAt<ADMIN_CACHE_MS){renderAdminReportUsers();$('adminReportLoadState').hidden=true;return}
+      if(state.adminReportPromise)return state.adminReportPromise;
+      $('adminReportLoadState').hidden=false;$('adminReportLoadState').className='inline-state';$('adminReportLoadState').innerHTML='<span class="spinner"></span><span>Đang tải quyền Báo cáo...</span>';$('adminReportUsers').innerHTML='<div class="empty">Đang chuẩn bị danh sách tài khoản...</div>';
+      state.adminReportPromise=(async function(){try{var result=await call('getAdminReportUsers');state.adminReportUsers=result.users||[];state.adminReportLoadedAt=Date.now();renderAdminReportUsers();$('adminReportLoadState').hidden=true;$('adminReportLoadState').textContent=''}catch(error){$('adminReportLoadState').hidden=false;$('adminReportLoadState').className='inline-state err';$('adminReportLoadState').textContent=error.message||String(error);$('adminReportUsers').innerHTML='<div class="empty">Không thể tải quyền Báo cáo. Vui lòng thử lại.</div>'}finally{state.adminReportPromise=null}})();return state.adminReportPromise;
+    }
+    async function adminReportPermission(id,role,active){
+      var label=active?(role==='admin'?'Quản trị':'Nhập liệu'):'Thu hồi';
+      var confirmed=await confirmAction({title:active?'Cấp quyền Báo cáo '+label+'?':'Thu hồi quyền Báo cáo?',message:active?'Quyền này dùng chung cho cả Báo cáo chuyển viện và Báo cáo tử vong.':'Tài khoản sẽ không còn truy cập phân hệ Báo cáo. Quyền Tổng hợp số liệu và HSBA không thay đổi.',confirmText:active?'Cấp quyền':'Thu hồi quyền',danger:!active});
+      if(!confirmed)return;setBusy(true,active?'Đang cấp quyền Báo cáo...':'Đang thu hồi quyền Báo cáo...');
+      try{var result=await call('adminSetReportPermission',id,role,active);message(result.message||'Đã cập nhật quyền Báo cáo.','ok');state.adminReportLoadedAt=0;await loadAdminReportUsers(true);if(state.authUser&&state.authUser.uid===id)await refreshCurrentSession()}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
+    }
+
     function renderAdminCategories(){
       var query=String($('categorySearch').value||'').trim().toLowerCase();
       var rows=state.adminCategories.filter(function(item){return!query||String(item.code+' '+item.name+' '+item.group+' '+item.unit+' '+item.status).toLowerCase().indexOf(query)>=0});
@@ -1376,7 +1517,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'8.0.0'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'8.0.1'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
@@ -1390,6 +1531,7 @@ var AUTO_SYNC_MS = 300000;
       $('indicatorGrid').addEventListener('click',function(event){var button=event.target.closest('.adjust-data');if(button)openAdjustDialog(button.getAttribute('data-adjust-code'))});
       $('btnChangePassword').onclick=function(){$('changePasswordBox').hidden=false};$('btnCloseChange').onclick=function(){$('changePasswordBox').hidden=true};$('btnSavePassword').onclick=saveNewPassword;
       $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='delete')adminDelete(id)});
+      $('btnReloadAdminReportUsers').onclick=function(){loadAdminReportUsers(true)};$('adminReportSearch').oninput=renderAdminReportUsers;$('adminReportUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-report-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='grant-entry')adminReportPermission(id,'nhaplieu',true);if(kind==='grant-admin')adminReportPermission(id,'admin',true);if(kind==='role')adminReportPermission(id,value,true);if(kind==='revoke')adminReportPermission(id,'nhaplieu',false)});
       $('btnAddCategory').onclick=function(){openCategoryDialog('')};$('btnReloadCategories').onclick=function(){loadAdminCategories(true)};$('categorySearch').oninput=renderAdminCategories;$('adminCategories').addEventListener('click',function(event){var button=event.target.closest('.category-action');if(!button)return;var kind=button.getAttribute('data-kind'),code=button.getAttribute('data-code'),value=button.getAttribute('data-value');if(kind==='edit')openCategoryDialog(code);if(kind==='status')setCategoryStatus(code,value)});
       document.addEventListener('visibilitychange',function(){if(!document.hidden&&Date.now()-state.lastSyncAt>90000)syncData(true)});window.addEventListener('focus',function(){if(Date.now()-state.lastSyncAt>90000)syncData(true)});
       await Promise.all([restore(),syncData(false)]);updateAuthUi();onAuthStateChanged(firebaseAuth,function(user){if(!user&&state.authUser){state.authUser=null;state.user=null;updateAuthUi()}});

@@ -183,7 +183,7 @@ function updateModuleUi(external) {
       ['admin', 'nhaplieu'].includes(reportState.tongHopPermission.role));
   const reportActive = validPermission(reportState.permission);
 
-  if ($('navHome')) $('navHome').hidden = !authenticated;
+  if ($('navHome')) $('navHome').hidden = !reportActive;
   if ($('navReports')) $('navReports').hidden = !reportActive;
   if ($('moduleTongHopCard')) $('moduleTongHopCard').hidden = !tongHopActive;
   if ($('moduleReportCard')) $('moduleReportCard').hidden = !reportActive;
@@ -196,7 +196,7 @@ function updateModuleUi(external) {
       : 'Chọn chức năng';
   }
 
-  if ($('reportPermissionModeBtn')) $('reportPermissionModeBtn').hidden = !canAdminReport();
+  if ($('reportPermissionModeBtn')) $('reportPermissionModeBtn').hidden = true;
   if ($('btnNewReport')) $('btnNewReport').hidden = !canEditReport();
 }
 
@@ -384,7 +384,7 @@ async function activateReportsView() {
   }
   $('reportFromDate').value = $('reportFromDate').value || firstDayOfMonthIso();
   $('reportToDate').value = $('reportToDate').value || todayIso();
-  $('reportPermissionModeBtn').hidden = !canAdminReport();
+  $('reportPermissionModeBtn').hidden = true;
   if (!canAdminReport() && reportState.mode === 'permissions') setReportMode('list');
   await loadReports(false);
 }

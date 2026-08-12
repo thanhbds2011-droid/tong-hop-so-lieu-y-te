@@ -1,6 +1,6 @@
-# Ứng dụng Phòng Y tế — Firebase Production 8.0.0
+# Ứng dụng Phòng Y tế — Firebase Production 8.0.1
 
-Bản 8.0.0 mở rộng ứng dụng hiện tại thành 2 phân hệ quyền độc lập:
+Bản 8.0.1 mở rộng ứng dụng hiện tại thành 2 phân hệ quyền độc lập:
 
 1. **Tổng hợp số liệu** — giữ nguyên node `tongHopYTe` và nghiệp vụ production hiện có.
 2. **Báo cáo chuyển viện – tử vong** — module mới tại node `baoCaoYTe`.
@@ -62,3 +62,10 @@ Thư mục `migration-bao-cao/` chứa Apps Script một lần để chuyển d�
 - `BÁO CÁO TỬ VONG`
 
 Ứng dụng production không phụ thuộc Apps Script migration.
+
+
+### Thay đổi 8.0.1
+- Ẩn banner thông báo chờ cấp quyền phía trên; giữ thông báo trạng thái trong Trang chủ.
+- Thêm Quản trị → Quyền Báo cáo để admin cấp một quyền chung cho Chuyển viện và Tử vong.
+- Quản trị Tổng hợp hoặc Quản trị Báo cáo đều có thể quản lý quyền Báo cáo.
+- Ẩn nút Trang chủ nếu tài khoản không có quyền Báo cáo.

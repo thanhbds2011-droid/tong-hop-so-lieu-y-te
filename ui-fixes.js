@@ -1,6 +1,6 @@
 'use strict';
 
-// UI production 8.0.0 — compact Google-only login
+// UI production 8.0.1 — compact Google-only login
 
 (function () {
   function prepareDashboardSearch() {

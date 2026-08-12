@@ -11,20 +11,20 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=8.0.0">
-  <link rel="stylesheet" href="./ui-fixes.css?v=8.0.0">
-  <link rel="stylesheet" href="./reports.css?v=8.0.0">
-  <script src="./app-config.js?v=8.0.0"></script>
-  <script type="module" src="./app.js?v=8.0.0"></script>
-  <script type="module" src="./reports.js?v=8.0.0"></script>
-  <script defer src="./ui-fixes.js?v=8.0.0"></script>
+  <link rel="stylesheet" href="./styles.css?v=8.0.1">
+  <link rel="stylesheet" href="./ui-fixes.css?v=8.0.1">
+  <link rel="stylesheet" href="./reports.css?v=8.0.1">
+  <script src="./app-config.js?v=8.0.1"></script>
+  <script type="module" src="./app.js?v=8.0.1"></script>
+  <script type="module" src="./reports.js?v=8.0.1"></script>
+  <script defer src="./ui-fixes.js?v=8.0.1"></script>
 </head>
 <body>
 <header class="app-header">
     <div class="header-inner">
       <div class="brand">
         <div class="brand-mark brand-mark-logo" aria-hidden="true">
-          <img src="./assets/icon-192.png?v=8.0.0" alt="">
+          <img src="./assets/icon-192.png?v=8.0.1" alt="">
         </div>
         <div>
           <small>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</small>
@@ -134,7 +134,7 @@
             <div class="login-brand-glow login-brand-glow-one" aria-hidden="true"></div>
             <div class="login-brand-glow login-brand-glow-two" aria-hidden="true"></div>
             <div class="login-logo-wrap">
-              <img class="login-app-logo" src="./assets/icon-512.png?v=8.0.0" alt="Logo Tổng hợp số liệu Phòng Y tế">
+              <img class="login-app-logo" src="./assets/icon-512.png?v=8.0.1" alt="Logo Tổng hợp số liệu Phòng Y tế">
             </div>
             <div class="login-brand-copy">
               <span>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</span>
@@ -267,8 +267,9 @@
     <section id="adminView" class="view">
       <div class="card page-card">
         <div class="admin-tabs" role="tablist" aria-label="Chức năng quản trị">
-          <button class="admin-tab active" data-admin-tab="users" type="button">Tài khoản</button>
-          <button class="admin-tab" data-admin-tab="categories" type="button">Chỉ tiêu</button>
+          <button id="adminUsersTab" class="admin-tab active" data-admin-tab="users" type="button">Tài khoản Tổng hợp</button>
+          <button id="adminCategoriesTab" class="admin-tab" data-admin-tab="categories" type="button">Chỉ tiêu</button>
+          <button id="adminReportPermissionsTab" class="admin-tab" data-admin-tab="reportPermissions" type="button">Quyền Báo cáo</button>
         </div>
 
         <div id="adminUsersPanel" class="admin-panel">
@@ -290,6 +291,19 @@
           <div id="categoryLoadState" class="inline-state" hidden></div>
           <div class="admin-note">Chỉ tiêu bị xóa sẽ chuyển sang trạng thái <b>Ngừng sử dụng</b> để bảo toàn số liệu lịch sử và có thể khôi phục khi cần.</div>
           <div id="adminCategories" class="category-table-wrap"></div>
+        </div>
+
+        <div id="adminReportPermissionsPanel" class="admin-panel" hidden>
+          <div class="compact-toolbar">
+            <div class="admin-summary"><span id="adminReportCount" class="summary-pill">0 tài khoản</span></div>
+            <div class="toolbar-actions">
+              <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="adminReportSearch" class="search-box" type="search" placeholder="Tìm tài khoản..." aria-label="Tìm tài khoản cấp quyền Báo cáo"></div>
+              <button id="btnReloadAdminReportUsers" class="btn btn-soft" type="button">Làm mới</button>
+            </div>
+          </div>
+          <div class="admin-note"><b>Quyền Báo cáo dùng chung cho Chuyển viện và Tử vong.</b> Người dùng đăng nhập Google ít nhất một lần sẽ xuất hiện tại đây để Quản trị viên cấp quyền.</div>
+          <div id="adminReportLoadState" class="inline-state" hidden></div>
+          <div id="adminReportUsers" class="admin-wrap"></div>
         </div>
       </div>
     </section>
