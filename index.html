@@ -11,9 +11,11 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=7.0.2">
-  <script src="./app-config.js?v=7.0.2"></script>
-  <script type="module" src="./app.js?v=7.0.2"></script>
+  <link rel="stylesheet" href="./styles.css?v=7.0.3">
+  <link rel="stylesheet" href="./ui-fixes.css?v=7.0.3">
+  <script src="./app-config.js?v=7.0.3"></script>
+  <script type="module" src="./app.js?v=7.0.3"></script>
+  <script defer src="./ui-fixes.js?v=7.0.3"></script>
 </head>
 <body>
 <header class="app-header">
@@ -80,50 +82,36 @@
       <div class="card result-card">
         <div class="section-head">
           <div><h2>Số liệu theo chỉ tiêu</h2></div>
-          <div class="section-tools"><div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="dashboardSearch" class="search-box" type="search" aria-label="Tìm tên chỉ tiêu" placeholder="Tìm tên chỉ tiêu..."></div></div>
+          <div class="section-tools"><div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="dashboardSearch" class="search-box" type="search" name="category-search-filter" value="" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly aria-label="Tìm tên chỉ tiêu" placeholder="Tìm tên chỉ tiêu..."></div></div>
         </div>
         <div id="summaryCards" class="summary-grid" aria-live="polite"></div>
       </div>
     </section>
 
     <section id="authView" class="view">
-      <div class="card auth-wrap">
-        <div class="auth-tabs" role="tablist" aria-label="Tài khoản">
-          <button class="auth-tab active" data-auth-tab="login" type="button">Đăng nhập</button>
-          <button class="auth-tab" data-auth-tab="register" type="button">Đăng ký</button>
-          <button class="auth-tab" data-auth-tab="forgot" type="button">Quên mật khẩu</button>
-        </div>
+      <div class="card auth-wrap auth-google-only">
         <div id="loginPanel" class="auth-panel active">
-          <div class="section-head"><div><h2>Đăng nhập hệ thống</h2></div></div>
-          <div class="message warn">Tài khoản dùng chung Firebase Authentication với HSBA, nhưng quyền sử dụng hai ứng dụng được cấp hoàn toàn độc lập.</div>
-          <div class="form-grid">
-            <div class="field full"><label>Email<input id="loginIdentifier" type="email" autocomplete="username" placeholder="name@example.com"></label></div>
-            <div class="field full"><label>Mật khẩu<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu"></label></div>
+          <div class="google-login-hero">
+            <div class="google-login-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.23-.2-1.77H12v3.4h5.52a4.72 4.72 0 0 1-2.05 3.01v2.2h3.32c1.94-1.79 2.81-4.42 2.81-6.84Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.89 6.63-2.42l-3.32-2.2c-.89.6-2.05 1.02-3.31 1.02-2.61 0-4.82-1.77-5.61-4.15H2.97v2.27A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 14.25A5.99 5.99 0 0 1 6.08 12c0-.78.11-1.54.3-2.25V7.48H2.98A10 10 0 0 0 2 12c0 1.61.38 3.14.97 4.52l3.42-2.27Z"/><path fill="#EA4335" d="M12 5.6c1.47 0 2.78.5 3.82 1.49l2.88-2.88C16.96 2.59 14.7 2 12 2a10 10 0 0 0-9.03 5.48l3.42 2.27C7.18 7.37 9.39 5.6 12 5.6Z"/></svg>
+            </div>
+            <div>
+              <h2>Đăng nhập</h2>
+              <p>Sử dụng tài khoản Google để xác thực và truy cập ứng dụng.</p>
+            </div>
           </div>
-          <div class="auth-provider-actions">
-            <button id="btnGoogleLogin" class="btn btn-soft" type="button">Đăng nhập bằng Google</button>
-            <span class="auth-or">hoặc</span>
-            <button id="btnLogin" class="btn btn-primary" type="button">Đăng nhập bằng Email</button>
+          <div class="message warn auth-permission-note">Firebase Authentication được dùng chung với HSBA; quyền sử dụng Tổng hợp Y tế và HSBA vẫn được cấp độc lập.</div>
+          <div class="auth-provider-actions auth-provider-google-only">
+            <button id="btnGoogleLogin" class="btn btn-google" type="button"><span class="google-button-mark" aria-hidden="true">G</span><span>Đăng nhập bằng Google</span></button>
+          </div>
+          <div class="auth-legacy-controls" hidden aria-hidden="true">
+            <input id="loginIdentifier" type="email" autocomplete="off" tabindex="-1"><input id="loginPassword" type="password" autocomplete="off" tabindex="-1"><button id="btnLogin" type="button" tabindex="-1"></button>
+            <input id="regName" tabindex="-1"><input id="regUsername" tabindex="-1"><input id="regEmail" type="email" tabindex="-1"><input id="regPassword" type="password" tabindex="-1"><input id="regConfirm" type="password" tabindex="-1"><button id="btnRegister" type="button" tabindex="-1"></button>
+            <input id="forgotIdentifier" type="email" tabindex="-1"><button id="btnRequestReset" type="button" tabindex="-1"></button>
           </div>
         </div>
-        <div id="registerPanel" class="auth-panel">
-          <div class="section-head"><div><h2>Đăng ký tài khoản</h2></div></div>
-          <div class="message warn">Đăng ký chỉ tạo danh tính Firebase. Quyền nhập liệu hoặc quản trị chỉ có hiệu lực sau khi Quản trị viên duyệt.</div>
-          <div class="form-grid">
-            <div class="field full"><label>Họ và tên<input id="regName" autocomplete="name"></label></div>
-            <div class="field"><label>Tài khoản hiển thị<input id="regUsername" autocomplete="username" placeholder="Ví dụ: nguyenvana"></label></div>
-            <div class="field"><label>Email<input id="regEmail" type="email" autocomplete="email"></label></div>
-            <div class="field"><label>Mật khẩu<input id="regPassword" type="password" autocomplete="new-password"></label></div>
-            <div class="field"><label>Nhập lại mật khẩu<input id="regConfirm" type="password" autocomplete="new-password"></label></div>
-          </div>
-          <div class="actions"><button id="btnRegister" class="btn btn-primary" type="button">Đăng ký và gửi yêu cầu cấp quyền</button></div>
-        </div>
-        <div id="forgotPanel" class="auth-panel">
-          <div class="section-head"><div><h2>Đặt lại mật khẩu</h2></div></div>
-          <div class="message warn">Firebase Authentication sẽ gửi liên kết đặt lại mật khẩu trực tiếp đến email đã đăng ký. Quản trị viên Tổng hợp Y tế không xem hoặc cấp mật khẩu của bạn.</div>
-          <div class="form-grid"><div class="field full"><label>Email<input id="forgotIdentifier" type="email" autocomplete="email" placeholder="name@example.com"></label></div></div>
-          <div class="actions"><button id="btnRequestReset" class="btn btn-primary" type="button">Gửi email đặt lại mật khẩu</button></div>
-        </div>
+        <div id="registerPanel" class="auth-panel" hidden></div>
+        <div id="forgotPanel" class="auth-panel" hidden></div>
       </div>
     </section>
 

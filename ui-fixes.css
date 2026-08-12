@@ -1,0 +1,62 @@
+/* UI production 7.0.3 — Google-only authentication */
+.auth-google-only {
+  width: min(620px, 100%);
+  margin-inline: auto;
+  padding: clamp(24px, 4vw, 40px);
+}
+.auth-google-only .auth-panel { padding: 0; }
+.google-login-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.google-login-hero h2 { margin: 0 0 5px; }
+.google-login-hero p { margin: 0; color: var(--muted, #75636b); line-height: 1.5; }
+.google-login-icon {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #eadce2;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(108, 25, 63, .08);
+}
+.google-login-icon svg { width: 30px; height: 30px; }
+.auth-permission-note { margin-bottom: 22px; }
+.auth-provider-google-only {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+.btn-google {
+  min-width: min(360px, 100%);
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  border: 1px solid #e3d5dc;
+  background: #fff;
+  color: #721740;
+  box-shadow: 0 10px 22px rgba(108, 25, 63, .08);
+}
+.btn-google:hover { background: #fff8fb; border-color: #d9b9c7; }
+.google-button-mark {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #4285f4;
+  font: 800 20px/1 Arial, sans-serif;
+}
+.auth-legacy-controls { display: none !important; }
+@media (max-width: 620px) {
+  .auth-google-only { padding: 22px 18px; }
+  .google-login-hero { align-items: flex-start; }
+  .btn-google { width: 100%; min-width: 0; }
+}

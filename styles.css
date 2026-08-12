@@ -349,3 +349,19 @@
 .offline-card{width:min(100%,560px);padding:28px;border:1px solid var(--line);border-radius:22px;background:#fff;box-shadow:var(--shadow);text-align:center}
 .offline-card h1{margin:0;color:var(--rose-950);font-size:28px}
 .offline-card p{color:var(--muted);line-height:1.65}
+
+
+/* ===== 7.0.3 - ĐĂNG NHẬP GOOGLE DUY NHẤT ===== */
+.auth-google-only{max-width:620px;padding:30px}
+.google-login-hero{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.google-login-hero h2{margin:0;color:var(--rose-950);font-size:25px;letter-spacing:-.02em}
+.google-login-hero p{margin:6px 0 0;color:var(--muted);font-size:12px;line-height:1.55}
+.google-login-icon{width:52px;height:52px;display:grid;place-items:center;flex:0 0 auto;border:1px solid #eadfe3;border-radius:16px;background:#fff;box-shadow:0 8px 20px rgba(101,31,63,.07)}
+.google-login-icon svg{width:28px;height:28px}
+.auth-permission-note{margin:0}
+.auth-provider-google-only{justify-content:center;margin-top:22px}
+.btn-google{min-width:260px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:11px;border:1px solid #e2d6db;background:#fff;color:var(--rose-900);box-shadow:0 8px 22px rgba(101,31,63,.08);font-size:13px;font-weight:800}
+.btn-google:hover{border-color:#cfb7c1;background:#fffafb;box-shadow:0 11px 26px rgba(101,31,63,.12)}
+.google-button-mark{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:conic-gradient(from -45deg,#4285f4 0 25%,#34a853 0 50%,#fbbc05 0 75%,#ea4335 0);color:#fff;font-size:12px;font-weight:900}
+.auth-legacy-controls{display:none!important}
+@media(max-width:760px){.auth-google-only{padding:22px 17px}.google-login-hero{align-items:flex-start}.google-login-hero h2{font-size:22px}.btn-google{width:100%;min-width:0}}
