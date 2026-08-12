@@ -1,4 +1,4 @@
-# SCHEMA REALTIME DATABASE — 8.0.1
+# SCHEMA REALTIME DATABASE — 8.0.2
 
 ## 1. Các node cũ
 Toàn bộ Rules và dữ liệu của HSBA cùng `tongHopYTe` được giữ nguyên.

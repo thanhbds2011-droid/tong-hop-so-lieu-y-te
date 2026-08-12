@@ -1,4 +1,4 @@
-/* Reports / application portal — production 8.0.1 */
+/* Reports / application portal — production 8.0.2 */
 
 /* ===== PORTAL ===== */
 .app-home-hero {
@@ -404,8 +404,12 @@
   .module-copy small { font-size: 12px; }
 
   .report-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
+  .report-stat { padding: 9px 7px; min-height: 58px; }
+  .report-stat span { font-size: 9px; line-height: 1.2; }
+  .report-stat strong { font-size: 18px; }
   .report-row {
     padding: 14px;
   }

@@ -1,4 +1,4 @@
-# TRIỂN KHAI PRODUCTION 8.0.1
+# TRIỂN KHAI PRODUCTION 8.0.2
 
 ## Thứ tự bắt buộc
 
@@ -17,7 +17,7 @@ Kiểm tra file mới chỉ bổ sung 2 node root:
 Các node HSBA và `tongHopYTe` phải giữ nguyên.
 
 ### Bước 3 — Upload source GitHub
-Dán đè toàn bộ source production 8.0.1 lên repo hiện tại.
+Dán đè toàn bộ source production 8.0.2 lên repo hiện tại.
 
 Các file mới:
 - `reports.js`
@@ -61,5 +61,5 @@ Chạy:
 Không migration lại dữ liệu Tổng hợp số liệu.
 
 
-## QUYỀN BÁO CÁO 8.0.1
+## QUYỀN BÁO CÁO 8.0.2
 Sau khi Publish Rules và deploy source, đăng nhập tài khoản Quản trị → **Quản trị → Quyền Báo cáo** để cấp `Nhập liệu` hoặc `Quản trị`. Một quyền Báo cáo dùng chung cho cả Chuyển viện và Tử vong.

@@ -1,17 +1,17 @@
 'use strict';
 
 const CACHE_PREFIX = 'tong-hop-so-lieu-y-te-firebase-';
-const CACHE_NAME = CACHE_PREFIX + 'v8.0.1';
+const CACHE_NAME = CACHE_PREFIX + 'v8.0.2';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=8.0.1',
-  './ui-fixes.css?v=8.0.1',
-  './reports.css?v=8.0.1',
-  './app-config.js?v=8.0.1',
-  './app.js?v=8.0.1',
-  './reports.js?v=8.0.1',
-  './ui-fixes.js?v=8.0.1',
+  './styles.css?v=8.0.2',
+  './ui-fixes.css?v=8.0.2',
+  './reports.css?v=8.0.2',
+  './app-config.js?v=8.0.2',
+  './app.js?v=8.0.2',
+  './reports.js?v=8.0.2',
+  './ui-fixes.js?v=8.0.2',
   './manifest.webmanifest',
   './offline.html',
   './assets/favicon-32.png',

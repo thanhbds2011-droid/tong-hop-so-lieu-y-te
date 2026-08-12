@@ -1032,19 +1032,29 @@ var AUTO_SYNC_MS = 300000;
     function isAnyAppAdmin(){return isOwnerAdmin()||isTongHopAdmin()||isReportAdmin()}
     function canManageReportPermissionsUi(){return isOwnerAdmin()||isTongHopAdmin()||isReportAdmin()}
 
+    function defaultPrivateView(){
+      if(state.user)return 'dashboard';
+      if(hasReportAccess())return 'reports';
+      return 'home';
+    }
+
     function showView(name){
       var isAdmin=isAnyAppAdmin();
       var hasReport=hasReportAccess();
-      if(name==='admin'&&!isAdmin){name=state.authUser?(hasReport?'home':'dashboard'):'dashboard';message('Bạn không có quyền truy cập chức năng này.','err')}
-      if(name==='entry'&&!state.user) name=state.authUser?'home':'auth';
-      if(name==='reports'&&!hasReport){name=state.authUser?'home':'auth';message('Tài khoản chưa được cấp quyền Báo cáo.','err')}
-      if(name==='home'&&!state.authUser) name='dashboard';
+      var hasTongHop=!!state.user;
+      if(name==='admin'&&!isAdmin){name=state.authUser?defaultPrivateView():'dashboard';message('Bạn không có quyền truy cập chức năng này.','err')}
+      if(name==='entry'&&!hasTongHop)name=state.authUser?defaultPrivateView():'auth';
+      if(name==='reports'&&!hasReport){name=state.authUser?defaultPrivateView():'auth';message('Tài khoản chưa được cấp quyền Báo cáo.','err')}
+      if(name==='home'){
+        if(!state.authUser)name='dashboard';
+        else if(hasTongHop||hasReport)name=defaultPrivateView();
+      }
       document.querySelectorAll('.view').forEach(function(view){view.classList.remove('active')});
       var target=$(name+'View');if(target)target.classList.add('active');
       document.querySelectorAll('.nav-item').forEach(function(button){var active=button.getAttribute('data-view')===name;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false')});
       window.scrollTo({top:0,behavior:'smooth'});
-      if(name==='entry') activateEntryView();
-      if(name==='admin') showAdminSection(state.adminSection||'users');
+      if(name==='entry')activateEntryView();
+      if(name==='admin')showAdminSection(state.adminSection||'users');
       if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.onViewChanged==='function')window.YTE_REPORTS.onViewChanged(name);
     }
 
@@ -1109,7 +1119,7 @@ var AUTO_SYNC_MS = 300000;
       var hasReport=hasReportAccess();
       var hasAnyAccess=loggedIn||hasReport;
       $('btnAccount').hidden=authenticated;$('btnTopLogout').hidden=!authenticated;
-      if($('navHome'))$('navHome').hidden=!hasReport;
+      if($('navHome'))$('navHome').hidden=true;
       $('navEntry').hidden=!loggedIn;$('navAdmin').hidden=!isAdmin;
       if($('navReports'))$('navReports').hidden=!hasReport;
       if($('adminUsersTab'))$('adminUsersTab').hidden=!tongHopAdmin;
@@ -1130,11 +1140,13 @@ var AUTO_SYNC_MS = 300000;
       }
       if(!loggedIn){
         state.entryCache={};state.dailyByCode={};state.loadedEntryDate='';state.adminUsers=[];state.adminLoadedAt=0;state.adminCategories=[];state.categoryLoadedAt=0;
-        if(currentViewName()==='entry')showView(hasReport?'home':(authenticated?'home':'dashboard'));
-        if(currentViewName()==='admin'&&!isAdmin)showView(hasReport?'home':(authenticated?'home':'dashboard'));
+        if(currentViewName()==='entry')showView(authenticated?defaultPrivateView():'dashboard');
+        if(currentViewName()==='admin'&&!isAdmin)showView(authenticated?defaultPrivateView():'dashboard');
+        if(currentViewName()==='home'&&hasReport)showView('reports');
         return;
       }
-      if(!isAdmin&&currentViewName()==='admin')showView(hasReport?'home':'dashboard');
+      if(!isAdmin&&currentViewName()==='admin')showView(defaultPrivateView());
+      if(currentViewName()==='home')showView('dashboard');
       $('entryUserName').textContent=state.user.name;
       $('entryUserMeta').textContent=state.user.email+' · '+state.user.role;
       $('btnChangePassword').hidden=state.user.provider!=='password';
@@ -1374,7 +1386,7 @@ var AUTO_SYNC_MS = 300000;
       $('adminNote').hidden=pendingCount===0;
       $('adminNote').textContent=pendingCount?'Có '+pendingCount+' tài khoản đã đăng nhập Google và chưa được cấp quyền Tổng hợp số liệu.':'';
       if(!rows.length){$('adminUsers').innerHTML='<div class="empty">Không có tài khoản phù hợp.</div>';return}
-      $('adminUsers').innerHTML='<table class="admin-table"><thead><tr><th>Họ tên</th><th>Tài khoản</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th>Yêu cầu</th><th>Thao tác</th></tr></thead><tbody>'+rows.map(function(user){
+      $('adminUsers').innerHTML='<table class="admin-table admin-user-table"><thead><tr><th>Họ tên</th><th>Tài khoản</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th>Yêu cầu</th><th>Thao tác</th></tr></thead><tbody>'+rows.map(function(user){
         var isSelf=state.user&&user.id===state.user.id;
         var actions='';
         if(user.isPending&&(user.requestStatus==='pending'||user.requestStatus==='unassigned')){
@@ -1403,6 +1415,9 @@ var AUTO_SYNC_MS = 300000;
     }
     function showAdminSection(name){
       var canTongHop=isTongHopAdmin()||isOwnerAdmin(),canReport=canManageReportPermissionsUi();
+      if($('adminUsersTab'))$('adminUsersTab').hidden=!canTongHop;
+      if($('adminCategoriesTab'))$('adminCategoriesTab').hidden=!canTongHop;
+      if($('adminReportPermissionsTab'))$('adminReportPermissionsTab').hidden=!canReport;
       if(name!=='users'&&name!=='categories'&&name!=='reportPermissions')name=canTongHop?'users':'reportPermissions';
       if((name==='users'||name==='categories')&&!canTongHop)name=canReport?'reportPermissions':'users';
       if(name==='reportPermissions'&&!canReport)name=canTongHop?'users':'reportPermissions';
@@ -1418,7 +1433,7 @@ var AUTO_SYNC_MS = 300000;
       if(!rows.length){$('adminReportUsers').innerHTML='<div class="empty">Không có tài khoản phù hợp.</div>';return}
       var currentUid=state.authUser&&state.authUser.uid?state.authUser.uid:'';
       var canChangeSelf=isTongHopAdmin()||isOwnerAdmin();
-      $('adminReportUsers').innerHTML='<table class="admin-table"><thead><tr><th>Họ tên</th><th>Email</th><th>Quyền Báo cáo</th><th>Trạng thái</th><th>Đăng nhập gần nhất</th><th>Thao tác</th></tr></thead><tbody>'+rows.map(function(user){
+      $('adminReportUsers').innerHTML='<table class="admin-table admin-report-table"><thead><tr><th>Họ tên</th><th>Email</th><th>Quyền Báo cáo</th><th>Trạng thái</th><th>Đăng nhập gần nhất</th><th>Thao tác</th></tr></thead><tbody>'+rows.map(function(user){
         var isSelf=user.id===currentUid,protectSelf=isSelf&&!canChangeSelf,actions='';
         if(!user.active){
           actions+='<button class="small-btn btn-soft admin-report-action" data-kind="grant-entry" data-id="'+esc(user.id)+'">Cấp Nhập liệu</button>';
@@ -1517,7 +1532,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'8.0.1'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'8.0.2'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});

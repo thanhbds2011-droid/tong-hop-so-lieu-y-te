@@ -183,7 +183,7 @@ function updateModuleUi(external) {
       ['admin', 'nhaplieu'].includes(reportState.tongHopPermission.role));
   const reportActive = validPermission(reportState.permission);
 
-  if ($('navHome')) $('navHome').hidden = !reportActive;
+  if ($('navHome')) $('navHome').hidden = true;
   if ($('navReports')) $('navReports').hidden = !reportActive;
   if ($('moduleTongHopCard')) $('moduleTongHopCard').hidden = !tongHopActive;
   if ($('moduleReportCard')) $('moduleReportCard').hidden = !reportActive;
@@ -205,9 +205,8 @@ async function routeAfterLogin(result) {
   clearGlobalMessage();
   const tongHopActive = !!(result && result.active === true);
   const reportActive = validPermission(reportState.permission);
-  if (tongHopActive && reportActive) activateView('home');
+  if (tongHopActive) activateView('dashboard');
   else if (reportActive) activateView('reports');
-  else if (tongHopActive) activateView('dashboard');
   else activateView('home');
 }
 
@@ -218,10 +217,13 @@ async function routeAfterRestore(result) {
   const tongHopActive = !!(result && result.active === true);
   const reportActive = validPermission(reportState.permission);
   if (!auth.currentUser) return;
+  if (currentName === 'home' && (tongHopActive || reportActive)) {
+    activateView(tongHopActive ? 'dashboard' : 'reports');
+    return;
+  }
   if (currentName === 'dashboard' || currentName === 'auth' || !currentName) {
-    if (tongHopActive && reportActive) activateView('home');
-    else if (reportActive) activateView('reports');
-    else if (!tongHopActive) activateView('home');
+    if (!tongHopActive && reportActive) activateView('reports');
+    else if (!tongHopActive && !reportActive) activateView('home');
   }
 }
 
@@ -690,7 +692,7 @@ function renderReportUsers() {
     return;
   }
   const currentUid = auth.currentUser ? auth.currentUser.uid : '';
-  $('reportUsers').innerHTML = `<table class="admin-table">
+  $('reportUsers').innerHTML = `<table class="admin-table report-permission-table">
     <thead><tr><th>Họ tên</th><th>Email</th><th>Quyền Báo cáo</th><th>Trạng thái</th><th>Đăng nhập gần nhất</th><th>Thao tác</th></tr></thead>
     <tbody>${rows.map((item) => {
       const isSelf = item.uid === currentUid;
