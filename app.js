@@ -41,7 +41,9 @@ const firebaseDatabase = getDatabase(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-await setPersistence(firebaseAuth, browserLocalPersistence);
+const authPersistenceReady = setPersistence(firebaseAuth, browserLocalPersistence).catch((error) => {
+  console.warn('Không thiết lập được Firebase Auth persistence:', error);
+});
 
 const authReady = new Promise((resolve) => {
   const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
@@ -757,6 +759,7 @@ async function adminRevokeUserFirebase(uid) {
 }
 
 async function firebaseCall(name, ...args) {
+  await authPersistenceReady;
   await authReady;
   switch (name) {
     case 'getDashboardData': return getDashboardDataFirebase(args[0]);
@@ -1227,8 +1230,8 @@ var AUTO_SYNC_MS = 300000;
       try{var result=await call('adminDeleteUser',state.token,id);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
 
-    document.addEventListener('DOMContentLoaded',async function(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'7.0.0'},'*');setupDates();updateRangeFields();
+    async function initializeUi(){
+      window.parent.postMessage({type:'YTE_APP_READY',version:'7.0.1'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
@@ -1249,4 +1252,18 @@ var AUTO_SYNC_MS = 300000;
         navigator.serviceWorker.register('./service-worker.js',{scope:'./'}).catch(function(){});
       }
       state.syncTimer=setInterval(function(){if(!document.hidden)syncData(true)},AUTO_SYNC_MS);
-    });
+    }
+
+    function startUi(){
+      initializeUi().catch(function(error){
+        console.error('Khởi tạo ứng dụng thất bại:', error);
+        var box=document.getElementById('message');
+        if(box){box.innerHTML='<div class="message err">Không thể khởi tạo ứng dụng. Vui lòng tải lại trang. Nếu lỗi vẫn còn, mở F12 → Console và gửi nội dung lỗi cho quản trị viên.</div>';}
+      });
+    }
+
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',startUi,{once:true});
+    }else{
+      startUi();
+    }
