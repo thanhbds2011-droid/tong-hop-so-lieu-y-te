@@ -1,0 +1,28 @@
+NÂNG CẤP 8.0.3 — ẨN TỔNG QUAN VỚI TÀI KHOẢN CHỈ CÓ QUYỀN BÁO CÁO
+
+Thay đổi duy nhất về nghiệp vụ hiển thị:
+- Chưa đăng nhập: Tổng quan công khai vẫn giữ nguyên.
+- Có quyền Tổng hợp số liệu: vẫn có Tổng quan + Nhập liệu (+ Quản trị nếu là admin).
+- Chỉ có quyền Báo cáo:
+  + Ẩn Tổng quan.
+  + Ẩn nút đồng bộ số liệu trên header.
+  + Vào thẳng Báo cáo.
+  + Không thể quay về dashboard Tổng hợp bằng điều hướng nội bộ.
+- Nếu là Quản trị Báo cáo thì vẫn có thêm mục Quản trị để quản lý quyền Báo cáo.
+- Có cả Tổng hợp + Báo cáo: hiển thị Tổng quan + Nhập liệu + Báo cáo (+ Quản trị theo vai trò).
+
+KHÔNG THAY:
+- Firebase Rules
+- Firebase Authentication
+- Realtime Database
+- dữ liệu tongHopYTe
+- dữ liệu baoCaoYTe
+- migration
+- form Chuyển viện/Tử vong
+- phân quyền hiện có
+
+CÁCH TRIỂN KHAI:
+1. Dán đè các file trong gói "cac-file-can-thay-8.0.3.zip" lên GitHub.
+2. Chờ GitHub Pages deploy.
+3. Mở cửa sổ ẩn danh hoặc Ctrl+Shift+R.
+4. Đăng nhập tài khoản chỉ có quyền Báo cáo để kiểm tra: thanh menu không còn Tổng quan.

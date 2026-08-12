@@ -1043,6 +1043,7 @@ var AUTO_SYNC_MS = 300000;
       var hasReport=hasReportAccess();
       var hasTongHop=!!state.user;
       if(name==='admin'&&!isAdmin){name=state.authUser?defaultPrivateView():'dashboard';message('Bạn không có quyền truy cập chức năng này.','err')}
+      if(name==='dashboard'&&state.authUser&&!hasTongHop)name=defaultPrivateView();
       if(name==='entry'&&!hasTongHop)name=state.authUser?defaultPrivateView():'auth';
       if(name==='reports'&&!hasReport){name=state.authUser?defaultPrivateView():'auth';message('Tài khoản chưa được cấp quyền Báo cáo.','err')}
       if(name==='home'){
@@ -1119,6 +1120,8 @@ var AUTO_SYNC_MS = 300000;
       var hasReport=hasReportAccess();
       var hasAnyAccess=loggedIn||hasReport;
       $('btnAccount').hidden=authenticated;$('btnTopLogout').hidden=!authenticated;
+      if($('btnSync'))$('btnSync').hidden=authenticated&&!loggedIn;
+      if($('navDashboard'))$('navDashboard').hidden=authenticated&&!loggedIn;
       if($('navHome'))$('navHome').hidden=true;
       $('navEntry').hidden=!loggedIn;$('navAdmin').hidden=!isAdmin;
       if($('navReports'))$('navReports').hidden=!hasReport;
@@ -1532,7 +1535,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'8.0.2'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'8.0.3'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
