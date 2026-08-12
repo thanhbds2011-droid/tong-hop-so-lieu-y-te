@@ -11,18 +11,18 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=7.0.4">
-  <link rel="stylesheet" href="./ui-fixes.css?v=7.0.4">
-  <script src="./app-config.js?v=7.0.4"></script>
-  <script type="module" src="./app.js?v=7.0.4"></script>
-  <script defer src="./ui-fixes.js?v=7.0.4"></script>
+  <link rel="stylesheet" href="./styles.css?v=7.0.5">
+  <link rel="stylesheet" href="./ui-fixes.css?v=7.0.5">
+  <script src="./app-config.js?v=7.0.5"></script>
+  <script type="module" src="./app.js?v=7.0.5"></script>
+  <script defer src="./ui-fixes.js?v=7.0.5"></script>
 </head>
 <body>
 <header class="app-header">
     <div class="header-inner">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        <div class="brand-mark brand-mark-logo" aria-hidden="true">
+          <img src="./assets/icon-192.png?v=7.0.5" alt="">
         </div>
         <div>
           <small>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</small>
@@ -89,28 +89,51 @@
     </section>
 
     <section id="authView" class="view">
-      <div class="card auth-wrap auth-google-only">
-        <div id="loginPanel" class="auth-panel active">
-          <div class="google-login-hero">
-            <div class="google-login-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" role="img"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.23-.2-1.77H12v3.4h5.52a4.72 4.72 0 0 1-2.05 3.01v2.2h3.32c1.94-1.79 2.81-4.42 2.81-6.84Z"/><path fill="#34A853" d="M12 22c2.7 0 4.97-.89 6.63-2.42l-3.32-2.2c-.89.6-2.05 1.02-3.31 1.02-2.61 0-4.82-1.77-5.61-4.15H2.97v2.27A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.39 14.25A5.99 5.99 0 0 1 6.08 12c0-.78.11-1.54.3-2.25V7.48H2.98A10 10 0 0 0 2 12c0 1.61.38 3.14.97 4.52l3.42-2.27Z"/><path fill="#EA4335" d="M12 5.6c1.47 0 2.78.5 3.82 1.49l2.88-2.88C16.96 2.59 14.7 2 12 2a10 10 0 0 0-9.03 5.48l3.42 2.27C7.18 7.37 9.39 5.6 12 5.6Z"/></svg>
+      <div class="login-stage">
+        <div class="login-shell">
+          <div class="login-brand-panel">
+            <div class="login-brand-glow login-brand-glow-one" aria-hidden="true"></div>
+            <div class="login-brand-glow login-brand-glow-two" aria-hidden="true"></div>
+            <div class="login-logo-wrap">
+              <img class="login-app-logo" src="./assets/icon-512.png?v=7.0.5" alt="Logo Tổng hợp số liệu Phòng Y tế">
             </div>
-            <div>
-              <h2>Đăng nhập</h2>
-              <p>Sử dụng tài khoản Google để xác thực và truy cập ứng dụng.</p>
+            <div class="login-brand-copy">
+              <span>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</span>
+              <h2>Tổng hợp số liệu<br>Phòng Y tế</h2>
+              <p>Theo dõi, cập nhật và quản lý số liệu tập trung.</p>
             </div>
           </div>
-          <div class="auth-provider-actions auth-provider-google-only">
-            <button id="btnGoogleLogin" class="btn btn-google" type="button"><span class="google-button-mark" aria-hidden="true">G</span><span>Đăng nhập bằng Google</span></button>
-          </div>
-          <div class="auth-legacy-controls" hidden aria-hidden="true">
-            <input id="loginIdentifier" type="email" autocomplete="off" tabindex="-1"><input id="loginPassword" type="password" autocomplete="off" tabindex="-1"><button id="btnLogin" type="button" tabindex="-1"></button>
-            <input id="regName" tabindex="-1"><input id="regUsername" tabindex="-1"><input id="regEmail" type="email" tabindex="-1"><input id="regPassword" type="password" tabindex="-1"><input id="regConfirm" type="password" tabindex="-1"><button id="btnRegister" type="button" tabindex="-1"></button>
-            <input id="forgotIdentifier" type="email" tabindex="-1"><button id="btnRequestReset" type="button" tabindex="-1"></button>
+
+          <div class="login-action-panel">
+            <div id="loginPanel" class="auth-panel active">
+              <div class="login-action-copy">
+                <span class="login-eyebrow">XÁC THỰC TÀI KHOẢN</span>
+                <h2>Đăng nhập</h2>
+                <p>Sử dụng tài khoản Google đã được cấp quyền để tiếp tục.</p>
+              </div>
+
+              <div class="auth-provider-actions auth-provider-google-only">
+                <button id="btnGoogleLogin" class="btn btn-login-primary" type="button">
+                  <span>Đăng nhập bằng Google</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+                </button>
+              </div>
+
+              <div class="login-security-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+                <span>Tài khoản chỉ truy cập các chức năng được Quản trị viên cấp quyền.</span>
+              </div>
+
+              <div class="auth-legacy-controls" hidden aria-hidden="true">
+                <input id="loginIdentifier" type="email" autocomplete="off" tabindex="-1"><input id="loginPassword" type="password" autocomplete="off" tabindex="-1"><button id="btnLogin" type="button" tabindex="-1"></button>
+                <input id="regName" tabindex="-1"><input id="regUsername" tabindex="-1"><input id="regEmail" type="email" tabindex="-1"><input id="regPassword" type="password" tabindex="-1"><input id="regConfirm" type="password" tabindex="-1"><button id="btnRegister" type="button" tabindex="-1"></button>
+                <input id="forgotIdentifier" type="email" tabindex="-1"><button id="btnRequestReset" type="button" tabindex="-1"></button>
+              </div>
+            </div>
+            <div id="registerPanel" class="auth-panel" hidden></div>
+            <div id="forgotPanel" class="auth-panel" hidden></div>
           </div>
         </div>
-        <div id="registerPanel" class="auth-panel" hidden></div>
-        <div id="forgotPanel" class="auth-panel" hidden></div>
       </div>
     </section>
 

@@ -1,5 +1,7 @@
 'use strict';
 
+// UI production 7.0.5 — branded login screen
+
 (function () {
   function prepareDashboardSearch() {
     const input = document.getElementById('dashboardSearch');

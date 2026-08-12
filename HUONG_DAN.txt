@@ -1,0 +1,24 @@
+TỔNG HỢP SỐ LIỆU PHÒNG Y TẾ — LOGIN COMPACT 7.0.6
+
+Mục tiêu:
+- Bỏ giao diện đăng nhập chia đôi lớn.
+- Chuyển sang một card nhỏ, gọn, tương tự mẫu "Nhiệm vụ và đánh giá KPI".
+- Giữ logo ứng dụng hiện có.
+- Giữ nguyên Google Authentication và toàn bộ nghiệp vụ Firebase.
+
+CHỈ CẦN DÁN ĐÈ 2 FILE:
+1. ui-fixes.css
+2. service-worker.js
+
+Không sửa:
+- app.js
+- app-config.js
+- Firebase Rules
+- Realtime Database
+- Authentication
+- phân quyền / dữ liệu / lịch sử
+
+Sau khi GitHub Pages deploy:
+- Mở cửa sổ ẩn danh mới, hoặc
+- Ctrl + Shift + R
+- Nếu vẫn thấy giao diện cũ, đóng toàn bộ tab ứng dụng và mở lại sau 1-2 phút.

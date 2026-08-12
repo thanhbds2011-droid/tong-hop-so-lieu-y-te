@@ -1,3 +1,7 @@
+# Tổng hợp số liệu Phòng Y tế — Firebase production 7.0.5
+
+Bản 7.0.5 làm mới màn hình đăng nhập: dùng logo ứng dụng `assets/icon-512.png`, bỏ toàn bộ logo Google khỏi giao diện, vẫn xác thực bằng nút “Đăng nhập bằng Google”. Toàn bộ nghiệp vụ Firebase/Realtime Database và phân quyền giữ nguyên.
+
 # Tổng hợp số liệu Phòng Y tế – Firebase Production 7.0.0
 
 ## Kiến trúc
