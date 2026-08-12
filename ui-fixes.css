@@ -1,4 +1,4 @@
-/* UI production 7.0.3 — Google-only authentication */
+/* UI production 7.0.4 — Google-only authentication */
 .auth-google-only {
   width: min(620px, 100%);
   margin-inline: auto;
@@ -25,7 +25,6 @@
   box-shadow: 0 8px 22px rgba(108, 25, 63, .08);
 }
 .google-login-icon svg { width: 30px; height: 30px; }
-.auth-permission-note { margin-bottom: 22px; }
 .auth-provider-google-only {
   display: flex;
   justify-content: center;
