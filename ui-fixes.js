@@ -1,20 +1,14 @@
 'use strict';
 
-// UI production 8.0.3 — compact Google-only login
-
+// UI production 8.3.1 — autofill protection, mobile keyboard safety, textarea auto-grow.
 (function () {
   function prepareDashboardSearch() {
     const input = document.getElementById('dashboardSearch');
     if (!input) return;
-
-    // Xóa dữ liệu do trình duyệt/password manager tự điền khi vừa mở trang.
     input.value = '';
     input.setAttribute('autocomplete', 'off');
     input.setAttribute('data-lpignore', 'true');
     input.setAttribute('data-1p-ignore', 'true');
-
-    // readonly ngăn Chrome/password manager nhầm ô tìm kiếm là ô tài khoản.
-    // Chỉ mở khóa khi người dùng thật sự tương tác với ô tìm kiếm.
     const unlock = () => {
       input.readOnly = false;
       input.removeAttribute('readonly');
@@ -33,9 +27,54 @@
     input.setAttribute('readonly', '');
   }
 
+  function setupTextareaAutoGrow() {
+    const resize = (textarea) => {
+      if (!(textarea instanceof HTMLTextAreaElement)) return;
+      textarea.style.height = 'auto';
+      const maxHeight = 220;
+      textarea.style.height = `${Math.min(maxHeight, Math.max(68, textarea.scrollHeight))}px`;
+      textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    };
+    document.querySelectorAll('textarea').forEach((textarea) => {
+      resize(textarea);
+      textarea.addEventListener('input', () => resize(textarea));
+    });
+    window.YTE_RESIZE_TEXTAREA = resize;
+  }
+
+  function setupMobileKeyboardSafety() {
+    let blurTimer = null;
+    const isEditable = (target) => target && target.matches && target.matches('input:not([type="button"]):not([type="checkbox"]):not([type="radio"]), textarea, select');
+    document.addEventListener('focusin', (event) => {
+      if (!isEditable(event.target) || window.matchMedia('(min-width: 761px)').matches) return;
+      clearTimeout(blurTimer);
+      document.body.classList.add('keyboard-open');
+      window.setTimeout(() => {
+        try { event.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+      }, 180);
+    });
+    document.addEventListener('focusout', () => {
+      clearTimeout(blurTimer);
+      blurTimer = window.setTimeout(() => {
+        const active = document.activeElement;
+        if (!isEditable(active)) document.body.classList.remove('keyboard-open');
+      }, 160);
+    });
+    if (window.visualViewport) {
+      const update = () => {
+        if (window.matchMedia('(min-width: 761px)').matches) return;
+        const keyboardLikelyOpen = window.innerHeight - window.visualViewport.height > 140;
+        document.body.classList.toggle('keyboard-open', keyboardLikelyOpen || isEditable(document.activeElement));
+      };
+      window.visualViewport.addEventListener('resize', update);
+      window.visualViewport.addEventListener('scroll', update);
+    }
+  }
+
   function init() {
     prepareDashboardSearch();
-    // Một lần sau khi password manager hoàn tất phục hồi form.
+    setupTextareaAutoGrow();
+    setupMobileKeyboardSafety();
     window.setTimeout(clearSearchOnReturn, 250);
   }
 
@@ -45,4 +84,4 @@
     init();
   }
   window.addEventListener('pageshow', clearSearchOnReturn);
-})();
+}());

@@ -11,22 +11,23 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=8.3.0">
-  <link rel="stylesheet" href="./ui-fixes.css?v=8.3.0">
-  <link rel="stylesheet" href="./reports.css?v=8.3.0">
-  <link rel="stylesheet" href="./journeys.css?v=8.3.0">
-  <script src="./app-config.js?v=8.3.0"></script>
-  <script type="module" src="./app.js?v=8.3.0"></script>
-  <script type="module" src="./reports.js?v=8.3.0"></script>
-  <script type="module" src="./journeys.js?v=8.3.0"></script>
-  <script defer src="./ui-fixes.js?v=8.3.0"></script>
+  <link rel="stylesheet" href="./styles.css?v=8.3.1">
+  <link rel="stylesheet" href="./ui-fixes.css?v=8.3.1">
+  <link rel="stylesheet" href="./reports.css?v=8.3.1">
+  <link rel="stylesheet" href="./journeys.css?v=8.3.1">
+  <script src="./app-config.js?v=8.3.1"></script>
+  <script defer src="./update-manager.js?v=8.3.1"></script>
+  <script type="module" src="./app.js?v=8.3.1"></script>
+  <script type="module" src="./reports.js?v=8.3.1"></script>
+  <script type="module" src="./journeys.js?v=8.3.1"></script>
+  <script defer src="./ui-fixes.js?v=8.3.1"></script>
 </head>
 <body>
 <header class="app-header">
     <div class="header-inner">
       <div class="brand">
         <div class="brand-mark brand-mark-logo" aria-hidden="true">
-          <img src="./assets/icon-192.png?v=8.3.0" alt="">
+          <img src="./assets/icon-192.png?v=8.3.1" alt="">
         </div>
         <div>
           <small>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</small>
@@ -34,7 +35,7 @@
         </div>
       </div>
       <div class="header-actions">
-        <button id="btnSync" class="btn btn-soft icon-btn" type="button" title="Đồng bộ dữ liệu" aria-label="Đồng bộ dữ liệu">
+        <button id="btnSync" class="btn btn-soft icon-btn" type="button" title="Đồng bộ trực tiếp đang bật · Nhấn để kiểm tra lại" aria-label="Kiểm tra đồng bộ dữ liệu">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg>
         </button>
         <button id="btnAccount" class="btn btn-light btn-top" type="button">Đăng nhập</button>
@@ -133,7 +134,7 @@
             <div class="login-brand-glow login-brand-glow-one" aria-hidden="true"></div>
             <div class="login-brand-glow login-brand-glow-two" aria-hidden="true"></div>
             <div class="login-logo-wrap">
-              <img class="login-app-logo" src="./assets/icon-512.png?v=8.3.0" alt="Logo Tổng hợp số liệu Phòng Y tế">
+              <img class="login-app-logo" src="./assets/icon-512.png?v=8.3.1" alt="Logo Tổng hợp số liệu Phòng Y tế">
             </div>
             <div class="login-brand-copy">
               <span>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</span>
@@ -236,7 +237,7 @@
             </div>
             <div class="journey-toolbar">
               <div class="journey-search"><label>Tìm đối tượng<input id="journeyTrackingSearch" type="search" autocomplete="off" placeholder="Tên, thẻ BHYT, nơi đang khám/điều trị..."></label></div>
-              <div class="journey-toolbar-actions"><button id="journeyTrackingReload" class="btn btn-soft" type="button">Làm mới</button></div>
+              <div class="journey-toolbar-actions"><button id="journeyTrackingReload" class="btn btn-soft journey-reload-btn" type="button" aria-label="Làm mới danh sách"><span class="journey-reload-icon" aria-hidden="true">↻</span><span class="journey-reload-text">Làm mới</span></button></div>
             </div>
             <div id="journeyTrackingLoadState" class="inline-state" hidden></div>
             <div id="journeyTrackingList" class="journey-list"></div>
@@ -255,7 +256,7 @@
                 <div class="journey-form-section-title"><span>02</span><strong>Thông tin chuyển viện</strong></div>
                 <div class="field journey-col-4 journey-row-start"><label>Hình thức chuyển *<select id="journeyTransferType"><option value="">Chọn hình thức chuyển</option><option value="CAP_CUU">Cấp cứu</option><option value="TAI_KHAM">Tái khám</option><option value="CHUYEN_VIEN">Chuyển viện</option><option value="KHAC">Khác</option></select></label></div>
                 <div id="journeyTransferTypeOtherField" class="field journey-col-8 journey-dynamic" hidden><label>Hình thức khác *<input id="journeyTransferTypeOther" maxlength="120" autocomplete="off" placeholder="Nhập hình thức chuyển khác"></label></div>
-                <div class="field journey-col-6 journey-row-start"><label>Nơi đi<input id="journeyFrom" value="Trung tâm Bảo trợ xã hội Tân Hiệp" readonly></label></div>
+                <div class="field journey-col-6 journey-row-start"><label>Nơi đi<input id="journeyFrom" type="hidden" value="Trung tâm Bảo trợ xã hội Tân Hiệp"><span class="journey-readonly-place"><span aria-hidden="true">⌖</span><strong>Trung tâm Bảo trợ xã hội Tân Hiệp</strong></span></label></div>
                 <div class="field journey-col-6"><label>Nơi đến *<select id="journeyTo"><option value="">Chọn nơi đến</option><option value="Trung tâm Y tế KV Bình Long">Trung tâm Y tế KV Bình Long</option><option value="Bệnh viện ĐK Bình Phước">Bệnh viện ĐK Bình Phước</option><option value="Bệnh viện ĐK Bình Dương">Bệnh viện ĐK Bình Dương</option><option value="Bệnh viện Chợ Rẫy">Bệnh viện Chợ Rẫy</option><option value="Bệnh viện Nhân Ái">Bệnh viện Nhân Ái</option><option value="__OTHER__">Khác</option></select></label></div>
                 <div id="journeyToOtherField" class="field full journey-dynamic" hidden><label>Nơi đến khác *<input id="journeyToOther" maxlength="300" autocomplete="off" placeholder="Nhập tên bệnh viện/cơ sở y tế"></label></div>
                 <div class="field journey-col-6 journey-row-start"><label>Lý do *<textarea id="journeyReason" rows="3" maxlength="1000" placeholder="Ghi rõ lý do chuyển viện/tái khám"></textarea></label></div>
@@ -282,7 +283,7 @@
               <div class="journey-search"><label>Tìm lịch sử<input id="journeyHistorySearch" type="search" autocomplete="off" placeholder="Tên đối tượng, BHYT, nơi đến..."></label></div>
               <div class="journey-toolbar-actions">
                 <select id="journeyHistoryStatus" aria-label="Lọc trạng thái"><option value="all">Tất cả</option><option value="DA_VE_TRUNG_TAM">Đã về Trung tâm</option><option value="TU_VONG_TAI_BENH_VIEN">Tử vong tại bệnh viện</option></select>
-                <button id="journeyHistoryReload" class="btn btn-soft" type="button">Làm mới</button>
+                <button id="journeyHistoryReload" class="btn btn-soft journey-reload-btn" type="button"><span class="journey-reload-icon" aria-hidden="true">↻</span><span class="journey-reload-text">Làm mới</span></button>
               </div>
             </div>
             <div id="journeyHistoryList" class="journey-list"></div>

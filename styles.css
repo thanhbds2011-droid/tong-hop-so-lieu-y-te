@@ -365,3 +365,104 @@
 .google-button-mark{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:conic-gradient(from -45deg,#4285f4 0 25%,#34a853 0 50%,#fbbc05 0 75%,#ea4335 0);color:#fff;font-size:12px;font-weight:900}
 .auth-legacy-controls{display:none!important}
 @media(max-width:760px){.auth-google-only{padding:22px 17px}.google-login-hero{align-items:flex-start}.google-login-hero h2{font-size:22px}.btn-google{width:100%;min-width:0}}
+
+/* ===== 8.3.1 UPDATE / MOBILE INPUT UX ===== */
+.app-update-banner {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1200;
+  width: min(560px, calc(100vw - 36px));
+  display: grid;
+  grid-template-columns: 42px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e7ccd8;
+  border-radius: 15px;
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 18px 48px rgba(67,24,43,.18);
+  backdrop-filter: blur(16px);
+}
+.app-update-banner[hidden] { display: none !important; }
+.app-update-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #f8e7ee;
+  color: #a9255e;
+  font-size: 22px;
+  font-weight: 900;
+}
+.app-update-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.app-update-copy strong {
+  color: #53152f;
+  font-size: 13px;
+}
+.app-update-copy span {
+  color: #75646c;
+  font-size: 10.8px;
+  line-height: 1.4;
+}
+.app-update-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.app-update-actions .btn {
+  min-height: 38px;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .app-update-banner {
+    right: 10px;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    left: 10px;
+    width: auto;
+    grid-template-columns: 36px minmax(0,1fr);
+    gap: 9px;
+    padding: 10px;
+    border-radius: 13px;
+  }
+  .app-update-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    font-size: 19px;
+  }
+  .app-update-copy strong { font-size: 11.5px; }
+  .app-update-copy span { font-size: 9.7px; }
+  .app-update-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+  .app-update-actions .btn { min-height: 42px; }
+  .app-update-now { width: 100%; }
+
+  .header-actions .btn-top {
+    box-shadow: none;
+  }
+  #btnTopLogout {
+    border: 1px solid rgba(255,255,255,.55);
+    background: rgba(255,255,255,.94);
+  }
+
+  body.keyboard-open {
+    padding-bottom: 14px;
+  }
+  body.keyboard-open .nav {
+    display: none;
+  }
+  body.keyboard-open .app-update-banner {
+    bottom: 10px;
+  }
+}

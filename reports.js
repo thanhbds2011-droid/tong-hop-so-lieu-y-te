@@ -5,6 +5,7 @@ import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/
 import {
   getDatabase,
   get,
+  onValue,
   push,
   query,
   ref,
@@ -36,7 +37,8 @@ const reportState = {
   editingId: '',
   readonly: false,
   loading: false,
-  initialized: false
+  initialized: false,
+  liveUnsubscribe: null
 };
 
 function $(id) { return document.getElementById(id); }
@@ -266,30 +268,48 @@ function reportFilterValues() {
   };
 }
 
+function applyReportSnapshot(snap) {
+  const raw = snapshotObject(snap);
+  reportState.reports = Object.keys(raw).map((id) => ({ id, ...(raw[id] || {}) }));
+  renderReports();
+  showInlineState('reportLoadState', '', '', false);
+}
+
+function stopReportRealtime() {
+  if (typeof reportState.liveUnsubscribe === 'function') reportState.liveUnsubscribe();
+  reportState.liveUnsubscribe = null;
+}
+
+function startReportRealtime() {
+  if (!validPermission(reportState.permission) && !isOwner(reportState.user)) {
+    stopReportRealtime();
+    return;
+  }
+  if (reportState.liveUnsubscribe) return;
+  reportState.liveUnsubscribe = onValue(ref(db, `${REPORT_ROOT}/baoCao`), (snap) => {
+    applyReportSnapshot(snap);
+  }, (error) => {
+    console.error('Realtime báo cáo:', error);
+    showInlineState('reportLoadState', 'Mất kết nối đồng bộ trực tiếp. Ứng dụng sẽ tự kết nối lại khi mạng ổn định.', 'err', false);
+  });
+}
+
 async function loadReports(force) {
-  if (!validPermission(reportState.permission)) {
+  if (!validPermission(reportState.permission) && !isOwner(reportState.user)) {
     $('reportList').innerHTML = '<div class="empty">Tài khoản chưa được cấp quyền Báo cáo.</div>';
     return;
   }
+  startReportRealtime();
+  if (!force && reportState.reports.length) { renderReports(); return; }
   if (reportState.loading && !force) return;
-  let filter;
-  try { filter = reportFilterValues(); }
+  try { reportFilterValues(); }
   catch (error) { showInlineState('reportLoadState', error.message, 'err', false); return; }
 
   reportState.loading = true;
   showInlineState('reportLoadState', 'Đang tải báo cáo...', '', true);
   try {
-    const q = query(
-      ref(db, `${REPORT_ROOT}/baoCao`),
-      orderByChild('ngayBaoCao'),
-      startAt(filter.from),
-      endAt(filter.to + '\uf8ff')
-    );
-    const snap = await get(q);
-    const raw = snapshotObject(snap);
-    reportState.reports = Object.keys(raw).map((id) => ({ id, ...(raw[id] || {}) }));
-    renderReports();
-    showInlineState('reportLoadState', '', '', false);
+    const snap = await get(ref(db, `${REPORT_ROOT}/baoCao`));
+    applyReportSnapshot(snap);
   } catch (error) {
     console.error(error);
     showInlineState('reportLoadState', error.message || String(error), 'err', false);
@@ -303,6 +323,7 @@ function filteredReports() {
   const filter = reportFilterValues();
   return reportState.reports
     .filter((item) => item.trangThai !== 'deleted')
+    .filter((item) => String(item.ngayBaoCao || '') >= filter.from && String(item.ngayBaoCao || '') <= filter.to)
     .filter((item) => item.loaiBaoCao === filter.type)
     .filter((item) => {
       if (!filter.search) return true;
@@ -846,6 +867,7 @@ function start() {
   onAuthStateChanged(auth, async (user) => {
     reportState.user = user || null;
     if (!user) {
+      stopReportRealtime();
       reportState.permission = null;
       reportState.tongHopPermission = null;
       updateModuleUi();
@@ -853,6 +875,7 @@ function start() {
     }
     try {
       await refreshAccess();
+      startReportRealtime();
     } catch (error) {
       console.error('Không thể nạp quyền Báo cáo:', error);
     }

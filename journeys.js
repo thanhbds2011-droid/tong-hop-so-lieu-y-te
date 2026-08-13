@@ -5,6 +5,7 @@ import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/
 import {
   getDatabase,
   get,
+  onValue,
   push,
   ref,
   runTransaction,
@@ -39,7 +40,8 @@ const state = {
   refreshTimer: null,
   createBaseline: '',
   updateBaseline: '',
-  lastFocus: null
+  lastFocus: null,
+  liveUnsubscribe: null
 };
 
 function $(id) { return document.getElementById(id); }
@@ -281,24 +283,49 @@ async function refreshPermission() {
   return state.permission;
 }
 
+function applyJourneySnapshot(journeySnap) {
+  const rawJourneys = snapshotObject(journeySnap);
+  const all = Object.keys(rawJourneys).map((id) => caseFromRaw(id, rawJourneys[id]));
+  state.openCases = all.filter((item) => item.trangThaiKyThuat === 'OPEN')
+    .sort((a, b) => Number(a.ngayGioDi || 0) - Number(b.ngayGioDi || 0));
+  state.closedCases = all.filter((item) => item.trangThaiKyThuat === 'CLOSED')
+    .sort((a, b) => Number(b.ngayGioVe || b.updatedAt || 0) - Number(a.ngayGioVe || a.updatedAt || 0));
+  state.loadedAt = Date.now();
+  renderTracking();
+  renderHistory();
+  showState('journeyTrackingLoadState', '', '', false);
+}
+
+function stopJourneyRealtime() {
+  if (typeof state.liveUnsubscribe === 'function') state.liveUnsubscribe();
+  state.liveUnsubscribe = null;
+}
+
+function startJourneyRealtime() {
+  if (!validPermission(state.permission) && !isOwner()) {
+    stopJourneyRealtime();
+    return;
+  }
+  if (state.liveUnsubscribe) return;
+  const journeyRef = ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien`);
+  state.liveUnsubscribe = onValue(journeyRef, (snap) => {
+    applyJourneySnapshot(snap);
+  }, (error) => {
+    console.error('Realtime hành trình:', error);
+    showState('journeyTrackingLoadState', friendlyError(error, 'Mất kết nối đồng bộ trực tiếp. Ứng dụng sẽ tự kết nối lại khi mạng ổn định.'), 'err', false);
+  });
+}
+
 async function loadJourneys(force) {
   if (!validPermission(state.permission) && !isOwner()) return;
-  if (!force && state.loadedAt && Date.now() - state.loadedAt < 30000) { renderTracking(); renderHistory(); return; }
+  startJourneyRealtime();
+  if (!force && state.loadedAt) { renderTracking(); renderHistory(); return; }
   if (state.loading && !force) return;
   state.loading = true;
   showState('journeyTrackingLoadState', 'Đang tải hành trình chuyển viện...', '', true);
   try {
     const journeySnap = await get(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien`));
-    const rawJourneys = snapshotObject(journeySnap);
-    const all = Object.keys(rawJourneys).map((id) => caseFromRaw(id, rawJourneys[id]));
-    state.openCases = all.filter((item) => item.trangThaiKyThuat === 'OPEN')
-      .sort((a, b) => Number(a.ngayGioDi || 0) - Number(b.ngayGioDi || 0));
-    state.closedCases = all.filter((item) => item.trangThaiKyThuat === 'CLOSED')
-      .sort((a, b) => Number(b.ngayGioVe || b.updatedAt || 0) - Number(a.ngayGioVe || a.updatedAt || 0));
-    state.loadedAt = Date.now();
-    renderTracking();
-    renderHistory();
-    showState('journeyTrackingLoadState', '', '', false);
+    applyJourneySnapshot(journeySnap);
   } catch (error) {
     console.error(error);
     showState('journeyTrackingLoadState', friendlyError(error, 'Không tải được hành trình chuyển viện. Vui lòng thử lại.'), 'err', false);
@@ -846,9 +873,9 @@ function openDetail(id) {
   $('journeyDetailMeta').innerHTML = `
     <div><span>Thẻ BHYT</span><strong>${esc(item.theBHYT || 'Chưa ghi nhận')}</strong></div>
     <div><span>Hình thức chuyển ban đầu</span><strong>${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</strong></div>
-    <div><span>Trạng thái</span><strong>${esc(statusLabel(item.trangThaiHienTai))}</strong></div>
     <div><span>Rời Trung tâm</span><strong>${esc(fmtDateTime(item.ngayGioDi))}</strong></div>
-    <div><span>${closed ? 'Kết thúc' : 'Cập nhật gần nhất'}</span><strong>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</strong></div>`;
+    <div><span>${closed ? 'Kết thúc' : 'Cập nhật gần nhất'}</span><strong>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</strong></div>
+    <div class="journey-detail-status ${statusClass(item.trangThaiHienTai)}"><span>Trạng thái</span><strong>${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓ ' : ''}${esc(statusLabel(item.trangThaiHienTai))}</strong></div>`;
   const events = Object.values(item.lichSu || {}).sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
   $('journeyTimeline').innerHTML = events.length ? events.map((event) => {
     const note = String(event.ghiChu || '').trim();
@@ -965,6 +992,7 @@ function start() {
   initEvents();
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
+      stopJourneyRealtime();
       state.permission = null;
       state.openCases = [];
       state.closedCases = [];
@@ -973,6 +1001,7 @@ function start() {
     }
     try {
       await refreshPermission();
+      startJourneyRealtime();
       const reportsView = $('reportsView');
       const transferTab = document.querySelector('.report-type-tab[data-report-type="CHUYEN_VIEN"]');
       if (reportsView && reportsView.classList.contains('active') && transferTab && transferTab.classList.contains('active')) {

@@ -1,0 +1,93 @@
+ỨNG DỤNG PHÒNG Y TẾ v8.3.1 – MOBILE UX REFINEMENT + REALTIME SYNC
+====================================================================
+
+1. MỤC TIÊU
+- Tinh gọn trải nghiệm mobile.
+- Dữ liệu tự đồng bộ giữa các máy bằng Firebase Realtime Database listener.
+- Không cần bấm Làm mới/Đồng bộ để thấy dữ liệu vừa thay đổi ở máy khác.
+- Có cơ chế phát hiện phiên bản mới và hiển thị banner "Cập nhật ngay".
+
+2. CÁC FILE PRODUCTION ĐÃ THAY ĐỔI
+- index.html
+- styles.css
+- reports.css
+- journeys.css
+- app-config.js
+- app.js
+- reports.js
+- journeys.js
+- ui-fixes.js
+- service-worker.js
+- sw.js
+- offline.html
+- update-manager.js (MỚI)
+- version.json (MỚI)
+
+3. FIREBASE
+- Firebase project: GIỮ NGUYÊN.
+- Realtime Database schema: GIỮ NGUYÊN.
+- Firebase Rules: GIỮ NGUYÊN 8.3.0/8.2.0, không cần dán lại.
+- Không migration dữ liệu.
+
+4. ĐỒNG BỘ TRỰC TIẾP GIỮA CÁC MÁY
+Ứng dụng dùng onValue() của Firebase Realtime Database:
+- Tổng quan số liệu: theo dõi dữ liệu công khai trong khoảng thời gian đang chọn.
+- Nhập liệu: theo dõi trực tiếp dữ liệu của ngày đang mở.
+- Báo cáo tử vong: theo dõi trực tiếp baoCaoYTe/baoCao.
+- Hành trình chuyển viện: theo dõi trực tiếp baoCaoYTe/hanhTrinhChuyenVien.
+
+Ví dụ:
+Máy A cập nhật hành trình/chỉ tiêu → Firebase ghi thành công → máy B đang mở ứng dụng nhận thay đổi và render lại tự động.
+Không cần F5, không cần bấm Làm mới, không cần bấm nút Đồng bộ.
+
+5. CẬP NHẬT PHIÊN BẢN TRÊN NHIỀU MÁY
+- version.json công bố phiên bản hiện hành.
+- update-manager.js kiểm tra phiên bản khi mở app, khi quay lại app, khi có mạng trở lại và mỗi 60 giây trong lúc app đang mở.
+- service-worker.js được đăng ký với updateViaCache='none'.
+- Khi worker mới ở trạng thái waiting, ứng dụng hiển thị banner:
+  "Có phiên bản mới vX.X.X" → "Cập nhật ngay" / "Để sau".
+- Khi bấm "Cập nhật ngay", worker mới được kích hoạt và ứng dụng tải lại đúng một lần.
+- Không tự reload giữa lúc người dùng đang nhập liệu.
+
+LƯU Ý CHUYỂN TIẾP TỪ 8.3.0:
+8.3.0 chưa có update-manager. Vì vậy, sau khi deploy 8.3.1, một thiết bị đang mở liên tục ở 8.3.0 có thể cần đóng/mở lại app một lần để nạp cơ chế cập nhật mới. Từ khi thiết bị đã chạy 8.3.1, các phiên bản sau sẽ được phát hiện tự động và hiện banner cập nhật.
+
+Thông báo này là thông báo trong ứng dụng khi app đang mở/được mở lại. Không phải push notification của hệ điều hành khi app đã đóng hoàn toàn.
+
+6. MOBILE UX 8.3.1
+- Page header Báo cáo thấp hơn.
+- Tab cấp 2 gọn hơn.
+- KPI "Đang ngoài Trung tâm" dạng summary bar thấp.
+- Lịch sử: tìm kiếm ở một hàng; bộ lọc + Làm mới ở hàng dưới trên mobile.
+- Nút Làm mới của Đang theo dõi chuyển thành icon gọn trên mobile.
+- Nơi đi hiển thị read-only rõ ràng, không giống ô nhập liệu.
+- Form giảm khoảng cách dọc.
+- Textarea tự tăng chiều cao theo nội dung.
+- Action bar Lập chuyển viện sticky phía trên bottom navigation.
+- Khi bàn phím mobile mở: bottom navigation tạm ẩn để không che input.
+- Card Lịch sử thấp hơn, nút Xem hành trình compact.
+- Summary modal hành trình cân 2x2 + status strip.
+- Timeline giảm padding/cỡ chữ, footer Đóng full-width trên mobile.
+
+7. CÁCH DEPLOY KHUYẾN NGHỊ
+Phương án A – an toàn nhất:
+- Sao lưu repo hiện tại.
+- Dán đè toàn bộ file trong ZIP "cac-file-dan-de-y-te-v8.3.1.zip".
+- Thêm 2 file mới: update-manager.js và version.json.
+- Commit/Push GitHub Pages.
+- Không sửa Firebase Rules.
+
+Phương án B:
+- Dán toàn bộ source trong ZIP "tong-hop-so-lieu-y-te-v8.3.1-hoan-chinh.zip" vào repo.
+
+8. KIỂM TRA SAU DEPLOY
+- Mở app trên máy A và máy B cùng tài khoản/quyền phù hợp.
+- Máy A cập nhật 1 số liệu ngày → máy B phải đổi tự động.
+- Máy A lập/cập nhật hành trình → máy B phải đổi tự động.
+- Máy A lập báo cáo tử vong → máy B phải thấy tự động trong danh sách phù hợp.
+- Không bấm Làm mới trong các kiểm thử trên.
+- Kiểm tra iPhone/PWA: keyboard không che nút; bottom navigation ẩn khi keyboard mở.
+
+9. VERSION
+Ứng dụng: 8.3.1
+Cache: tong-hop-so-lieu-y-te-firebase-v8.3.1

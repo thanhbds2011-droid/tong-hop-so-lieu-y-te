@@ -1,6 +1,6 @@
-## Phiên bản production 8.3.0
+## Phiên bản production 8.3.1
 
-Phiên bản 8.3.0 tinh gọn Dashboard/Lịch sử hành trình chuyển viện, loại dữ liệu chuyển viện cũ khỏi UI module hành trình và chuẩn hóa timeline. Firebase Rules giữ nguyên 8.2.0.
+Phiên bản 8.3.1 tinh gọn Dashboard/Lịch sử hành trình chuyển viện, loại dữ liệu chuyển viện cũ khỏi UI module hành trình và chuẩn hóa timeline. Firebase Rules giữ nguyên 8.2.0.
 
 # Ứng dụng Phòng Y tế — Firebase Production 8.1.1
 

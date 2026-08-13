@@ -20,6 +20,7 @@ import {
 import {
   getDatabase,
   get,
+  onValue,
   push,
   query,
   ref,
@@ -499,7 +500,7 @@ async function adjustDailyDataFirebase(payload) {
   const current = snapshotObject(currentSnap);
   const currentVersion = Number(current.version || 0);
   if (currentVersion !== expectedVersion) {
-    throw new Error('Số liệu vừa được cập nhật từ nơi khác. Vui lòng tải lại dữ liệu ngày.');
+    throw new Error('Số liệu vừa được cập nhật từ thiết bị khác. Ứng dụng đã tự đồng bộ; vui lòng kiểm tra giá trị mới và thực hiện lại.');
   }
   const beforeValue = currentSnap.exists() ? Number(current.giaTri || 0) : 0;
   if (currentSnap.exists() && beforeValue === newValue) throw new Error('Số liệu mới đang bằng số hiện tại.');
@@ -570,7 +571,7 @@ async function adjustDailyDataFirebase(payload) {
     const latestSnap = await get(recordRef).catch(() => null);
     const latestVersion = latestSnap && latestSnap.exists() ? Number(latestSnap.child('version').val() || 0) : 0;
     if (latestVersion !== expectedVersion) {
-      throw new Error('Số liệu vừa được cập nhật từ nơi khác. Vui lòng tải lại dữ liệu ngày.');
+      throw new Error('Số liệu vừa được cập nhật từ thiết bị khác. Ứng dụng đã tự đồng bộ; vui lòng kiểm tra giá trị mới và thực hiện lại.');
     }
     throw error;
   }
@@ -1000,17 +1001,58 @@ var AUTO_SYNC_MS = 300000;
       adminCategories:[],categoryLoadedAt:0,categoryPromise:null,adminSection:'users',
       adminReportUsers:[],adminReportLoadedAt:0,adminReportPromise:null,
       editingCategoryCode:'',categorySaving:false,
-      adjustingCode:'',adjustSaving:false
+      adjustingCode:'',adjustSaving:false,
+      dashboardLiveUnsubscribe:null,categoryLiveUnsubscribe:null,entryLiveUnsubscribe:null,
+      liveRangeKey:'',entryLiveDate:''
     };
 
     function $(id){return document.getElementById(id)}
+    function publicCategoriesFromSnapshot(snap){
+      var raw=snapshotObject(snap);
+      return Object.keys(raw).map(function(code){var item=raw[code]||{};return{code:code,name:item.ten||code,group:item.nhom||'Khác',unit:item.donVi||'Lượt',order:Number(item.thuTu||9999),status:item.trangThai||'Hoạt động'}}).filter(function(item){return item.status==='Hoạt động'}).sort(function(a,b){return a.order-b.order||a.name.localeCompare(b.name,'vi')});
+    }
+    function dashboardRecordsFromSnapshot(snap){
+      var raw=snapshotObject(snap),records=[];
+      Object.keys(raw).sort().forEach(function(date){var day=raw[date]||{};Object.keys(day).forEach(function(code){var item=day[code]||{};records.push({id:date+'-'+code,date:date,code:code,name:item.ten||code,value:Number(item.giaTri||0),note:'',updatedAt:item.updatedAt||0,version:Number(item.version||0)})})});
+      return records;
+    }
+    function dailyRecordsFromSnapshot(snap,date){
+      var raw=snapshotObject(snap);
+      return Object.keys(raw).map(function(code){var item=raw[code]||{};return{id:date+'-'+code,date:date,code:code,name:item.ten||code,value:Number(item.giaTri||0),note:item.ghiChu||'',updatedBy:item.updatedByName||'',updatedAt:item.updatedAt?formatDateTime(item.updatedAt):'',version:Number(item.version||0)}});
+    }
+    function stopDashboardRealtime(){if(typeof state.dashboardLiveUnsubscribe==='function')state.dashboardLiveUnsubscribe();state.dashboardLiveUnsubscribe=null;state.liveRangeKey=''}
+    function stopEntryRealtime(){if(typeof state.entryLiveUnsubscribe==='function')state.entryLiveUnsubscribe();state.entryLiveUnsubscribe=null;state.entryLiveDate=''}
+    function startCategoryRealtime(){
+      if(state.categoryLiveUnsubscribe)return;
+      state.categoryLiveUnsubscribe=onValue(ref(firebaseDatabase,ROOT+'/congKhai/danhMucChiTieu'),function(snap){
+        state.categories=publicCategoriesFromSnapshot(snap);populateContentFilter();renderAll();if(currentViewName()==='entry')renderIndicators();
+      },function(error){console.warn('Realtime danh mục:',error)});
+    }
+    function startDashboardRealtime(force){
+      var range;try{range=getRange()}catch(error){return}
+      var key=range.from+'|'+range.to;
+      if(!force&&state.dashboardLiveUnsubscribe&&state.liveRangeKey===key)return;
+      stopDashboardRealtime();state.liveRangeKey=key;
+      var liveQuery=query(ref(firebaseDatabase,ROOT+'/congKhai/soLieuTheoNgay'),orderByKey(),startAt(range.from),endAt(range.to));
+      state.dashboardLiveUnsubscribe=onValue(liveQuery,function(snap){
+        state.records=dashboardRecordsFromSnapshot(snap);state.from=range.from;state.to=range.to;state.lastSyncAt=Date.now();$('rangeLabel').textContent=range.label;renderAll();
+      },function(error){console.warn('Realtime tổng quan:',error)});
+    }
+    function startEntryRealtime(date){
+      date=String(date||'');if(!state.user||!/^\d{4}-\d{2}-\d{2}$/.test(date)){stopEntryRealtime();return}
+      if(state.entryLiveUnsubscribe&&state.entryLiveDate===date)return;
+      stopEntryRealtime();state.entryLiveDate=date;
+      state.entryLiveUnsubscribe=onValue(ref(firebaseDatabase,ROOT+'/soLieuTheoNgay/'+date),function(snap){
+        var records=dailyRecordsFromSnapshot(snap,date);cacheDaily(date,records);if($('entryDate').value===date){applyDailyCache(date);setEntryLoadState('','ok',false)}
+      },function(error){console.warn('Realtime nhập liệu:',error);if(currentViewName()==='entry')setEntryLoadState('Mất kết nối đồng bộ trực tiếp. Ứng dụng sẽ tự kết nối lại khi mạng ổn định.','err',false)});
+    }
     function call(name){
       var args=Array.prototype.slice.call(arguments,1);
       return firebaseCall.apply(null,[name].concat(args)).catch(function(error){
         var messageText=error&&error.message?error.message:String(error||'Có lỗi xảy ra.');
         if(/auth\/invalid-credential|auth\/invalid-login-credentials|auth\/wrong-password|auth\/user-not-found/.test(String(error&&error.code||'')+' '+messageText))messageText='Email hoặc mật khẩu không đúng.';
         if(/auth\/email-already-in-use/.test(String(error&&error.code||'')))messageText='Email này đã được đăng ký.';
-        if(/PERMISSION_DENIED|permission_denied/i.test(messageText))messageText='Bạn không có quyền thực hiện thao tác này hoặc dữ liệu vừa thay đổi. Vui lòng tải lại.';
+        if(/PERMISSION_DENIED|permission_denied/i.test(messageText))messageText='Bạn không có quyền thực hiện thao tác này hoặc dữ liệu vừa thay đổi ở thiết bị khác. Ứng dụng sẽ tự đồng bộ dữ liệu mới nhất.';
         throw new Error(messageText);
       });
     }
@@ -1089,6 +1131,7 @@ var AUTO_SYNC_MS = 300000;
           if(!result||!result.success)throw new Error(result&&result.message?result.message:'Không thể tải dữ liệu.');
           state.categories=result.categories||[];state.records=result.records||[];state.from=result.from;state.to=result.to;state.lastSyncAt=Date.now();
           populateContentFilter();$('rangeLabel').textContent=range.label;renderAll();
+          startCategoryRealtime();startDashboardRealtime(false);
           if(currentViewName()==='entry')renderIndicators();
           if(!silent)toast('Dữ liệu đã được cập nhật.','ok');
         }catch(error){if(!silent)message(error.message||String(error),'err')}
@@ -1142,6 +1185,7 @@ var AUTO_SYNC_MS = 300000;
         });
       }
       if(!loggedIn){
+        stopEntryRealtime();
         state.entryCache={};state.dailyByCode={};state.loadedEntryDate='';state.adminUsers=[];state.adminLoadedAt=0;state.adminCategories=[];state.categoryLoadedAt=0;
         if(currentViewName()==='entry')showView(authenticated?defaultPrivateView():'dashboard');
         if(currentViewName()==='admin'&&!isAdmin)showView(authenticated?defaultPrivateView():'dashboard');
@@ -1154,6 +1198,7 @@ var AUTO_SYNC_MS = 300000;
       $('entryUserMeta').textContent=state.user.email+' · '+state.user.role;
       $('btnChangePassword').hidden=state.user.provider!=='password';
       $('changePasswordBox').hidden=true;
+      startEntryRealtime($('entryDate').value);
       if(!applyDailyCache($('entryDate').value))loadDay({silent:true,force:false,notify:false});
     }
     function applySessionResult(result){
@@ -1216,7 +1261,7 @@ var AUTO_SYNC_MS = 300000;
     }
     async function logout(){
       try{await call('logoutSession')}catch(error){}
-      state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi();
+      stopEntryRealtime();state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi();
       if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.onLogout==='function')window.YTE_REPORTS.onLogout();
       showView('dashboard');message('Đã đăng xuất.','ok')
     }
@@ -1224,7 +1269,7 @@ var AUTO_SYNC_MS = 300000;
 
     function activateEntryView(){
       if(!state.user)return
-      var date=$('entryDate').value;if(applyDailyCache(date)){if(cacheIsFresh(date))setEntryLoadState('','ok',false);else{setEntryLoadState('Đang kiểm tra dữ liệu mới nhất...','',true);loadDay({silent:true,force:true,notify:false})}}else{renderIndicators();setEntryLoadState('Đang chuẩn bị dữ liệu ngày '+fmtDate(date)+'...','',true);loadDay({silent:true,force:false,notify:false})}
+      var date=$('entryDate').value;startEntryRealtime(date);if(applyDailyCache(date)){if(cacheIsFresh(date))setEntryLoadState('','ok',false);else{setEntryLoadState('Đang kiểm tra dữ liệu mới nhất...','',true);loadDay({silent:true,force:true,notify:false})}}else{renderIndicators();setEntryLoadState('Đang chuẩn bị dữ liệu ngày '+fmtDate(date)+'...','',true);loadDay({silent:true,force:false,notify:false})}
     }
     function updateEntryStats(){
       var positiveCount=0,zeroCount=0,recordedCount=0,total=state.categories.length;
@@ -1289,6 +1334,7 @@ var AUTO_SYNC_MS = 300000;
         return;
       }
       state.dailyByCode={};state.loadedEntryDate='';renderIndicators();
+      startEntryRealtime($('entryDate').value);
       if(!applyDailyCache($('entryDate').value))await loadDay({silent:true,force:false,notify:false});
       else if(!cacheIsFresh($('entryDate').value))loadDay({silent:true,force:true,notify:false});
     }
@@ -1535,7 +1581,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'8.3.0'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'8.3.1'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
@@ -1552,10 +1598,7 @@ var AUTO_SYNC_MS = 300000;
       $('btnReloadAdminReportUsers').onclick=function(){loadAdminReportUsers(true)};$('adminReportSearch').oninput=renderAdminReportUsers;$('adminReportUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-report-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='grant-entry')adminReportPermission(id,'nhaplieu',true);if(kind==='grant-admin')adminReportPermission(id,'admin',true);if(kind==='role')adminReportPermission(id,value,true);if(kind==='revoke')adminReportPermission(id,'nhaplieu',false)});
       $('btnAddCategory').onclick=function(){openCategoryDialog('')};$('btnReloadCategories').onclick=function(){loadAdminCategories(true)};$('categorySearch').oninput=renderAdminCategories;$('adminCategories').addEventListener('click',function(event){var button=event.target.closest('.category-action');if(!button)return;var kind=button.getAttribute('data-kind'),code=button.getAttribute('data-code'),value=button.getAttribute('data-value');if(kind==='edit')openCategoryDialog(code);if(kind==='status')setCategoryStatus(code,value)});
       document.addEventListener('visibilitychange',function(){if(!document.hidden&&Date.now()-state.lastSyncAt>90000)syncData(true)});window.addEventListener('focus',function(){if(Date.now()-state.lastSyncAt>90000)syncData(true)});
-      await Promise.all([restore(),syncData(false)]);updateAuthUi();onAuthStateChanged(firebaseAuth,function(user){if(!user&&state.authUser){state.authUser=null;state.user=null;updateAuthUi()}});
-      if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
-        navigator.serviceWorker.register('./service-worker.js',{scope:'./'}).catch(function(){});
-      }
+      await Promise.all([restore(),syncData(false)]);startCategoryRealtime();startDashboardRealtime(false);updateAuthUi();onAuthStateChanged(firebaseAuth,function(user){if(!user&&state.authUser){state.authUser=null;state.user=null;updateAuthUi()}});
       state.syncTimer=setInterval(function(){if(!document.hidden)syncData(true)},AUTO_SYNC_MS);
     }
 
