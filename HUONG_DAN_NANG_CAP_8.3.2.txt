@@ -1,0 +1,73 @@
+ỨNG DỤNG PHÒNG Y TẾ v8.3.2
+NHẬP LIỆU GỌN – TỔNG QUAN THEO DỮ LIỆU THỰC TẾ – LỊCH SỬ DỄ ĐỌC
+Ngày phát hành: 13/08/2026
+
+1. MỤC TIÊU BẢN 8.3.2
+- Thay màn hình Nhập liệu dài bằng luồng “+ Nhập số liệu”.
+- Chọn chỉ tiêu từ dropdown, nhập số lượng, bấm Lưu.
+- Chỉ những chỉ tiêu đã ghi nhận mới xuất hiện trong danh sách của ngày đó.
+- Tổng quan chỉ hiển thị chỉ tiêu có bản ghi trong phạm vi đang xem; chỉ tiêu chưa nhập không còn tạo card trống.
+- Lịch sử hành trình chuyển viện trên điện thoại tăng phân cấp thị giác: tên, BHYT, lộ trình, trạng thái và thời gian rõ hơn.
+- Giữ nguyên đồng bộ Realtime giữa nhiều máy và thông báo có phiên bản mới từ v8.3.1.
+
+2. CÁCH NHẬP SỐ LIỆU MỚI
+Bước 1: Vào Nhập liệu và chọn ngày.
+Bước 2: Bấm “+ Nhập số liệu”.
+Bước 3: Chọn chỉ tiêu, ví dụ “Nội trú”.
+Bước 4: Hệ thống tự hiển thị đơn vị và số liệu hiện tại (nếu đã từng nhập).
+Bước 5: Nhập số liệu, ví dụ 1.
+Bước 6: Bấm “Lưu số liệu”.
+
+Sau khi lưu:
+- Dữ liệu xuất hiện ngay trong “Số liệu trong ngày”.
+- Máy khác đang mở ứng dụng nhận thay đổi tự động qua Firebase Realtime Database.
+- Tổng quan của ngày đó tự cập nhật, không cần bấm tải lại.
+
+3. TỔNG QUAN
+- Chỉ tiêu chưa có bản ghi trong phạm vi đang xem sẽ không hiển thị.
+- Bản ghi có giá trị 0 vẫn được hiển thị vì đây là số liệu đã được người dùng chủ động ghi nhận.
+- Khi chưa có bất kỳ số liệu nào, hệ thống hiển thị trạng thái trống thay vì 19 card “Chưa ghi nhận”.
+
+4. LỊCH SỬ CHUYỂN VIỆN
+- Tên đối tượng và giá trị BHYT được nhấn mạnh hơn.
+- Các địa điểm trong lộ trình dùng chữ đậm vừa phải; mũi tên dùng màu thương hiệu.
+- Nhãn Đi/Về/Kết thúc dùng chữ đậm; thời gian dùng chữ nghiêng để quét thông tin nhanh hơn.
+- Nút “Xem hành trình →” tăng độ tương phản trên điện thoại.
+
+5. CẬP NHẬT TRÊN CÁC MÁY ĐÃ CÀI
+Các máy đang chạy v8.3.1 đã có Update Manager.
+Sau khi deploy v8.3.2:
+- version.json công bố v8.3.2;
+- ứng dụng kiểm tra phiên bản khi mở/focus/online và định kỳ;
+- máy v8.3.1 sẽ hiện “Có phiên bản mới v8.3.2”;
+- người dùng bấm “Cập nhật ngay” để nhận source mới.
+
+Không cần gỡ PWA, không cần xóa cache thủ công trong điều kiện bình thường.
+
+6. FIREBASE
+Firebase Realtime Database Rules: GIỮ NGUYÊN v8.3.1/v8.3.0.
+Không migration dữ liệu.
+Không đổi schema.
+Không đổi Authentication hoặc phân quyền.
+
+7. FILE CẦN DÁN ĐÈ
+- index.html
+- styles.css
+- app.js
+- journeys.css
+- journeys.js
+- app-config.js
+- service-worker.js
+- sw.js
+- update-manager.js
+- version.json
+- offline.html
+- reports.css
+- ui-fixes.js
+
+8. SAU KHI DEPLOY
+- Chờ GitHub Pages cập nhật.
+- Trên 1 máy đang ở v8.3.1, mở ứng dụng và kiểm tra banner cập nhật.
+- Thử nhập “Nội trú = 1” trên máy A.
+- Quan sát máy B đang mở cùng ngày: dữ liệu phải tự xuất hiện mà không bấm Làm mới.
+- Vào Tổng quan ngày đó: chỉ các chỉ tiêu đã ghi nhận được hiển thị.

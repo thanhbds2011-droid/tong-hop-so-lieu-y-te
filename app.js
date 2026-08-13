@@ -1001,7 +1001,7 @@ var AUTO_SYNC_MS = 300000;
       adminCategories:[],categoryLoadedAt:0,categoryPromise:null,adminSection:'users',
       adminReportUsers:[],adminReportLoadedAt:0,adminReportPromise:null,
       editingCategoryCode:'',categorySaving:false,
-      adjustingCode:'',adjustSaving:false,
+      adjustingCode:'',adjustSaving:false,quickEntrySaving:false,
       dashboardLiveUnsubscribe:null,categoryLiveUnsubscribe:null,entryLiveUnsubscribe:null,
       liveRangeKey:'',entryLiveDate:''
     };
@@ -1143,17 +1143,21 @@ var AUTO_SYNC_MS = 300000;
     function renderAll(){renderSummary(aggregate())}
     function recordedCodeMap(){var map={};state.records.forEach(function(record){map[record.code]=true});return map}
     function renderSummary(totals){
-      var query=String($('dashboardSearch').value||'').trim().toLowerCase(),recorded=recordedCodeMap(),categories=selectedCategories().filter(function(c){return categoryMatches(c,query)});
-      if(!categories.length){$('summaryCards').innerHTML='<div class="empty" style="grid-column:1/-1">Không có chỉ tiêu phù hợp.</div>';return}
+      var query=String($('dashboardSearch').value||'').trim().toLowerCase(),recorded=recordedCodeMap();
+      var categories=selectedCategories().filter(function(c){return !!recorded[c.code]&&categoryMatches(c,query)});
+      if(!categories.length){
+        $('summaryCards').innerHTML='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có số liệu được ghi nhận.</strong><span>Chỉ những chỉ tiêu đã nhập trong khoảng thời gian đang chọn mới hiển thị tại đây.</span></div>';
+        return;
+      }
       $('summaryCards').innerHTML=categories.map(function(c){
-        var hasRecord=!!recorded[c.code],value=Number(totals[c.code]||0),status=hasRecord?(value>0?'Có phát sinh':'Đã ghi nhận 0'):'Chưa ghi nhận',statusClass=hasRecord?(value>0?'':' zero'):' missing';
-        return'<article class="summary-item'+(hasRecord?'':' is-unrecorded')+'"><div><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+' · '+esc(c.unit)+'</p></div><div class="summary-value"><span class="summary-number'+(hasRecord?'':' is-missing')+'">'+(hasRecord?value.toLocaleString('vi-VN'):'—')+'</span><span class="data-status'+statusClass+'">'+status+'</span></div></article>';
+        var value=Number(totals[c.code]||0);
+        return'<article class="summary-item summary-recorded-item"><div><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+' · '+esc(c.unit)+'</p></div><div class="summary-value"><span class="summary-number">'+value.toLocaleString('vi-VN')+'</span><span class="summary-unit">'+esc(c.unit)+'</span></div></article>';
       }).join('');
     }
 
     function cacheDaily(date,records){var byCode={};(records||[]).forEach(function(record){byCode[record.code]=record});state.entryCache[date]={byCode:byCode,loadedAt:Date.now()};return byCode}
     function hydrateDailyFromResult(result){if(result&&result.dailyDate){cacheDaily(result.dailyDate,result.dailyRecords||[]);if($('entryDate').value===result.dailyDate)applyDailyCache(result.dailyDate)}}
-    function applyDailyCache(date){var cache=state.entryCache[date];if(!cache)return false;state.dailyByCode=cache.byCode||{};state.loadedEntryDate=date;renderIndicators();$('loadedDate').textContent='';return true}
+    function applyDailyCache(date){var cache=state.entryCache[date];if(!cache)return false;state.dailyByCode=cache.byCode||{};state.loadedEntryDate=date;renderIndicators();return true}
     function cacheIsFresh(date){return!!(state.entryCache[date]&&Date.now()-state.entryCache[date].loadedAt<ENTRY_CACHE_MS)}
     function setEntryLoadState(text,type,spinning){var box=$('entryLoadState');if(!spinning&&type==='ok'){box.hidden=true;box.textContent='';return}box.hidden=!text;box.className='inline-state '+(type||'');box.innerHTML=(spinning?'<span class="spinner"></span>':'')+'<span>'+esc(text||'')+'</span>'}
 
@@ -1271,42 +1275,95 @@ var AUTO_SYNC_MS = 300000;
       if(!state.user)return
       var date=$('entryDate').value;startEntryRealtime(date);if(applyDailyCache(date)){if(cacheIsFresh(date))setEntryLoadState('','ok',false);else{setEntryLoadState('Đang kiểm tra dữ liệu mới nhất...','',true);loadDay({silent:true,force:true,notify:false})}}else{renderIndicators();setEntryLoadState('Đang chuẩn bị dữ liệu ngày '+fmtDate(date)+'...','',true);loadDay({silent:true,force:false,notify:false})}
     }
+    function entryUnitInputLabel(unit){
+      var text=String(unit||'').trim();
+      if(!text)return 'Số liệu *';
+      return 'Số '+text.toLocaleLowerCase('vi-VN')+' *';
+    }
+    function entryUnitPlaceholder(unit){
+      var text=String(unit||'').trim();
+      return text?'Nhập số '+text.toLocaleLowerCase('vi-VN'):'Nhập số liệu';
+    }
+    function updateEntryDateLabel(){
+      if($('entryDateLabel'))$('entryDateLabel').textContent=$('entryDate').value?fmtDate($('entryDate').value):'—';
+      if($('loadedDate'))$('loadedDate').textContent=$('entryDate').value?'Ngày '+fmtDate($('entryDate').value):'';
+    }
     function updateEntryStats(){
-      var positiveCount=0,zeroCount=0,recordedCount=0,total=state.categories.length;
-      state.categories.forEach(function(category){
-        var record=state.dailyByCode[category.code];
-        if(!record)return;
-        recordedCount++;
-        if(Number(record.value||0)>0)positiveCount++;else zeroCount++;
+      var recordedCount=0,total=state.categories.length;
+      state.categories.forEach(function(category){if(state.dailyByCode[category.code])recordedCount++});
+      if($('recordedIndicatorCount'))$('recordedIndicatorCount').textContent=String(recordedCount);
+      if($('totalIndicatorCount'))$('totalIndicatorCount').textContent=String(total);
+      updateEntryDateLabel();
+    }
+    function renderEntryCategoryOptions(){
+      var select=$('entryCategorySelect');if(!select)return;
+      var current=select.value,groups={},composer=$('entryComposer'),keepDraft=!!(composer&&!composer.hidden&&current),draftValue=keepDraft?$('entryQuickValue').value:'';
+      state.categories.forEach(function(category){var key=category.group||'Khác';if(!groups[key])groups[key]=[];groups[key].push(category)});
+      var html='<option value="">Chọn chỉ tiêu cần nhập</option>';
+      Object.keys(groups).forEach(function(group){
+        html+='<optgroup label="'+esc(group)+'">'+groups[group].map(function(category){return'<option value="'+esc(category.code)+'">'+esc(category.name)+' · '+esc(category.unit)+'</option>'}).join('')+'</optgroup>';
       });
-      $('positiveIndicatorCount').textContent=String(positiveCount);
-      $('zeroIndicatorCount').textContent=String(zeroCount);
-      $('unrecordedIndicatorCount').textContent=String(Math.max(0,total-recordedCount));
+      select.innerHTML=html;
+      if(current&&state.categories.some(function(category){return category.code===current}))select.value=current;
+      updateQuickEntrySelection(false);
+      if(keepDraft&&select.value===current)$('entryQuickValue').value=draftValue;
+    }
+    function updateQuickEntrySelection(focusValue){
+      var select=$('entryCategorySelect');if(!select)return;
+      var code=select.value,category=state.categories.find(function(item){return item.code===code});
+      var info=$('entrySelectedInfo'),valueField=$('entryQuickValueField'),save=$('btnSaveQuickEntry');
+      if(!category){
+        if(info)info.hidden=true;if(valueField)valueField.hidden=true;if(save)save.disabled=true;
+        if($('entryQuickValue'))$('entryQuickValue').value='';if($('entryQuickError'))$('entryQuickError').textContent='';return;
+      }
+      var record=state.dailyByCode[code]||null;
+      if(info)info.hidden=false;if(valueField)valueField.hidden=false;
+      $('entrySelectedUnit').textContent=category.unit||'—';
+      $('entrySelectedCurrent').textContent=record?Number(record.value||0).toLocaleString('vi-VN')+' '+category.unit:'Chưa ghi nhận';
+      $('entryQuickValueLabel').childNodes[0].nodeValue=entryUnitInputLabel(category.unit);
+      $('entryQuickValue').placeholder=entryUnitPlaceholder(category.unit);
+      $('entryQuickValue').value=record?String(Number(record.value||0)):'';
+      if(save)save.disabled=false;if($('entryQuickError'))$('entryQuickError').textContent='';
+      if(focusValue)window.setTimeout(function(){$('entryQuickValue').focus();$('entryQuickValue').select()},0);
+    }
+    function setQuickEntrySaving(active){
+      state.quickEntrySaving=active===true;
+      ['entryCategorySelect','entryQuickValue','btnCancelQuickEntry','btnCloseEntryComposer'].forEach(function(id){var el=$(id);if(el)el.disabled=state.quickEntrySaving});
+      var save=$('btnSaveQuickEntry');if(save){save.disabled=state.quickEntrySaving||!$('entryCategorySelect').value;save.textContent=state.quickEntrySaving?'Đang lưu...':'Lưu số liệu'}
+      if($('entryQuickProgress'))$('entryQuickProgress').hidden=!state.quickEntrySaving;
+    }
+    function toggleEntryComposer(show){
+      var box=$('entryComposer'),button=$('btnOpenEntryComposer');if(!box||state.quickEntrySaving)return;
+      var visible=show===undefined?box.hidden:!!show;box.hidden=!visible;
+      if(button)button.setAttribute('aria-expanded',visible?'true':'false');
+      if(visible){renderEntryCategoryOptions();window.setTimeout(function(){$('entryCategorySelect').focus()},0);if(window.matchMedia&&window.matchMedia('(max-width:760px)').matches)box.scrollIntoView({behavior:'smooth',block:'start'})}
+      else{$('entryCategorySelect').value='';$('entryQuickValue').value='';$('entryQuickError').textContent='';$('entrySelectedInfo').hidden=true;$('entryQuickValueField').hidden=true;setQuickEntrySaving(false)}
+    }
+    function quickEntryPayload(){
+      var code=String($('entryCategorySelect').value||''),category=state.categories.find(function(item){return item.code===code});
+      if(!category)throw new Error('Vui lòng chọn chỉ tiêu cần nhập.');
+      var raw=String($('entryQuickValue').value||'').trim();if(raw==='')throw new Error('Vui lòng nhập '+entryUnitInputLabel(category.unit).replace(' *','').toLocaleLowerCase('vi-VN')+'. Có thể nhập 0.');
+      var newValue=Number(raw);if(!isFinite(newValue)||newValue<0||Math.floor(newValue)!==newValue)throw new Error('Số liệu phải là số nguyên không âm.');
+      var record=state.dailyByCode[code]||null;if(record&&newValue===Number(record.value||0))throw new Error('Số liệu mới đang bằng số hiện tại.');
+      return{token:state.token,date:$('entryDate').value,code:code,newValue:newValue,reason:record?'Cập nhật nhanh trên ứng dụng':'Ghi nhận số liệu nhanh',expectedVersion:record?Number(record.version||0):0};
+    }
+    async function submitQuickEntry(){
+      if(state.quickEntrySaving)return;var payload;
+      try{payload=quickEntryPayload()}catch(error){$('entryQuickError').textContent=error.message||String(error);return}
+      $('entryQuickError').textContent='';setQuickEntrySaving(true);
+      try{
+        var result=await call('adjustDailyData',payload);if(result.record)state.dailyByCode[payload.code]=result.record;
+        state.entryCache[payload.date]={byCode:state.dailyByCode,loadedAt:Date.now()};renderIndicators();setQuickEntrySaving(false);toggleEntryComposer(false);setEntryLoadState('','ok',false);clearMessage();toast(result.message||'Đã lưu số liệu.','ok');
+        $('rangeType').value='day';updateRangeFields();$('singleDate').value=payload.date;Promise.resolve(syncData(true,true)).catch(function(){});
+      }catch(error){$('entryQuickError').textContent=error.message||String(error);setQuickEntrySaving(false)}
     }
     function renderIndicators(){
-      if(!state.categories.length){
-        $('indicatorGrid').innerHTML='<div class="empty">Chưa có danh mục chỉ tiêu.</div>';
-        updateEntryStats();
-        return;
-      }
-      var rows=state.categories.map(function(category){
-        var record=state.dailyByCode[category.code];
-        var hasRecord=!!record;
-        var current=hasRecord?Number(record.value||0):0;
-        var savedState=hasRecord?(current>0?'Có phát sinh':'Đã ghi nhận 0'):'Chưa ghi nhận';
-        var savedClass=hasRecord?(current>0?'':' zero'):' unrecorded';
-        var buttonLabel='✎ Chỉnh sửa';
-        return'<div id="c_'+esc(category.code)+'" class="indicator-row" data-search="'+esc((category.name+' '+category.group+' '+category.unit).toLowerCase())+'">'+
-          '<div class="entry-cell" data-label="Chỉ tiêu"><div><span class="indicator-name">'+esc(category.name)+'</span><span class="indicator-group">'+esc(category.group)+' · <span class="unit-pill">'+esc(category.unit)+'</span></span></div></div>'+
-          '<div class="entry-cell" data-label="Số liệu hiện tại"><div class="saved-value-wrap"><span class="saved-amount'+savedClass+'">'+(hasRecord?current.toLocaleString('vi-VN'):'—')+'</span><span class="saved-state">'+savedState+'</span></div></div>'+
-          '<div class="entry-cell" data-label="Thao tác"><div class="row-actions"><button class="adjust-btn adjust-data" data-adjust-code="'+esc(category.code)+'" type="button">'+buttonLabel+'</button></div></div>'+
-        '</div>';
-      });
-      $('indicatorGrid').innerHTML=rows.length?rows.join(''):'<div class="empty">Không có chỉ tiêu phù hợp.</div>';
+      renderEntryCategoryOptions();var recorded=state.categories.filter(function(category){return !!state.dailyByCode[category.code]}),box=$('indicatorGrid');
+      if(!state.categories.length){box.innerHTML='<div class="empty"><strong>Chưa có danh mục chỉ tiêu.</strong></div>';updateEntryStats();return}
+      if(!recorded.length){box.innerHTML='<div class="entry-recorded-empty"><span class="entry-recorded-empty-icon" aria-hidden="true">＋</span><strong>Chưa ghi nhận số liệu trong ngày này.</strong><p>Bấm <b>Nhập số liệu</b> để chọn chỉ tiêu cần ghi nhận.</p></div>';updateEntryStats();return}
+      box.innerHTML=recorded.map(function(category){var record=state.dailyByCode[category.code],current=Number(record.value||0);return'<article id="c_'+esc(category.code)+'" class="entry-recorded-row"><div class="entry-recorded-main"><strong>'+esc(category.name)+'</strong><span>'+esc(category.group)+' · '+esc(category.unit)+'</span></div><div class="entry-recorded-value"><strong>'+current.toLocaleString('vi-VN')+'</strong><span>'+esc(category.unit)+'</span></div><button class="adjust-btn adjust-data" data-adjust-code="'+esc(category.code)+'" type="button" aria-label="Chỉnh sửa '+esc(category.name)+'">Chỉnh sửa</button></article>'}).join('');
       updateEntryStats();
-      filterIndicatorRows();
     }
-    function filterIndicatorRows(){var query=String($('entrySearch').value||'').trim().toLowerCase(),visible=0;document.querySelectorAll('#indicatorGrid .indicator-row').forEach(function(row){var show=!query||String(row.getAttribute('data-search')||'').indexOf(query)>=0;row.hidden=!show;if(show)visible++});var noMatch=$('entryNoMatch');if(!visible&&state.categories.length){if(!noMatch)$('indicatorGrid').insertAdjacentHTML('beforeend','<div id="entryNoMatch" class="empty">Không có chỉ tiêu phù hợp.</div>')}else if(noMatch)noMatch.remove()}
     async function loadDay(options){
       options=options||{};if(!state.user)return
       var date=$('entryDate').value;if(!date){if(options.notify)message('Vui lòng chọn ngày nhập số liệu.','err');return}
@@ -1324,16 +1381,16 @@ var AUTO_SYNC_MS = 300000;
       })();state.entryLoads[date]=promise;return promise;
     }
     async function manualReloadDay(){
-      if(state.adjustSaving)return;
+      if(state.adjustSaving||state.quickEntrySaving)return;
       await loadDay({silent:true,force:true,notify:true});
     }
     async function handleEntryDateChange(){
-      if(state.adjustSaving){
+      if(state.adjustSaving||state.quickEntrySaving){
         $('entryDate').value=state.loadedEntryDate||$('entryDate').value;
         toast('Dữ liệu đang được lưu. Vui lòng chờ hoàn tất.','warn');
         return;
       }
-      state.dailyByCode={};state.loadedEntryDate='';renderIndicators();
+      toggleEntryComposer(false);state.dailyByCode={};state.loadedEntryDate='';renderIndicators();
       startEntryRealtime($('entryDate').value);
       if(!applyDailyCache($('entryDate').value))await loadDay({silent:true,force:false,notify:false});
       else if(!cacheIsFresh($('entryDate').value))loadDay({silent:true,force:true,notify:false});
@@ -1412,7 +1469,6 @@ var AUTO_SYNC_MS = 300000;
         setAdjustmentSaving(false);
         closeAdjustDialog();
         renderIndicators();
-        $('loadedDate').textContent='';
         setEntryLoadState('','ok',false);
         clearMessage();
         toast(result.message||'Đã lưu số liệu.','ok');
@@ -1581,7 +1637,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'8.3.1'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'8.3.2'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
@@ -1591,7 +1647,8 @@ var AUTO_SYNC_MS = 300000;
       $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});
       $('categoryCancel').onclick=closeCategoryDialog;$('categorySave').onclick=submitCategory;$('categoryLayer').addEventListener('click',function(event){if(event.target===$('categoryLayer'))closeCategoryDialog()});
       document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
-      $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;$('entrySearch').oninput=filterIndicatorRows;
+      $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;
+      $('btnOpenEntryComposer').onclick=function(){toggleEntryComposer()};$('btnCloseEntryComposer').onclick=function(){toggleEntryComposer(false)};$('btnCancelQuickEntry').onclick=function(){toggleEntryComposer(false)};$('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
       $('indicatorGrid').addEventListener('click',function(event){var button=event.target.closest('.adjust-data');if(button)openAdjustDialog(button.getAttribute('data-adjust-code'))});
       $('btnChangePassword').onclick=function(){$('changePasswordBox').hidden=false};$('btnCloseChange').onclick=function(){$('changePasswordBox').hidden=true};$('btnSavePassword').onclick=saveNewPassword;
       $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='delete')adminDelete(id)});

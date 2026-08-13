@@ -212,13 +212,13 @@ function statusClass(status) {
 }
 function journeyRouteHtml(item) {
   const stages = Object.values(item.chang || {}).sort((a, b) => Number(a.thuTu || 0) - Number(b.thuTu || 0));
-  if (!stages.length) return `<span>${esc(CENTER_NAME)}</span><b>→</b><span>${esc(item.noiHienTai || '—')}</span>`;
+  if (!stages.length) return `<strong class="journey-route-place">${esc(CENTER_NAME)}</strong><b class="journey-route-arrow">→</b><strong class="journey-route-place">${esc(item.noiHienTai || '—')}</strong>`;
   const places = [stages[0].noiDi || CENTER_NAME];
   stages.forEach((stage) => {
     const place = stage.noiDen || '';
     if (place && normalizeText(place) !== normalizeText(places[places.length - 1])) places.push(place);
   });
-  return places.map((place, index) => `${index ? '<b>→</b>' : ''}<span>${esc(place)}</span>`).join('');
+  return places.map((place, index) => `${index ? '<b class="journey-route-arrow">→</b>' : ''}<strong class="journey-route-place">${esc(place)}</strong>`).join('');
 }
 function alertBadges(item) {
   const badges = [];
@@ -419,11 +419,11 @@ function renderHistory() {
   box.innerHTML = rows.map((item) => `<article class="journey-history-card">
     <div class="journey-history-mark ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓' : 'TV'}</div>
     <div class="journey-history-main">
-      <div class="journey-card-title"><div><strong>${esc(item.doiTuong)}</strong><span class="journey-bhyt">BHYT: ${esc(item.theBHYT || 'Chưa ghi nhận')}</span></div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
+      <div class="journey-card-title journey-history-title"><div><strong>${esc(item.doiTuong)}</strong><span class="journey-bhyt">BHYT: <b>${esc(item.theBHYT || 'Chưa ghi nhận')}</b></span></div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
       <div class="journey-history-line">${journeyRouteHtml(item)}</div>
-      <div class="journey-row-meta"><span><b>Đi:</b> ${esc(fmtDateTime(item.ngayGioDi))}</span><span><b>${item.ngayGioVe ? 'Về:' : 'Kết thúc:'}</b> ${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</span></div>
+      <div class="journey-row-meta"><span class="journey-history-time"><b>Đi</b><em>${esc(fmtDateTime(item.ngayGioDi))}</em></span><span class="journey-history-time"><b>${item.ngayGioVe ? 'Về' : 'Kết thúc'}</b><em>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</em></span></div>
     </div>
-    <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">Xem hành trình</button></div>
+    <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">Xem hành trình <span aria-hidden="true">→</span></button></div>
   </article>`).join('');
 }
 

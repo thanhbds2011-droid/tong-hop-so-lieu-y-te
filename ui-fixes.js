@@ -1,6 +1,6 @@
 'use strict';
 
-// UI production 8.3.1 — autofill protection, mobile keyboard safety, textarea auto-grow.
+// UI production 8.3.2 — autofill protection, mobile keyboard safety, textarea auto-grow.
 (function () {
   function prepareDashboardSearch() {
     const input = document.getElementById('dashboardSearch');
