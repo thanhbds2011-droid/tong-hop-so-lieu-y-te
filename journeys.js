@@ -45,6 +45,16 @@ const state = {
 };
 
 function $(id) { return document.getElementById(id); }
+function journeyIcon(name, className = '') {
+  const cls = className ? ` class="${className}"` : '';
+  if (name === 'user') {
+    return `<span${cls} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></span>`;
+  }
+  if (name === 'ambulance') {
+    return `<span${cls} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h12v9H3z"/><path d="M15 9h4l2 3v3h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/><path d="M7 8v4M5 10h4"/></svg></span>`;
+  }
+  return '';
+}
 function esc(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -419,8 +429,8 @@ function renderHistory() {
   box.innerHTML = rows.map((item) => `<article class="journey-history-card">
     <div class="journey-history-mark ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓' : 'TV'}</div>
     <div class="journey-history-main">
-      <div class="journey-card-title journey-history-title"><div><strong>${esc(item.doiTuong)}</strong><span class="journey-bhyt">BHYT: <b>${esc(item.theBHYT || 'Chưa ghi nhận')}</b></span></div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
-      <div class="journey-history-line">${journeyRouteHtml(item)}</div>
+      <div class="journey-card-title journey-history-title"><div><strong class="journey-person-heading">${journeyIcon('user', 'journey-person-icon')}<span>${esc(item.doiTuong)}</span></strong><span class="journey-bhyt">BHYT: <b>${esc(item.theBHYT || 'Chưa ghi nhận')}</b></span></div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
+      <div class="journey-history-line">${journeyIcon('ambulance', 'journey-route-icon')}${journeyRouteHtml(item)}</div>
       <div class="journey-row-meta"><span class="journey-history-time"><b>Đi</b><em>${esc(fmtDateTime(item.ngayGioDi))}</em></span><span class="journey-history-time"><b>${item.ngayGioVe ? 'Về' : 'Kết thúc'}</b><em>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</em></span></div>
     </div>
     <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">Xem hành trình <span aria-hidden="true">→</span></button></div>
@@ -868,7 +878,7 @@ function openDetail(id) {
   if (!item) return;
   state.selectedCase = item;
   state.lastFocus = document.activeElement;
-  $('journeyDetailTitle').textContent = item.doiTuong || 'Hành trình chuyển viện';
+  $('journeyDetailTitle').innerHTML = `<span class="journey-detail-person-title">${journeyIcon('user', 'journey-person-icon journey-person-icon-detail')}<span>${esc(item.doiTuong || 'Hành trình chuyển viện')}</span></span>`;
   const closed = item.trangThaiKyThuat === 'CLOSED';
   $('journeyDetailMeta').innerHTML = `
     <div><span>Thẻ BHYT</span><strong>${esc(item.theBHYT || 'Chưa ghi nhận')}</strong></div>

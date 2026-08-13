@@ -1,22 +1,22 @@
 'use strict';
 
-const APP_VERSION = '8.3.3';
+const APP_VERSION = '8.3.4';
 const CACHE_PREFIX = 'tong-hop-so-lieu-y-te-firebase-';
 const CACHE_NAME = CACHE_PREFIX + 'v' + APP_VERSION;
 const LEGACY_CACHE_NAMES = new Set(['yte-tan-hiep-v5']);
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=8.3.3',
-  './ui-fixes.css?v=8.3.3',
-  './reports.css?v=8.3.3',
-  './journeys.css?v=8.3.3',
-  './app-config.js?v=8.3.3',
-  './update-manager.js?v=8.3.3',
-  './app.js?v=8.3.3',
-  './reports.js?v=8.3.3',
-  './journeys.js?v=8.3.3',
-  './ui-fixes.js?v=8.3.3',
+  './styles.css?v=8.3.4',
+  './ui-fixes.css?v=8.3.4',
+  './reports.css?v=8.3.4',
+  './journeys.css?v=8.3.4',
+  './app-config.js?v=8.3.4',
+  './update-manager.js?v=8.3.4',
+  './app.js?v=8.3.4',
+  './reports.js?v=8.3.4',
+  './journeys.js?v=8.3.4',
+  './ui-fixes.js?v=8.3.4',
   './version.json',
   './manifest.webmanifest',
   './offline.html',

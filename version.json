@@ -1,7 +1,7 @@
 {
-  "version": "8.3.3",
-  "releasedAt": "2026-08-13T20:23:00+07:00",
-  "title": "Professional Data Entry UI",
-  "message": "Giao diện Nhập liệu được tinh gọn theo chuẩn ứng dụng: tiêu đề rõ, form nhập mở dạng dialog/bottom sheet, dữ liệu hôm nay dễ quét và ít câu hướng dẫn thừa hơn.",
+  "version": "8.3.4",
+  "releasedAt": "2026-08-13T20:52:00+07:00",
+  "title": "Journey Visual Polish",
+  "message": "Tinh gọn khu vực Báo cáo, bỏ nhãn hướng dẫn thừa và bổ sung icon người/xe cứu thương để lịch sử hành trình dễ nhận biết hơn trên desktop và điện thoại.",
   "required": false
 }

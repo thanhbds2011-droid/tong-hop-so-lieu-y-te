@@ -1,4 +1,4 @@
-/* Reports / application portal — production 8.3.2 */
+/* Reports / application portal — production 8.3.4 */
 
 /* ===== PORTAL ===== */
 .app-home-hero {
@@ -8,8 +8,7 @@
     radial-gradient(circle at 92% 14%, rgba(169,37,94,.09), transparent 18rem),
     #fff;
 }
-.app-home-kicker,
-.report-kicker {
+.app-home-kicker {
   display: inline-block;
   margin-bottom: 8px;
   color: #9d2456;
@@ -115,11 +114,6 @@
 .report-head p {
   font-size: 12.5px;
   line-height: 1.45;
-}
-.report-head .report-kicker {
-  margin-bottom: 4px;
-  font-size: 9.5px;
-  letter-spacing: .14em;
 }
 .report-head .btn { flex: 0 0 auto; }
 
@@ -454,10 +448,6 @@
     padding: 10px 12px;
     border-left-width: 3px;
     border-radius: 12px;
-  }
-  .report-head .report-kicker {
-    margin-bottom: 2px;
-    font-size: 8.8px;
   }
   .report-head h2 {
     margin-bottom: 3px;

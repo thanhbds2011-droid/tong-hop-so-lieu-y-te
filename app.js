@@ -1286,7 +1286,7 @@ var AUTO_SYNC_MS = 300000;
       return text?'Nhập số '+text.toLocaleLowerCase('vi-VN'):'Nhập số liệu';
     }
     function updateEntryDateLabel(){
-      // Phiên bản 8.3.3 chỉ hiển thị ngày tại bộ chọn ngày, không lặp lại ngày ở các khối nội dung.
+      // Phiên bản 8.3.4 chỉ hiển thị ngày tại bộ chọn ngày, không lặp lại ngày ở các khối nội dung.
     }
     function updateEntryStats(){
       var recordedCount=0,total=state.categories.length;
@@ -1648,7 +1648,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'8.3.3'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'8.3.4'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});

@@ -1,8 +1,8 @@
-## Phiên bản production 8.3.1
+## Phiên bản production 8.3.4
 
-Phiên bản 8.3.1 tinh gọn Dashboard/Lịch sử hành trình chuyển viện, loại dữ liệu chuyển viện cũ khỏi UI module hành trình và chuẩn hóa timeline. Firebase Rules giữ nguyên 8.2.0.
+Phiên bản 8.3.4 giữ nguyên nghiệp vụ production của 8.3.3 và tinh chỉnh giao diện Báo cáo/Hành trình: bỏ nhãn “BÁO CÁO PHÒNG Y TẾ”, bổ sung icon người cho đối tượng và icon xe cứu thương cho lộ trình. Realtime Sync, Update Manager, PWA, Authentication, phân quyền và Firebase Rules giữ nguyên.
 
-# Ứng dụng Phòng Y tế — Firebase Production 8.1.1
+# Ứng dụng Phòng Y tế — Firebase Production 8.3.4
 
 Bản 8.1.1 giữ nguyên kiến trúc quyền hiện tại và bổ sung **Hành trình chuyển viện** cho phân hệ Báo cáo.
 
@@ -44,7 +44,7 @@ Các node cũ `baoCaoYTe/baoCao`, `phanQuyen`, `lichSu`, `nhatKy`, `cauHinh`, `_
 
 ## Dữ liệu chuyển viện cũ
 
-Dữ liệu Chuyển viện đã migration vẫn nằm tại `baoCaoYTe/baoCao` và được hiển thị trong **Chuyển viện → Lịch sử** với nhãn **Dữ liệu cũ**. Không cần migration lại.
+Dữ liệu Chuyển viện cũ vẫn có thể còn lưu tại `baoCaoYTe/baoCao` để bảo toàn dữ liệu, nhưng **không còn được đọc/hiển thị trong module Hành trình chuyển viện**. Phiên bản hiện tại không tự xóa dữ liệu cũ và không yêu cầu migration.
 
 ## File production chính
 
@@ -59,7 +59,7 @@ Dữ liệu Chuyển viện đã migration vẫn nằm tại `baoCaoYTe/baoCao` 
 - `app-config.js`
 - `service-worker.js`
 - `manifest.webmanifest`
-- `firebase-rules.json`
+- `firebase-database.rules.json`
 
 Xem `HUONG_DAN_NANG_CAP_8.1.1.txt` để triển khai và `TEST_HANH_TRINH_8.1.1.md` để kiểm thử.
 
