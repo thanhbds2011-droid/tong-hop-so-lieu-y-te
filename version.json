@@ -1,7 +1,7 @@
 {
-  "version": "8.3.5",
-  "releasedAt": "2026-08-13T21:12:00+07:00",
-  "title": "Minimal Journey UI",
-  "message": "Tinh gọn giao diện lịch sử chuyển viện: bỏ icon trang trí trong danh sách và cửa sổ chi tiết, đồng thời bỏ nhãn “LỊCH SỬ HÀNH TRÌNH” để tập trung trực tiếp vào tên đối tượng và dữ liệu hành trình.",
+  "version": "8.3.6",
+  "releasedAt": "2026-08-13T21:19:00+07:00",
+  "title": "Patient Profile & Functional Icons",
+  "message": "Bổ sung Giới tính và Năm sinh cho hành trình chuyển viện; hiển thị thông tin đối tượng xuyên suốt Đang theo dõi, Lịch sử, Cập nhật và Xem hành trình; đồng thời dùng icon nhỏ theo chức năng thay cho icon trang trí.",
   "required": false
 }

@@ -59,6 +59,30 @@ function normalizeText(value) {
 function normalizeBHYT(value) {
   return String(value || '').toUpperCase().replace(/\s+/g, '').trim().slice(0, 40);
 }
+function validGender(value) { return value === 'Nam' || value === 'Nữ'; }
+function validBirthYear(value) {
+  const year = Number(value || 0);
+  return Number.isInteger(year) && year >= 1900 && year <= new Date().getFullYear();
+}
+function iconSvg(name, className = 'journey-btn-icon') {
+  const icons = {
+    eye: '<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.5"/>',
+    edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/>',
+    home: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>',
+    pin: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+    route: '<circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h4a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4H8"/><path d="m10 12-2 2 2 2"/>'
+  };
+  const body = icons[name] || '';
+  return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+}
+function patientFactsHtml(item, options = {}) {
+  const parts = [];
+  if (validGender(item && item.gioiTinh)) parts.push(`<span>${esc(item.gioiTinh)}</span>`);
+  if (validBirthYear(item && item.namSinh)) parts.push(`<span>Sinh ${esc(item.namSinh)}</span>`);
+  const bhyt = String(item && item.theBHYT || '').trim();
+  if (options.includeBHYT !== false) parts.push(`<span>BHYT: <b>${esc(bhyt || 'Chưa ghi nhận')}</b></span>`);
+  return parts.length ? `<div class="journey-person-facts">${parts.join('<i aria-hidden="true">•</i>')}</div>` : '';
+}
 function todayIso() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -240,7 +264,7 @@ function formSignature(ids) {
     return `${id}:${String(el.value || '')}`;
   }).join('|');
 }
-const CREATE_FIELD_IDS = ['journeyPatient','journeyBHYT','journeyTransferType','journeyTransferTypeOther','journeyTo','journeyToOther','journeyReason','journeyDiagnosis','journeyNote'];
+const CREATE_FIELD_IDS = ['journeyPatient','journeyGender','journeyBirthYear','journeyBHYT','journeyTransferType','journeyTransferTypeOther','journeyTo','journeyToOther','journeyReason','journeyDiagnosis','journeyNote'];
 const UPDATE_FIELD_IDS = ['journeyUpdateStatus','journeyUpdateDestination','journeyUpdateDestinationOther','journeyUpdateReason','journeyUpdateDiagnosis','journeyReturnCondition','journeyUpdateNote'];
 function isCreateDirty() { return !!state.createBaseline && formSignature(CREATE_FIELD_IDS) !== state.createBaseline; }
 function isUpdateDirty() { return !!state.updateBaseline && formSignature(UPDATE_FIELD_IDS) !== state.updateBaseline; }
@@ -339,7 +363,7 @@ function renderTracking() {
   const rows = state.openCases.filter((item) => {
     if (!search) return true;
     return normalizeText([
-      item.doiTuong, item.theBHYT, item.noiHienTai, statusLabel(item.trangThaiHienTai),
+      item.doiTuong, item.gioiTinh, item.namSinh, item.theBHYT, item.noiHienTai, statusLabel(item.trangThaiHienTai),
       transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac),
       item.lyDoHienTai, item.tinhTrangChanDoanHienTai, item.ghiChu
     ].join(' ')).includes(search);
@@ -361,16 +385,16 @@ function renderTracking() {
     return `<article class="journey-card">
       <div class="journey-card-main">
         <div class="journey-card-title">
-          <div>
+          <div class="journey-person-head">
             <strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>
-            <span class="journey-bhyt">BHYT: ${esc(item.theBHYT || 'Chưa ghi nhận')}</span>
+            ${patientFactsHtml(item)}
           </div>
           <div class="journey-card-badges">
             <span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span>
           </div>
         </div>
         <div class="journey-location">
-          <span>Hiện tại</span>
+          <span class="journey-location-label">${iconSvg('pin','journey-inline-icon')}Hiện tại</span>
           <strong>${esc(item.noiHienTai || '—')}</strong>
         </div>
         <div class="journey-meta-grid">
@@ -387,9 +411,9 @@ function renderTracking() {
         ${alerts ? `<div class="journey-card-foot">${alerts}</div>` : ''}
       </div>
       <div class="journey-card-actions">
-        <button class="small-btn btn-soft journey-action" data-kind="view" data-id="${esc(item.id)}" type="button">Xem hành trình</button>
-        ${canWrite ? `<button class="small-btn btn-soft journey-action" data-kind="update" data-id="${esc(item.id)}" type="button">Cập nhật</button>
-        <button class="small-btn btn-primary journey-action" data-kind="return" data-id="${esc(item.id)}" type="button">Đã về Trung tâm</button>` : ''}
+        <button class="small-btn btn-soft journey-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem hành trình</span></button>
+        ${canWrite ? `<button class="small-btn btn-soft journey-action" data-kind="update" data-id="${esc(item.id)}" type="button">${iconSvg('edit')}<span>Cập nhật</span></button>
+        <button class="small-btn btn-primary journey-action" data-kind="return" data-id="${esc(item.id)}" type="button">${iconSvg('home')}<span>Đã về Trung tâm</span></button>` : ''}
       </div>
     </article>`;
   }).join('');
@@ -402,7 +426,7 @@ function renderHistory() {
     if (filter !== 'all' && item.trangThaiHienTai !== filter) return false;
     if (!search) return true;
     return normalizeText([
-      item.doiTuong, item.theBHYT, statusLabel(item.trangThaiHienTai),
+      item.doiTuong, item.gioiTinh, item.namSinh, item.theBHYT, statusLabel(item.trangThaiHienTai),
       item.tinhTrangKhiVe, item.ghiChu, routeSearchText(item)
     ].join(' ')).includes(search);
   });
@@ -419,11 +443,11 @@ function renderHistory() {
   box.innerHTML = rows.map((item) => `<article class="journey-history-card">
     <div class="journey-history-mark ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓' : 'TV'}</div>
     <div class="journey-history-main">
-      <div class="journey-card-title journey-history-title"><div><strong>${esc(item.doiTuong)}</strong><span class="journey-bhyt">BHYT: <b>${esc(item.theBHYT || 'Chưa ghi nhận')}</b></span></div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
+      <div class="journey-card-title journey-history-title"><div class="journey-person-head"><strong>${esc(item.doiTuong)}</strong>${patientFactsHtml(item)}</div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
       <div class="journey-history-line">${journeyRouteHtml(item)}</div>
       <div class="journey-row-meta"><span class="journey-history-time"><b>Đi</b><em>${esc(fmtDateTime(item.ngayGioDi))}</em></span><span class="journey-history-time"><b>${item.ngayGioVe ? 'Về' : 'Kết thúc'}</b><em>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</em></span></div>
     </div>
-    <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">Xem hành trình <span aria-hidden="true">→</span></button></div>
+    <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('route')}<span>Xem hành trình</span><b aria-hidden="true">→</b></button></div>
   </article>`).join('');
 }
 
@@ -462,6 +486,9 @@ function updateCreateDynamicFields() {
 function resetCreateForm() {
   if (!$('journeyCreateForm')) return;
   $('journeyPatient').value = '';
+  $('journeyGender').value = '';
+  $('journeyBirthYear').value = '';
+  $('journeyBirthYear').max = String(new Date().getFullYear());
   $('journeyBHYT').value = '';
   $('journeyFrom').value = CENTER_NAME;
   $('journeyTo').value = '';
@@ -481,6 +508,8 @@ function resetCreateForm() {
 
 function createPayload() {
   const doiTuong = String($('journeyPatient').value || '').trim();
+  const gioiTinh = String($('journeyGender').value || '').trim();
+  const namSinh = Number($('journeyBirthYear').value || 0);
   const theBHYT = normalizeBHYT($('journeyBHYT').value || '');
   const noiDen = resolvedDestination('journeyTo', 'journeyToOther');
   const lyDo = String($('journeyReason').value || '').trim();
@@ -488,7 +517,9 @@ function createPayload() {
   const ghiChu = String($('journeyNote').value || '').trim();
   const hinhThucChuyen = String($('journeyTransferType').value || '');
   const hinhThucChuyenKhac = hinhThucChuyen === 'KHAC' ? String($('journeyTransferTypeOther').value || '').trim() : '';
-  if (doiTuong.length < 2 || doiTuong.length > 150) throw new Error('Vui lòng nhập Đối tượng từ 2 đến 150 ký tự.');
+  if (doiTuong.length < 2 || doiTuong.length > 150) throw new Error('Vui lòng nhập Họ và tên từ 2 đến 150 ký tự.');
+  if (!validGender(gioiTinh)) throw new Error('Vui lòng chọn Giới tính.');
+  if (!validBirthYear(namSinh)) throw new Error(`Năm sinh phải từ 1900 đến ${new Date().getFullYear()}.`);
   if (theBHYT.length > 40) throw new Error('Thẻ BHYT không hợp lệ.');
   if (!TRANSFER_TYPES.includes(hinhThucChuyen)) throw new Error('Vui lòng chọn Hình thức chuyển.');
   if (hinhThucChuyen === 'KHAC' && (hinhThucChuyenKhac.length < 2 || hinhThucChuyenKhac.length > 120)) throw new Error('Vui lòng nhập Hình thức chuyển khác.');
@@ -499,6 +530,8 @@ function createPayload() {
   return {
     doiTuong,
     doiTuongNorm: normalizeText(doiTuong),
+    gioiTinh,
+    namSinh,
     theBHYT,
     theBHYTNorm: theBHYT,
     doiTuongKey: patientKey(doiTuong, theBHYT),
@@ -553,6 +586,8 @@ async function createJourney() {
       id: caseId,
       doiTuong: payload.doiTuong,
       doiTuongNorm: payload.doiTuongNorm,
+      gioiTinh: payload.gioiTinh,
+      namSinh: payload.namSinh,
       theBHYT: payload.theBHYT,
       theBHYTNorm: payload.theBHYTNorm,
       doiTuongKey: payload.doiTuongKey,
@@ -658,6 +693,8 @@ function openUpdateDialog(id, preset) {
   if (!item || item.trangThaiKyThuat !== 'OPEN') return;
   state.selectedCase = item;
   $('journeyUpdatePatient').textContent = item.doiTuong || '—';
+  $('journeyUpdateGender').textContent = validGender(item.gioiTinh) ? item.gioiTinh : 'Chưa ghi nhận';
+  $('journeyUpdateBirthYear').textContent = validBirthYear(item.namSinh) ? String(item.namSinh) : 'Chưa ghi nhận';
   $('journeyUpdateBHYT').textContent = item.theBHYT || 'Chưa ghi nhận';
   $('journeyUpdateCurrentPlace').textContent = item.noiHienTai || '—';
   $('journeyUpdateCurrentStatus').textContent = statusLabel(item.trangThaiHienTai);
@@ -792,6 +829,8 @@ async function saveJourneyUpdate() {
       updatedByEmail: email,
       updatedByName: displayName
     };
+    if (validGender(latest.gioiTinh)) nextInfo.gioiTinh = latest.gioiTinh;
+    if (validBirthYear(latest.namSinh)) nextInfo.namSinh = Number(latest.namSinh);
     const eventType = isTransfer ? 'CHUYEN_TIEP' : isReturn ? 'DA_VE_TRUNG_TAM' : isDeath ? 'TU_VONG_TAI_BENH_VIEN' : 'CAP_NHAT_TRANG_THAI';
     const updates = {};
     updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/thongTin`] = nextInfo;
@@ -870,7 +909,11 @@ function openDetail(id) {
   state.lastFocus = document.activeElement;
   $('journeyDetailTitle').textContent = item.doiTuong || 'Hành trình chuyển viện';
   const closed = item.trangThaiKyThuat === 'CLOSED';
+  const hasDemographics = validGender(item.gioiTinh) || validBirthYear(item.namSinh);
+  $('journeyDetailMeta').classList.toggle('has-demographics', hasDemographics);
   $('journeyDetailMeta').innerHTML = `
+    ${validGender(item.gioiTinh) ? `<div><span>Giới tính</span><strong>${esc(item.gioiTinh)}</strong></div>` : ''}
+    ${validBirthYear(item.namSinh) ? `<div><span>Năm sinh</span><strong>${esc(item.namSinh)}</strong></div>` : ''}
     <div><span>Thẻ BHYT</span><strong>${esc(item.theBHYT || 'Chưa ghi nhận')}</strong></div>
     <div><span>Hình thức chuyển ban đầu</span><strong>${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</strong></div>
     <div><span>Rời Trung tâm</span><strong>${esc(fmtDateTime(item.ngayGioDi))}</strong></div>

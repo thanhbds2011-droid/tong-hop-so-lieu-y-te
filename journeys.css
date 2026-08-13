@@ -1,4 +1,4 @@
-/* Hành trình chuyển viện — production 8.3.5
+/* Hành trình chuyển viện — production 8.3.6
    Consolidated UI: không dùng lớp override chồng chéo. */
 
 #transferJourneyPanel[hidden],
@@ -184,6 +184,24 @@
   font-size: 16px;
   line-height: 1.3;
 }
+.journey-person-head {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.journey-person-facts {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  color: #806c75;
+  font-size: 10.8px;
+  line-height: 1.35;
+}
+.journey-person-facts span { white-space: nowrap; }
+.journey-person-facts b { color: #5b4650; font-weight: 800; }
+.journey-person-facts i { color: #c6adb7; font-style: normal; }
 .journey-bhyt {
   color: #826d76;
   font-size: 11.5px;
@@ -246,6 +264,17 @@
 .journey-location strong {
   color: #552f40;
   font-size: 13.5px;
+}
+.journey-location-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.journey-inline-icon {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  color: #a9255e;
 }
 .journey-meta-grid {
   display: grid;
@@ -321,6 +350,18 @@
   width: auto;
   min-width: 112px;
 }
+.journey-action,
+.journey-history-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.journey-btn-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
 
 /* ===== EMPTY ===== */
 .journey-empty {
@@ -373,6 +414,10 @@
 #journeyCreateForm .journey-col-4 { grid-column: span 4; }
 #journeyCreateForm .journey-col-6 { grid-column: span 6; }
 #journeyCreateForm .journey-col-8 { grid-column: span 8; }
+#journeyCreateForm .journey-patient-name { grid-column: span 5; }
+#journeyCreateForm .journey-patient-gender { grid-column: span 2; }
+#journeyCreateForm .journey-patient-birth { grid-column: span 2; }
+#journeyCreateForm .journey-patient-bhyt { grid-column: span 3; }
 #journeyCreateForm .full,
 .journey-form-grid .full { grid-column: 1 / -1; }
 
@@ -389,16 +434,19 @@
   margin: 3px 0 -1px;
   color: #5f3d4c;
 }
-.journey-form-section-title span {
-  width: 23px;
-  height: 23px;
+.journey-form-section-title > .journey-section-icon {
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
+  flex: 0 0 auto;
   border-radius: 7px;
   background: #f7e8ee;
   color: #962451;
-  font-size: 9px;
-  font-weight: 900;
+}
+.journey-section-icon svg {
+  width: 14px;
+  height: 14px;
 }
 .journey-form-section-title strong {
   font-size: 11px;
@@ -574,10 +622,12 @@
 .journey-current-box,
 .journey-detail-meta {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
   gap: 7px;
   margin-bottom: 12px;
 }
+.journey-current-box { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.journey-detail-meta { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.journey-detail-meta.has-demographics { grid-template-columns: repeat(3, minmax(0,1fr)); }
 .journey-detail-dialog .journey-detail-meta {
   flex: 0 0 auto;
   margin: 0;
@@ -723,6 +773,10 @@
   #journeyCreateForm .journey-col-8 {
     grid-column: span 1;
   }
+  #journeyCreateForm .journey-patient-name,
+  #journeyCreateForm .journey-patient-bhyt { grid-column: 1 / -1; }
+  #journeyCreateForm .journey-patient-gender,
+  #journeyCreateForm .journey-patient-birth { grid-column: span 1; }
   #journeyCreateForm .full,
   #journeyCreateForm .journey-form-section-title,
   #journeyCreateForm .journey-system-strip {
@@ -854,7 +908,10 @@
     margin-bottom: 9px;
     padding-bottom: 9px;
   }
-  #journeyCreateForm.journey-create-grid,
+  #journeyCreateForm.journey-create-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 9px;
+  }
   .journey-form-grid {
     grid-template-columns: 1fr;
     gap: 9px;
@@ -865,6 +922,14 @@
   #journeyCreateForm .full,
   #journeyCreateForm .journey-form-section-title,
   #journeyCreateForm .journey-system-strip,
+  #journeyCreateForm .journey-patient-name,
+  #journeyCreateForm .journey-patient-bhyt {
+    grid-column: 1 / -1;
+  }
+  #journeyCreateForm .journey-patient-gender,
+  #journeyCreateForm .journey-patient-birth {
+    grid-column: span 1;
+  }
   .journey-form-grid .full,
   .journey-system-strip {
     grid-column: 1;
@@ -923,7 +988,8 @@
   .journey-detail-dialog .journey-timeline { padding: 0 12px 5px; }
   .journey-detail-dialog .journey-dialog-footer { padding: 10px 14px; }
   .journey-current-box,
-  .journey-detail-meta {
+  .journey-detail-meta,
+  .journey-detail-meta.has-demographics {
     grid-template-columns: repeat(2, minmax(0,1fr));
     gap: 6px;
   }
@@ -944,7 +1010,8 @@
   .journey-toolbar-actions .btn { width: 100%; }
 
   .journey-current-box,
-  .journey-detail-meta {
+  .journey-detail-meta,
+  .journey-detail-meta.has-demographics {
     grid-template-columns: 1fr;
   }
 }
@@ -1083,12 +1150,12 @@
     gap: 7px;
     margin: 1px 0 -1px;
   }
-  .journey-form-section-title span {
-    width: 21px;
-    height: 21px;
+  .journey-form-section-title > .journey-section-icon {
+    width: 22px;
+    height: 22px;
     border-radius: 6px;
-    font-size: 8.5px;
   }
+  .journey-section-icon svg { width: 13px; height: 13px; }
   .journey-form-section-title strong { font-size: 10px; }
   #journeyCreateForm .field label,
   .journey-dialog-card .field label { font-size: 10.8px; }
@@ -1227,12 +1294,12 @@
   font-weight: 850;
   letter-spacing: -.01em;
 }
-.journey-history-title .journey-bhyt {
-  margin-top: 3px;
+.journey-history-title .journey-person-facts {
+  margin-top: 1px;
   color: #8a747d;
   font-size: 10px;
 }
-.journey-history-title .journey-bhyt b {
+.journey-history-title .journey-person-facts b {
   color: #60464f;
   font-weight: 800;
 }
@@ -1268,8 +1335,13 @@
   font-weight: 850;
 }
 .journey-history-action span {
-  margin-left: 4px;
+  margin: 0;
+  font-size: inherit;
+}
+.journey-history-action b {
+  margin-left: 2px;
   font-size: 13px;
+  line-height: 1;
 }
 
 @media (max-width: 760px) {
@@ -1282,9 +1354,9 @@
     font-size: 15px;
     line-height: 1.3;
   }
-  .journey-history-title .journey-bhyt {
+  .journey-history-title .journey-person-facts {
     margin-top: 2px;
-    font-size: 10.5px;
+    font-size: 10.4px;
   }
   .journey-history-title .journey-status {
     font-size: 9.5px;

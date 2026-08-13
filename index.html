@@ -11,23 +11,23 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=8.3.5">
-  <link rel="stylesheet" href="./ui-fixes.css?v=8.3.5">
-  <link rel="stylesheet" href="./reports.css?v=8.3.5">
-  <link rel="stylesheet" href="./journeys.css?v=8.3.5">
-  <script src="./app-config.js?v=8.3.5"></script>
-  <script defer src="./update-manager.js?v=8.3.5"></script>
-  <script type="module" src="./app.js?v=8.3.5"></script>
-  <script type="module" src="./reports.js?v=8.3.5"></script>
-  <script type="module" src="./journeys.js?v=8.3.5"></script>
-  <script defer src="./ui-fixes.js?v=8.3.5"></script>
+  <link rel="stylesheet" href="./styles.css?v=8.3.6">
+  <link rel="stylesheet" href="./ui-fixes.css?v=8.3.6">
+  <link rel="stylesheet" href="./reports.css?v=8.3.6">
+  <link rel="stylesheet" href="./journeys.css?v=8.3.6">
+  <script src="./app-config.js?v=8.3.6"></script>
+  <script defer src="./update-manager.js?v=8.3.6"></script>
+  <script type="module" src="./app.js?v=8.3.6"></script>
+  <script type="module" src="./reports.js?v=8.3.6"></script>
+  <script type="module" src="./journeys.js?v=8.3.6"></script>
+  <script defer src="./ui-fixes.js?v=8.3.6"></script>
 </head>
 <body>
 <header class="app-header">
     <div class="header-inner">
       <div class="brand">
         <div class="brand-mark brand-mark-logo" aria-hidden="true">
-          <img src="./assets/icon-192.png?v=8.3.5" alt="">
+          <img src="./assets/icon-192.png?v=8.3.6" alt="">
         </div>
         <div>
           <small>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</small>
@@ -134,7 +134,7 @@
             <div class="login-brand-glow login-brand-glow-one" aria-hidden="true"></div>
             <div class="login-brand-glow login-brand-glow-two" aria-hidden="true"></div>
             <div class="login-logo-wrap">
-              <img class="login-app-logo" src="./assets/icon-512.png?v=8.3.5" alt="Logo Tổng hợp số liệu Phòng Y tế">
+              <img class="login-app-logo" src="./assets/icon-512.png?v=8.3.6" alt="Logo Tổng hợp số liệu Phòng Y tế">
             </div>
             <div class="login-brand-copy">
               <span>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</span>
@@ -269,11 +269,13 @@
                 <div><h3>Lập chuyển viện</h3><p>Mở một hành trình mới khi đối tượng rời Trung tâm.</p></div>
               </div>
               <div id="journeyCreateForm" class="journey-form-grid journey-create-grid">
-                <div class="journey-form-section-title"><span>01</span><strong>Thông tin đối tượng</strong></div>
-                <div class="field journey-col-8"><label>Đối tượng *<input id="journeyPatient" maxlength="150" autocomplete="off" placeholder="Nhập họ tên đối tượng"></label></div>
-                <div class="field journey-col-4"><label>Thẻ BHYT<input id="journeyBHYT" maxlength="40" autocomplete="off" placeholder="Nhập số thẻ BHYT"></label></div>
+                <div class="journey-form-section-title"><span class="journey-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></span><strong>Thông tin đối tượng</strong></div>
+                <div class="field journey-patient-name"><label>Họ và tên *<input id="journeyPatient" maxlength="150" autocomplete="off" placeholder="Nhập họ tên đối tượng"></label></div>
+                <div class="field journey-patient-gender"><label>Giới tính *<select id="journeyGender"><option value="">Chọn</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option></select></label></div>
+                <div class="field journey-patient-birth"><label>Năm sinh *<input id="journeyBirthYear" type="number" min="1900" max="2100" step="1" inputmode="numeric" placeholder="VD: 1958"></label></div>
+                <div class="field journey-patient-bhyt"><label>Thẻ BHYT<input id="journeyBHYT" maxlength="40" autocomplete="off" placeholder="Nhập số thẻ BHYT"></label></div>
 
-                <div class="journey-form-section-title"><span>02</span><strong>Thông tin chuyển viện</strong></div>
+                <div class="journey-form-section-title"><span class="journey-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 17V5H2v12h3"/><path d="M14 9h4l4 4v4h-3"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 9h4M7 7v4"/></svg></span><strong>Thông tin chuyển viện</strong></div>
                 <div class="field journey-col-4 journey-row-start"><label>Hình thức chuyển *<select id="journeyTransferType"><option value="">Chọn hình thức chuyển</option><option value="CAP_CUU">Cấp cứu</option><option value="TAI_KHAM">Tái khám</option><option value="CHUYEN_VIEN">Chuyển viện</option><option value="KHAC">Khác</option></select></label></div>
                 <div id="journeyTransferTypeOtherField" class="field journey-col-8 journey-dynamic" hidden><label>Hình thức khác *<input id="journeyTransferTypeOther" maxlength="120" autocomplete="off" placeholder="Nhập hình thức chuyển khác"></label></div>
                 <div class="field journey-col-6 journey-row-start"><label>Nơi đi<input id="journeyFrom" type="hidden" value="Trung tâm Bảo trợ xã hội Tân Hiệp"><span class="journey-readonly-place"><span aria-hidden="true">⌖</span><strong>Trung tâm Bảo trợ xã hội Tân Hiệp</strong></span></label></div>
@@ -283,7 +285,7 @@
                 <div class="field journey-col-6"><label>Tình trạng/chẩn đoán *<textarea id="journeyDiagnosis" rows="3" maxlength="1500" placeholder="Tình trạng hoặc chẩn đoán tại thời điểm rời Trung tâm"></textarea></label></div>
                 <div class="field full"><label>Ghi chú<textarea id="journeyNote" rows="2" maxlength="2000" placeholder="Ví dụ: Chuyển theo tuyến, chuyển theo yêu cầu hoặc nội dung cần lưu ý..."></textarea></label></div>
 
-                <div class="journey-form-section-title"><span>03</span><strong>Ghi nhận</strong></div>
+                <div class="journey-form-section-title"><span class="journey-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><strong>Ghi nhận</strong></div>
                 <div class="journey-system-strip">
                   <div class="journey-system-item"><span>Ngày + giờ đi</span><strong id="journeySystemTime">Tự động ghi khi xác nhận</strong></div>
                   <div class="journey-system-item"><span>Người nhập</span><strong id="journeyReporter">Tự động theo tài khoản đăng nhập</strong></div>
@@ -482,8 +484,10 @@
       <div class="journey-dialog-head"><div><span class="journey-dialog-kicker">HÀNH TRÌNH CHUYỂN VIỆN</span><h3 id="journeyUpdateTitle">Cập nhật hành trình</h3></div><button id="journeyUpdateCloseX" class="dialog-close" type="button" aria-label="Đóng">×</button></div>
       <div class="journey-current-box">
         <div><span>Đối tượng</span><strong id="journeyUpdatePatient">—</strong></div>
+        <div><span>Giới tính</span><strong id="journeyUpdateGender">—</strong></div>
+        <div><span>Năm sinh</span><strong id="journeyUpdateBirthYear">—</strong></div>
         <div><span>Thẻ BHYT</span><strong id="journeyUpdateBHYT">—</strong></div>
-        <div><span>Nơi đi</span><strong id="journeyUpdateCurrentPlace">—</strong></div>
+        <div><span>Nơi hiện tại</span><strong id="journeyUpdateCurrentPlace">—</strong></div>
         <div><span>Trạng thái hiện tại</span><strong id="journeyUpdateCurrentStatus">—</strong></div>
       </div>
       <div class="journey-form-grid">
