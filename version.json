@@ -1,7 +1,7 @@
 {
-  "version": "8.3.6",
-  "releasedAt": "2026-08-13T21:19:00+07:00",
-  "title": "Patient Profile & Functional Icons",
-  "message": "Bổ sung Giới tính và Năm sinh cho hành trình chuyển viện; hiển thị thông tin đối tượng xuyên suốt Đang theo dõi, Lịch sử, Cập nhật và Xem hành trình; đồng thời dùng icon nhỏ theo chức năng thay cho icon trang trí.",
+  "version": "8.4.0",
+  "releasedAt": "2026-08-13T21:53:00+07:00",
+  "title": "Professional Healthcare Workspace UI",
+  "message": "Chuẩn hóa giao diện ứng dụng Phòng Y tế theo mô hình phần mềm nghiệp vụ: desktop sidebar, mobile/PWA bottom navigation, card/form/timeline gọn hơn; giữ nguyên toàn bộ nghiệp vụ và dữ liệu.",
   "required": false
 }

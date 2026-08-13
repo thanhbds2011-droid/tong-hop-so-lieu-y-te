@@ -1,0 +1,27 @@
+ỨNG DỤNG PHÒNG Y TẾ — NÂNG CẤP GIAO DIỆN 8.4.0
+
+Mục tiêu:
+- Chuẩn hóa giao diện theo mô hình phần mềm nghiệp vụ y tế/hành chính.
+- Giữ nguyên toàn bộ luồng nghiệp vụ, Firebase Realtime Database, Authentication, phân quyền, dữ liệu và hành trình.
+- Desktop: workspace có sidebar cố định bên trái, vùng nội dung tập trung.
+- Mobile/PWA: thanh điều hướng đáy, thao tác thuận tiện bằng một tay.
+- Giảm gradient, shadow, bo góc lớn và màu trang trí; ưu tiên phân cấp thông tin, trạng thái và thao tác.
+
+File giao diện mới:
+- professional-ui.css: Design System tập trung, được nạp sau các CSS cấu trúc hiện có.
+
+Không thay đổi:
+- firebase-database.rules.json
+- cấu trúc dữ liệu
+- Firebase Authentication
+- quyền Tổng hợp / Báo cáo
+- nghiệp vụ nhập số liệu
+- báo cáo chuyển viện / tử vong
+- hanhTrinhChuyenVien
+- hành trình OPEN / CLOSED
+- lịch sử / nhật ký
+- các DOM id và event JavaScript hiện có
+
+Cache/PWA:
+- Version: 8.4.0
+- Service worker đã thêm professional-ui.css vào APP_SHELL.
