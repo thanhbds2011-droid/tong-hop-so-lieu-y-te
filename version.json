@@ -1,7 +1,7 @@
 {
-  "version": "8.3.2",
-  "releasedAt": "2026-08-13T19:57:00+07:00",
-  "title": "Nhập liệu gọn & Tổng quan theo dữ liệu thực tế",
-  "message": "Bản cập nhật mới giúp nhập số liệu bằng nút + và danh sách chọn nhanh, Tổng quan chỉ hiện chỉ tiêu đã ghi nhận, đồng thời làm rõ Lịch sử chuyển viện trên điện thoại.",
+  "version": "8.3.3",
+  "releasedAt": "2026-08-13T20:23:00+07:00",
+  "title": "Professional Data Entry UI",
+  "message": "Giao diện Nhập liệu được tinh gọn theo chuẩn ứng dụng: tiêu đề rõ, form nhập mở dạng dialog/bottom sheet, dữ liệu hôm nay dễ quét và ít câu hướng dẫn thừa hơn.",
   "required": false
 }

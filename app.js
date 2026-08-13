@@ -1005,6 +1005,7 @@ var AUTO_SYNC_MS = 300000;
       dashboardLiveUnsubscribe:null,categoryLiveUnsubscribe:null,entryLiveUnsubscribe:null,
       liveRangeKey:'',entryLiveDate:''
     };
+    var entryComposerReturnFocus=null;
 
     function $(id){return document.getElementById(id)}
     function publicCategoriesFromSnapshot(snap){
@@ -1146,7 +1147,7 @@ var AUTO_SYNC_MS = 300000;
       var query=String($('dashboardSearch').value||'').trim().toLowerCase(),recorded=recordedCodeMap();
       var categories=selectedCategories().filter(function(c){return !!recorded[c.code]&&categoryMatches(c,query)});
       if(!categories.length){
-        $('summaryCards').innerHTML='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có số liệu được ghi nhận.</strong><span>Chỉ những chỉ tiêu đã nhập trong khoảng thời gian đang chọn mới hiển thị tại đây.</span></div>';
+        $('summaryCards').innerHTML='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có số liệu trong khoảng này.</strong></div>';
         return;
       }
       $('summaryCards').innerHTML=categories.map(function(c){
@@ -1285,8 +1286,7 @@ var AUTO_SYNC_MS = 300000;
       return text?'Nhập số '+text.toLocaleLowerCase('vi-VN'):'Nhập số liệu';
     }
     function updateEntryDateLabel(){
-      if($('entryDateLabel'))$('entryDateLabel').textContent=$('entryDate').value?fmtDate($('entryDate').value):'—';
-      if($('loadedDate'))$('loadedDate').textContent=$('entryDate').value?'Ngày '+fmtDate($('entryDate').value):'';
+      // Phiên bản 8.3.3 chỉ hiển thị ngày tại bộ chọn ngày, không lặp lại ngày ở các khối nội dung.
     }
     function updateEntryStats(){
       var recordedCount=0,total=state.categories.length;
@@ -1319,7 +1319,7 @@ var AUTO_SYNC_MS = 300000;
       var record=state.dailyByCode[code]||null;
       if(info)info.hidden=false;if(valueField)valueField.hidden=false;
       $('entrySelectedUnit').textContent=category.unit||'—';
-      $('entrySelectedCurrent').textContent=record?Number(record.value||0).toLocaleString('vi-VN')+' '+category.unit:'Chưa ghi nhận';
+      $('entrySelectedCurrent').textContent=record?Number(record.value||0).toLocaleString('vi-VN')+' '+category.unit:'—';
       $('entryQuickValueLabel').childNodes[0].nodeValue=entryUnitInputLabel(category.unit);
       $('entryQuickValue').placeholder=entryUnitPlaceholder(category.unit);
       $('entryQuickValue').value=record?String(Number(record.value||0)):'';
@@ -1333,11 +1333,20 @@ var AUTO_SYNC_MS = 300000;
       if($('entryQuickProgress'))$('entryQuickProgress').hidden=!state.quickEntrySaving;
     }
     function toggleEntryComposer(show){
-      var box=$('entryComposer'),button=$('btnOpenEntryComposer');if(!box||state.quickEntrySaving)return;
-      var visible=show===undefined?box.hidden:!!show;box.hidden=!visible;
+      var box=$('entryComposer'),backdrop=$('entryComposerBackdrop'),button=$('btnOpenEntryComposer');if(!box||state.quickEntrySaving)return;
+      var visible=show===undefined?box.hidden:!!show;
+      box.hidden=!visible;if(backdrop)backdrop.hidden=!visible;
+      document.body.classList.toggle('entry-composer-open',visible);
       if(button)button.setAttribute('aria-expanded',visible?'true':'false');
-      if(visible){renderEntryCategoryOptions();window.setTimeout(function(){$('entryCategorySelect').focus()},0);if(window.matchMedia&&window.matchMedia('(max-width:760px)').matches)box.scrollIntoView({behavior:'smooth',block:'start'})}
-      else{$('entryCategorySelect').value='';$('entryQuickValue').value='';$('entryQuickError').textContent='';$('entrySelectedInfo').hidden=true;$('entryQuickValueField').hidden=true;setQuickEntrySaving(false)}
+      if(visible){
+        entryComposerReturnFocus=document.activeElement;
+        renderEntryCategoryOptions();
+        window.setTimeout(function(){var target=$('entryCategorySelect');if(target)target.focus()},60);
+      }else{
+        $('entryCategorySelect').value='';$('entryQuickValue').value='';$('entryQuickError').textContent='';$('entrySelectedInfo').hidden=true;$('entryQuickValueField').hidden=true;setQuickEntrySaving(false);
+        if(entryComposerReturnFocus&&typeof entryComposerReturnFocus.focus==='function')window.setTimeout(function(){try{entryComposerReturnFocus.focus()}catch(e){}},0);
+        entryComposerReturnFocus=null;
+      }
     }
     function quickEntryPayload(){
       var code=String($('entryCategorySelect').value||''),category=state.categories.find(function(item){return item.code===code});
@@ -1353,15 +1362,17 @@ var AUTO_SYNC_MS = 300000;
       $('entryQuickError').textContent='';setQuickEntrySaving(true);
       try{
         var result=await call('adjustDailyData',payload);if(result.record)state.dailyByCode[payload.code]=result.record;
-        state.entryCache[payload.date]={byCode:state.dailyByCode,loadedAt:Date.now()};renderIndicators();setQuickEntrySaving(false);toggleEntryComposer(false);setEntryLoadState('','ok',false);clearMessage();toast(result.message||'Đã lưu số liệu.','ok');
+        state.entryCache[payload.date]={byCode:state.dailyByCode,loadedAt:Date.now()};renderIndicators();setQuickEntrySaving(false);toggleEntryComposer(false);setEntryLoadState('','ok',false);clearMessage();
+        var savedCategory=state.categories.find(function(item){return item.code===payload.code});
+        toast(savedCategory?'Đã lưu '+savedCategory.name+': '+Number(payload.newValue).toLocaleString('vi-VN')+' '+savedCategory.unit+'.':(result.message||'Đã lưu số liệu.'),'ok');
         $('rangeType').value='day';updateRangeFields();$('singleDate').value=payload.date;Promise.resolve(syncData(true,true)).catch(function(){});
       }catch(error){$('entryQuickError').textContent=error.message||String(error);setQuickEntrySaving(false)}
     }
     function renderIndicators(){
       renderEntryCategoryOptions();var recorded=state.categories.filter(function(category){return !!state.dailyByCode[category.code]}),box=$('indicatorGrid');
       if(!state.categories.length){box.innerHTML='<div class="empty"><strong>Chưa có danh mục chỉ tiêu.</strong></div>';updateEntryStats();return}
-      if(!recorded.length){box.innerHTML='<div class="entry-recorded-empty"><span class="entry-recorded-empty-icon" aria-hidden="true">＋</span><strong>Chưa ghi nhận số liệu trong ngày này.</strong><p>Bấm <b>Nhập số liệu</b> để chọn chỉ tiêu cần ghi nhận.</p></div>';updateEntryStats();return}
-      box.innerHTML=recorded.map(function(category){var record=state.dailyByCode[category.code],current=Number(record.value||0);return'<article id="c_'+esc(category.code)+'" class="entry-recorded-row"><div class="entry-recorded-main"><strong>'+esc(category.name)+'</strong><span>'+esc(category.group)+' · '+esc(category.unit)+'</span></div><div class="entry-recorded-value"><strong>'+current.toLocaleString('vi-VN')+'</strong><span>'+esc(category.unit)+'</span></div><button class="adjust-btn adjust-data" data-adjust-code="'+esc(category.code)+'" type="button" aria-label="Chỉnh sửa '+esc(category.name)+'">Chỉnh sửa</button></article>'}).join('');
+      if(!recorded.length){box.innerHTML='<div class="entry-recorded-empty"><span class="entry-recorded-empty-icon" aria-hidden="true">＋</span><strong>Chưa có dữ liệu hôm nay.</strong></div>';updateEntryStats();return}
+      box.innerHTML=recorded.map(function(category){var record=state.dailyByCode[category.code],current=Number(record.value||0);return'<article id="c_'+esc(category.code)+'" class="entry-recorded-row"><div class="entry-recorded-main"><strong>'+esc(category.name)+'</strong><span>'+esc(category.group)+'</span></div><div class="entry-recorded-value"><strong>'+current.toLocaleString('vi-VN')+'</strong><span>'+esc(category.unit)+'</span></div><button class="adjust-btn adjust-data" data-adjust-code="'+esc(category.code)+'" type="button" aria-label="Sửa '+esc(category.name)+'">✎ Sửa</button></article>'}).join('');
       updateEntryStats();
     }
     async function loadDay(options){
@@ -1637,7 +1648,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'8.3.2'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'8.3.3'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
@@ -1646,9 +1657,9 @@ var AUTO_SYNC_MS = 300000;
       $('confirmAccept').onclick=function(){closeConfirm(true)};$('confirmCancel').onclick=function(){closeConfirm(false)};$('confirmLayer').addEventListener('click',function(event){if(event.target===$('confirmLayer'))closeConfirm(false)});
       $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});
       $('categoryCancel').onclick=closeCategoryDialog;$('categorySave').onclick=submitCategory;$('categoryLayer').addEventListener('click',function(event){if(event.target===$('categoryLayer'))closeCategoryDialog()});
-      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
+      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if($('entryComposer')&&!$('entryComposer').hidden)toggleEntryComposer(false);else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
       $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;
-      $('btnOpenEntryComposer').onclick=function(){toggleEntryComposer()};$('btnCloseEntryComposer').onclick=function(){toggleEntryComposer(false)};$('btnCancelQuickEntry').onclick=function(){toggleEntryComposer(false)};$('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
+      $('btnOpenEntryComposer').onclick=function(){toggleEntryComposer()};$('btnCloseEntryComposer').onclick=function(){toggleEntryComposer(false)};$('btnCancelQuickEntry').onclick=function(){toggleEntryComposer(false)};if($('entryComposerBackdrop'))$('entryComposerBackdrop').onclick=function(){toggleEntryComposer(false)};$('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
       $('indicatorGrid').addEventListener('click',function(event){var button=event.target.closest('.adjust-data');if(button)openAdjustDialog(button.getAttribute('data-adjust-code'))});
       $('btnChangePassword').onclick=function(){$('changePasswordBox').hidden=false};$('btnCloseChange').onclick=function(){$('changePasswordBox').hidden=true};$('btnSavePassword').onclick=saveNewPassword;
       $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='delete')adminDelete(id)});

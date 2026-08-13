@@ -11,23 +11,23 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=8.3.2">
-  <link rel="stylesheet" href="./ui-fixes.css?v=8.3.2">
-  <link rel="stylesheet" href="./reports.css?v=8.3.2">
-  <link rel="stylesheet" href="./journeys.css?v=8.3.2">
-  <script src="./app-config.js?v=8.3.2"></script>
-  <script defer src="./update-manager.js?v=8.3.2"></script>
-  <script type="module" src="./app.js?v=8.3.2"></script>
-  <script type="module" src="./reports.js?v=8.3.2"></script>
-  <script type="module" src="./journeys.js?v=8.3.2"></script>
-  <script defer src="./ui-fixes.js?v=8.3.2"></script>
+  <link rel="stylesheet" href="./styles.css?v=8.3.3">
+  <link rel="stylesheet" href="./ui-fixes.css?v=8.3.3">
+  <link rel="stylesheet" href="./reports.css?v=8.3.3">
+  <link rel="stylesheet" href="./journeys.css?v=8.3.3">
+  <script src="./app-config.js?v=8.3.3"></script>
+  <script defer src="./update-manager.js?v=8.3.3"></script>
+  <script type="module" src="./app.js?v=8.3.3"></script>
+  <script type="module" src="./reports.js?v=8.3.3"></script>
+  <script type="module" src="./journeys.js?v=8.3.3"></script>
+  <script defer src="./ui-fixes.js?v=8.3.3"></script>
 </head>
 <body>
 <header class="app-header">
     <div class="header-inner">
       <div class="brand">
         <div class="brand-mark brand-mark-logo" aria-hidden="true">
-          <img src="./assets/icon-192.png?v=8.3.2" alt="">
+          <img src="./assets/icon-192.png?v=8.3.3" alt="">
         </div>
         <div>
           <small>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</small>
@@ -134,7 +134,7 @@
             <div class="login-brand-glow login-brand-glow-one" aria-hidden="true"></div>
             <div class="login-brand-glow login-brand-glow-two" aria-hidden="true"></div>
             <div class="login-logo-wrap">
-              <img class="login-app-logo" src="./assets/icon-512.png?v=8.3.2" alt="Logo Tổng hợp số liệu Phòng Y tế">
+              <img class="login-app-logo" src="./assets/icon-512.png?v=8.3.3" alt="Logo Tổng hợp số liệu Phòng Y tế">
             </div>
             <div class="login-brand-copy">
               <span>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</span>
@@ -177,24 +177,22 @@
     </section>
 
     <section id="entryView" class="view">
-      <div class="card entry-panel entry-panel-compact">
-        <div class="entry-topbar">
-          <div class="field"><label>Ngày nhập số liệu<input id="entryDate" type="date"></label></div>
-          <button id="btnLoadDay" class="btn btn-soft icon-btn" type="button" title="Kiểm tra dữ liệu mới nhất" aria-label="Kiểm tra dữ liệu mới nhất"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg></button>
-          <div class="entry-user"><div><strong id="entryUserName"></strong><span id="entryUserMeta"></span></div><button id="btnChangePassword" class="btn btn-soft" type="button">Đổi mật khẩu</button></div>
-        </div>
-        <div id="entryLoadState" class="inline-state"></div>
-        <div class="entry-command-bar">
-          <div class="entry-command-copy">
-            <span class="entry-command-kicker">SỐ LIỆU TRONG NGÀY</span>
-            <strong id="entryDateLabel">—</strong>
-            <small>Chỉ nhập chỉ tiêu cần ghi nhận. Dữ liệu lưu xong sẽ tự đồng bộ sang các máy đang mở ứng dụng.</small>
+      <div class="card entry-panel entry-panel-professional">
+        <div class="entry-app-head">
+          <div class="entry-title-block">
+            <h1>Nhập số liệu</h1>
+            <div class="entry-date-row">
+              <div class="field entry-date-field"><label>Ngày<input id="entryDate" type="date"></label></div>
+              <button id="btnLoadDay" class="btn btn-soft icon-btn entry-refresh-btn" type="button" title="Kiểm tra dữ liệu mới nhất" aria-label="Kiểm tra dữ liệu mới nhất"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg></button>
+            </div>
           </div>
-          <div class="entry-command-actions">
-            <div class="entry-recorded-counter" aria-live="polite"><span>Đã ghi nhận</span><strong><b id="recordedIndicatorCount">0</b>/<span id="totalIndicatorCount">0</span></strong></div>
+          <div class="entry-head-actions">
+            <div class="entry-progress-pill" aria-live="polite"><strong><b id="recordedIndicatorCount">0</b>/<span id="totalIndicatorCount">0</span></strong><span>chỉ tiêu</span></div>
             <button id="btnOpenEntryComposer" class="btn btn-primary entry-add-btn" type="button" aria-expanded="false" aria-controls="entryComposer"><span aria-hidden="true">＋</span> Nhập số liệu</button>
           </div>
         </div>
+        <div class="entry-user entry-user-compact"><div><strong id="entryUserName"></strong><span id="entryUserMeta"></span></div><button id="btnChangePassword" class="btn btn-soft" type="button">Đổi mật khẩu</button></div>
+        <div id="entryLoadState" class="inline-state"></div>
       </div>
 
       <div id="changePasswordBox" class="card change-password-card" hidden>
@@ -203,34 +201,33 @@
         <div class="actions"><button id="btnCloseChange" class="btn btn-ghost" type="button">Hủy</button><button id="btnSavePassword" class="btn btn-primary" type="button">Lưu mật khẩu</button></div>
       </div>
 
-      <div id="entryComposer" class="card entry-composer" hidden>
+      <div id="entryComposerBackdrop" class="entry-composer-backdrop" hidden></div>
+      <div id="entryComposer" class="entry-composer entry-composer-dialog" role="dialog" aria-modal="true" aria-labelledby="entryComposerTitle" hidden>
         <div class="entry-composer-head">
-          <div><span class="entry-command-kicker">NHẬP NHANH</span><h2>Ghi nhận số liệu</h2><p>Chọn một chỉ tiêu, nhập số liệu thực tế rồi lưu.</p></div>
+          <div><h2 id="entryComposerTitle">Nhập số liệu</h2></div>
           <button id="btnCloseEntryComposer" class="entry-composer-close" type="button" aria-label="Đóng biểu mẫu">×</button>
         </div>
         <div class="entry-quick-grid">
           <div class="field entry-quick-category"><label>Chỉ tiêu *<select id="entryCategorySelect"><option value="">Chọn chỉ tiêu cần nhập</option></select></label></div>
           <div id="entrySelectedInfo" class="entry-selected-info" hidden>
             <div><span>Đơn vị</span><strong id="entrySelectedUnit">—</strong></div>
-            <div><span>Hiện tại</span><strong id="entrySelectedCurrent">Chưa ghi nhận</strong></div>
+            <div><span>Hiện tại</span><strong id="entrySelectedCurrent">—</strong></div>
           </div>
           <div id="entryQuickValueField" class="field entry-quick-value" hidden><label id="entryQuickValueLabel">Số liệu *<input id="entryQuickValue" type="number" min="0" step="1" inputmode="numeric" placeholder="Nhập số liệu"></label></div>
         </div>
         <div id="entryQuickError" class="adjust-error" aria-live="polite"></div>
-        <div id="entryQuickProgress" class="adjust-progress" role="status" aria-live="polite" hidden><span class="spinner"></span><span>Đang lưu dữ liệu...</span></div>
+        <div id="entryQuickProgress" class="adjust-progress" role="status" aria-live="polite" hidden><span class="spinner"></span><span>Đang lưu...</span></div>
         <div class="entry-composer-actions"><button id="btnCancelQuickEntry" class="btn btn-ghost" type="button">Hủy</button><button id="btnSaveQuickEntry" class="btn btn-primary" type="button" disabled>Lưu số liệu</button></div>
       </div>
 
       <div class="card entry-list-card entry-recorded-card">
         <div class="entry-list-toolbar entry-recorded-head">
-          <div><span class="entry-command-kicker">ĐÃ GHI NHẬN</span><h2>Số liệu trong ngày</h2><p>Chỉ hiển thị những chỉ tiêu đã được nhập.</p></div>
-          <span id="loadedDate" class="meta"></span>
+          <div><h2>Dữ liệu hôm nay</h2></div>
         </div>
         <div id="indicatorGrid" class="entry-recorded-list" aria-live="polite"></div>
       </div>
 
     </section>
-
 
     <section id="reportsView" class="view">
       <div class="card report-head">
