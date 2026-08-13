@@ -1,4 +1,4 @@
-/* Hành trình chuyển viện - production 8.1.0 */
+/* Hành trình chuyển viện - production 8.1.1 */
 #transferJourneyPanel[hidden],
 .journey-panel[hidden],
 .journey-dynamic[hidden] { display:none !important; }
@@ -73,4 +73,168 @@
 
 @media (max-width:390px){
   .journey-subtab{font-size:11px;padding:8px 3px}.journey-stats,.journey-history-summary{gap:4px}.journey-stat{padding:8px 4px}.journey-stat span{font-size:9px}.journey-stat strong{font-size:18px}.journey-current-box,.journey-detail-meta{grid-template-columns:1fr}.journey-toolbar{grid-template-columns:1fr}.journey-toolbar-actions{display:grid;grid-template-columns:1fr}.journey-toolbar-actions .btn{width:100%}
+}
+
+/* ===== PROFESSIONAL JOURNEY UX — 8.1.1 ===== */
+#transferJourneyPanel{padding:0 16px 18px}
+.journey-subtabs{
+  margin:12px 0 14px;
+  padding:4px;
+  border-radius:14px;
+  background:#f7eef2;
+  border-color:#ead7df;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.5);
+}
+.journey-subtab{
+  min-height:40px;
+  padding:8px 15px;
+  border-radius:10px;
+  font-size:13px;
+  transition:background .15s ease,color .15s ease,box-shadow .15s ease;
+}
+.journey-subtab.active{box-shadow:0 2px 8px rgba(111,34,69,.08)}
+
+.journey-stats,.journey-history-summary{gap:10px;margin-bottom:14px}
+.journey-stat{
+  min-height:58px;
+  padding:11px 14px;
+  border-radius:13px;
+  background:#fff;
+  box-shadow:none;
+}
+.journey-stat span{font-size:12px;color:#7d6671}
+.journey-stat strong{font-size:23px}
+
+.journey-toolbar{margin-bottom:12px}
+.journey-toolbar .journey-search{max-width:620px}
+.journey-toolbar input,.journey-toolbar select{height:44px;border-radius:10px}
+
+.journey-card,.journey-history-card{
+  border-radius:15px;
+  box-shadow:0 4px 14px rgba(64,31,46,.035);
+}
+.journey-card{grid-template-columns:1fr}
+.journey-card-main{padding:15px 16px}
+.journey-card-actions{
+  min-width:0;
+  padding:9px 12px;
+  border-left:0;
+  border-top:1px solid #f0e5ea;
+  background:#fcfafb;
+  flex-direction:row;
+  justify-content:flex-end;
+  align-items:center;
+}
+.journey-card-actions .small-btn{width:auto;min-width:118px}
+.journey-card-badges{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.journey-type-pill{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:5px 9px;border-radius:999px;
+  background:#f9edf2;color:#8d2451;
+  font-size:10px;font-weight:850;white-space:nowrap;
+}
+.journey-status.is-tracking{background:#edf4ff;color:#315f91}
+.journey-location{margin-top:10px;padding:9px 11px;border-radius:10px;background:#fcf8fa}
+.journey-meta-grid{margin-top:10px;gap:8px}
+.journey-diagnosis{margin-top:10px}
+.journey-card-foot{margin-top:9px}
+
+.journey-form-card{
+  max-width:1120px;
+  margin:0 auto;
+  padding:20px 22px;
+  border-radius:16px;
+  box-shadow:0 5px 18px rgba(64,31,46,.035);
+}
+.journey-form-head{margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #f1e6eb}
+.journey-form-head h3{font-size:19px;letter-spacing:-.015em}
+.journey-form-head p{font-size:12px}
+#journeyCreateForm.journey-create-grid{
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:12px 14px;
+}
+#journeyCreateForm .journey-col-4{grid-column:span 4}
+#journeyCreateForm .journey-col-6{grid-column:span 6}
+#journeyCreateForm .journey-col-8{grid-column:span 8}
+#journeyCreateForm .full{grid-column:1/-1}
+.journey-form-section-title{
+  grid-column:1/-1;
+  display:flex;align-items:center;gap:8px;
+  margin:4px 0 -1px;
+  color:#5f3a4a;
+  font-size:12px;
+  letter-spacing:.02em;
+}
+.journey-form-section-title span{
+  width:24px;height:24px;border-radius:8px;
+  display:grid;place-items:center;
+  background:#f7e8ee;color:#9a2454;
+  font-size:10px;font-weight:900;
+}
+.journey-form-section-title strong{font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+#journeyCreateForm .field label{font-size:12px;color:#604651}
+#journeyCreateForm input,#journeyCreateForm select{height:44px;border-radius:10px}
+#journeyCreateForm textarea{border-radius:10px;min-height:92px}
+#journeyCreateForm input[readonly]{background:#faf8f9;color:#65545c}
+.journey-system-strip{
+  padding:10px;
+  gap:8px;
+  border:1px solid #eadde3;
+  border-radius:12px;
+  background:#fbfafb;
+}
+.journey-system-item{padding:9px 10px;border:0;background:transparent}
+.journey-system-item+ .journey-system-item{border-left:1px solid #eadde3}
+.journey-form-note{
+  margin-top:10px;
+  padding:9px 11px;
+  border:1px solid #f0dfb4;
+  background:#fffaf0;
+  border-radius:10px;
+}
+.journey-form-actions{margin-top:14px;padding-top:12px;border-top:1px solid #f1e6eb}
+
+.journey-history-main{padding:13px 15px}
+.journey-history-actions{padding:10px 12px}
+.journey-dialog-card{border:1px solid #eadde3}
+.journey-current-box>div,.journey-detail-meta>div{background:#fcfafb}
+
+@media (max-width:900px){
+  #journeyCreateForm.journey-create-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #journeyCreateForm .journey-col-4,
+  #journeyCreateForm .journey-col-6,
+  #journeyCreateForm .journey-col-8{grid-column:span 1}
+  #journeyCreateForm .full,
+  #journeyCreateForm .journey-form-section-title,
+  #journeyCreateForm .journey-system-strip{grid-column:1/-1}
+}
+
+@media (max-width:780px){
+  #transferJourneyPanel{padding:0 8px 12px}
+  .journey-subtabs{margin:8px 0 10px;border-radius:12px}
+  .journey-subtab{min-height:38px;padding:7px 5px;font-size:11px}
+  .journey-stats,.journey-history-summary{gap:5px;margin-bottom:10px}
+  .journey-stat{min-height:54px;padding:8px 5px}
+  .journey-stat span{font-size:9px;line-height:1.15}
+  .journey-stat strong{font-size:18px}
+  .journey-toolbar{margin-bottom:10px}
+  .journey-card-main{padding:12px}
+  .journey-card-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:7px}
+  .journey-card-actions .small-btn{width:100%;min-width:0;padding:8px 5px;font-size:10px}
+  .journey-card-badges{gap:4px;max-width:52%}
+  .journey-type-pill,.journey-status{font-size:9px;padding:4px 6px;white-space:normal;text-align:center}
+  .journey-form-card{padding:12px;border-radius:14px}
+  .journey-form-head{margin-bottom:10px;padding-bottom:9px}
+  #journeyCreateForm.journey-create-grid{grid-template-columns:1fr;gap:9px}
+  #journeyCreateForm .journey-col-4,
+  #journeyCreateForm .journey-col-6,
+  #journeyCreateForm .journey-col-8,
+  #journeyCreateForm .full,
+  #journeyCreateForm .journey-form-section-title,
+  #journeyCreateForm .journey-system-strip{grid-column:1}
+  .journey-form-section-title{margin-top:5px}
+  .journey-system-strip{grid-template-columns:1fr;gap:0;padding:7px}
+  .journey-system-item+ .journey-system-item{border-left:0;border-top:1px solid #eadde3}
+  .journey-form-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .journey-form-actions .btn{min-height:42px}
 }

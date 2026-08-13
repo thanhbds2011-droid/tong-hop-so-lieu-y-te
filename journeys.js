@@ -16,7 +16,9 @@ const CFG = window.YTE_APP_CONFIG || {};
 const OWNER_EMAIL = String(CFG.OWNER_EMAIL || '').trim().toLowerCase();
 const REPORT_ROOT = 'baoCaoYTe';
 const CENTER_NAME = 'Trung tâm Bảo trợ xã hội Tân Hiệp';
-const OPEN_STATUSES = ['TAI_KHAM', 'DANG_DIEU_TRI', 'CHUYEN_TIEP_BENH_VIEN_KHAC'];
+const OPEN_STATUSES = ['DANG_THEO_DOI', 'TAI_KHAM', 'DANG_DIEU_TRI', 'CHUYEN_TIEP_BENH_VIEN_KHAC'];
+const TRANSFER_TYPES = ['CAP_CUU', 'TAI_KHAM', 'CHUYEN_VIEN', 'KHAC'];
+const OTHER_DESTINATION = '__OTHER__';
 const CLOSED_STATUSES = ['TU_VONG_TAI_BENH_VIEN', 'DA_VE_TRUNG_TAM'];
 const ALL_STATUSES = [...OPEN_STATUSES, ...CLOSED_STATUSES];
 
@@ -88,6 +90,7 @@ function hoursSince(value) {
 }
 function statusLabel(status) {
   const map = {
+    DANG_THEO_DOI: 'Đang theo dõi',
     TAI_KHAM: 'Tái khám',
     DANG_DIEU_TRI: 'Đang điều trị',
     CHUYEN_TIEP_BENH_VIEN_KHAC: 'Chuyển tiếp bệnh viện khác',
@@ -95,6 +98,36 @@ function statusLabel(status) {
     DA_VE_TRUNG_TAM: 'Đã về Trung tâm'
   };
   return map[status] || status || '—';
+}
+function transferTypeLabel(type, otherText) {
+  const map = {
+    CAP_CUU: 'Cấp cứu',
+    TAI_KHAM: 'Tái khám',
+    CHUYEN_VIEN: 'Chuyển viện',
+    KHAC: 'Khác'
+  };
+  if (type === 'KHAC' && String(otherText || '').trim()) return String(otherText).trim();
+  return map[type] || 'Chưa phân loại';
+}
+function inferLegacyTransferType(item) {
+  if (item && item.hinhThucChuyen) return item.hinhThucChuyen;
+  if (item && item.trangThaiHienTai === 'TAI_KHAM') return 'TAI_KHAM';
+  return 'CHUYEN_VIEN';
+}
+function resolvedDestination(selectId, otherId) {
+  const selected = String($(selectId)?.value || '').trim();
+  if (!selected) return '';
+  if (selected !== OTHER_DESTINATION) return selected;
+  return String($(otherId)?.value || '').trim();
+}
+function toggleOtherDestination(selectId, fieldId, inputId) {
+  const select = $(selectId);
+  const field = $(fieldId);
+  const input = $(inputId);
+  if (!select || !field || !input) return;
+  const isOther = select.value === OTHER_DESTINATION;
+  field.hidden = !isOther;
+  if (!isOther) input.value = '';
 }
 function eventLabel(type) {
   const map = {
@@ -168,6 +201,7 @@ function statusClass(status) {
   if (status === 'TU_VONG_TAI_BENH_VIEN') return 'is-death';
   if (status === 'CHUYEN_TIEP_BENH_VIEN_KHAC') return 'is-transfer';
   if (status === 'DANG_DIEU_TRI') return 'is-treatment';
+  if (status === 'DANG_THEO_DOI') return 'is-tracking';
   return 'is-followup';
 }
 function journeyRouteHtml(item) {
@@ -237,7 +271,7 @@ function renderTracking() {
     if (!search) return true;
     return normalizeText([
       item.doiTuong, item.theBHYT, item.noiHienTai, statusLabel(item.trangThaiHienTai),
-      item.lyDoHienTai, item.tinhTrangChanDoanHienTai
+      transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac), item.lyDoHienTai, item.tinhTrangChanDoanHienTai
     ].join(' ')).includes(search);
   });
   const stale12 = state.openCases.filter((item) => hoursSince(item.updatedAt || item.ngayGioDi) >= 12).length;
@@ -262,7 +296,7 @@ function renderTracking() {
             <strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>
             <span class="journey-bhyt">BHYT: ${esc(item.theBHYT || 'Chưa ghi nhận')}</span>
           </div>
-          <span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span>
+          <div class="journey-card-badges"><span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
         </div>
         <div class="journey-location">
           <span>Hiện tại</span>
@@ -292,7 +326,7 @@ function renderHistory() {
   const currentRows = state.closedCases.filter((item) => {
     if (filter !== 'all' && item.trangThaiHienTai !== filter) return false;
     if (!search) return true;
-    return normalizeText([item.doiTuong, item.theBHYT, item.noiHienTai, statusLabel(item.trangThaiHienTai), item.tinhTrangKhiVe].join(' ')).includes(search);
+    return normalizeText([item.doiTuong, item.theBHYT, item.noiHienTai, statusLabel(item.trangThaiHienTai), transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac), item.tinhTrangKhiVe].join(' ')).includes(search);
   });
   const legacyRows = filter === 'all' ? state.legacyTransfers.filter((item) => {
     if (!search) return true;
@@ -308,7 +342,7 @@ function renderHistory() {
   const currentHtml = currentRows.map((item) => `<article class="journey-history-card">
     <div class="journey-history-mark ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓' : 'TV'}</div>
     <div class="journey-history-main">
-      <div class="journey-card-title"><div><strong>${esc(item.doiTuong)}</strong><span class="journey-bhyt">BHYT: ${esc(item.theBHYT || 'Chưa ghi nhận')}</span></div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
+      <div class="journey-card-title"><div><strong>${esc(item.doiTuong)}</strong><span class="journey-bhyt">BHYT: ${esc(item.theBHYT || 'Chưa ghi nhận')}</span></div><div class="journey-card-badges"><span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div></div>
       <div class="journey-history-line">${journeyRouteHtml(item)}</div>
       <div class="journey-row-meta"><span>Đi: ${esc(fmtDateTime(item.ngayGioDi))}</span><span>${item.ngayGioVe ? `Về: ${esc(fmtDateTime(item.ngayGioVe))}` : `Kết thúc: ${esc(fmtDateTime(item.updatedAt))}`}</span></div>
     </div>
@@ -344,17 +378,28 @@ function setSubView(name) {
   if (name === 'create') resetCreateForm();
 }
 
+function updateCreateDynamicFields() {
+  const transferType = String($('journeyTransferType')?.value || '');
+  const otherTypeField = $('journeyTransferTypeOtherField');
+  if (otherTypeField) otherTypeField.hidden = transferType !== 'KHAC';
+  if (transferType !== 'KHAC' && $('journeyTransferTypeOther')) $('journeyTransferTypeOther').value = '';
+  toggleOtherDestination('journeyTo', 'journeyToOtherField', 'journeyToOther');
+}
+
 function resetCreateForm() {
   if (!$('journeyCreateForm')) return;
   $('journeyPatient').value = '';
   $('journeyBHYT').value = '';
   $('journeyFrom').value = CENTER_NAME;
   $('journeyTo').value = '';
+  $('journeyToOther').value = '';
+  $('journeyTransferType').value = '';
+  $('journeyTransferTypeOther').value = '';
   $('journeyReason').value = '';
   $('journeyDiagnosis').value = '';
-  $('journeyInitialStatus').value = 'TAI_KHAM';
   $('journeyCreateError').textContent = '';
   $('journeySystemTime').textContent = 'Tự động ghi thời điểm thực tế khi lưu';
+  updateCreateDynamicFields();
   const user = auth.currentUser;
   $('journeyReporter').textContent = user ? String(user.displayName || user.email || '—') : '—';
 }
@@ -362,16 +407,18 @@ function resetCreateForm() {
 function createPayload() {
   const doiTuong = String($('journeyPatient').value || '').trim();
   const theBHYT = normalizeBHYT($('journeyBHYT').value || '');
-  const noiDen = String($('journeyTo').value || '').trim();
+  const noiDen = resolvedDestination('journeyTo', 'journeyToOther');
   const lyDo = String($('journeyReason').value || '').trim();
   const tinhTrang = String($('journeyDiagnosis').value || '').trim();
-  const trangThai = String($('journeyInitialStatus').value || '');
+  const hinhThucChuyen = String($('journeyTransferType').value || '');
+  const hinhThucChuyenKhac = hinhThucChuyen === 'KHAC' ? String($('journeyTransferTypeOther').value || '').trim() : '';
   if (doiTuong.length < 2 || doiTuong.length > 150) throw new Error('Vui lòng nhập Đối tượng từ 2 đến 150 ký tự.');
   if (theBHYT.length > 40) throw new Error('Thẻ BHYT không hợp lệ.');
-  if (!noiDen || noiDen.length > 300) throw new Error('Vui lòng nhập Nơi đến.');
+  if (!TRANSFER_TYPES.includes(hinhThucChuyen)) throw new Error('Vui lòng chọn Hình thức chuyển.');
+  if (hinhThucChuyen === 'KHAC' && (hinhThucChuyenKhac.length < 2 || hinhThucChuyenKhac.length > 120)) throw new Error('Vui lòng nhập Hình thức chuyển khác.');
+  if (!noiDen || noiDen.length > 300) throw new Error('Vui lòng chọn hoặc nhập Nơi đến.');
   if (!lyDo || lyDo.length > 1000) throw new Error('Vui lòng nhập Lý do.');
   if (!tinhTrang || tinhTrang.length > 1500) throw new Error('Vui lòng nhập Tình trạng/chẩn đoán.');
-  if (!['TAI_KHAM', 'DANG_DIEU_TRI'].includes(trangThai)) throw new Error('Trạng thái khi lập chuyển viện chưa hợp lệ.');
   return {
     doiTuong,
     doiTuongNorm: normalizeText(doiTuong),
@@ -381,7 +428,9 @@ function createPayload() {
     noiDen,
     lyDo,
     tinhTrang,
-    trangThai
+    hinhThucChuyen,
+    hinhThucChuyenKhac,
+    trangThai: 'DANG_THEO_DOI'
   };
 }
 
@@ -429,6 +478,8 @@ async function createJourney() {
       theBHYT: payload.theBHYT,
       theBHYTNorm: payload.theBHYTNorm,
       doiTuongKey: payload.doiTuongKey,
+      hinhThucChuyen: payload.hinhThucChuyen,
+      hinhThucChuyenKhac: payload.hinhThucChuyenKhac,
       noiDiBanDau: CENTER_NAME,
       noiHienTai: payload.noiDen,
       lyDoHienTai: payload.lyDo,
@@ -457,6 +508,8 @@ async function createJourney() {
       thuTu: 1,
       noiDi: CENTER_NAME,
       noiDen: payload.noiDen,
+      hinhThucChuyen: payload.hinhThucChuyen,
+      hinhThucChuyenKhac: payload.hinhThucChuyenKhac,
       lyDo: payload.lyDo,
       tinhTrangChanDoan: payload.tinhTrang,
       trangThaiSauChang: payload.trangThai,
@@ -473,6 +526,8 @@ async function createJourney() {
       trangThaiSau: payload.trangThai,
       noiTruoc: CENTER_NAME,
       noiSau: payload.noiDen,
+      hinhThucChuyen: payload.hinhThucChuyen,
+      hinhThucChuyenKhac: payload.hinhThucChuyenKhac,
       lyDo: payload.lyDo,
       tinhTrangChanDoan: payload.tinhTrang,
       tinhTrangKhiVe: '',
@@ -527,6 +582,7 @@ function openUpdateDialog(id, preset) {
   $('journeyUpdateCurrentStatus').textContent = statusLabel(item.trangThaiHienTai);
   $('journeyUpdateStatus').value = preset === 'DA_VE_TRUNG_TAM' ? 'DA_VE_TRUNG_TAM' : item.trangThaiHienTai;
   $('journeyUpdateDestination').value = '';
+  $('journeyUpdateDestinationOther').value = '';
   $('journeyUpdateReason').value = '';
   $('journeyUpdateDiagnosis').value = '';
   $('journeyReturnCondition').value = '';
@@ -547,8 +603,12 @@ function updateUpdateFields() {
   $('journeyUpdateReasonField').hidden = returned;
   $('journeyUpdateDiagnosisField').hidden = returned;
   $('journeyReturnConditionField').hidden = !returned;
-  if (returned) {
-    $('journeyUpdateDestination').value = CENTER_NAME;
+  if (!transfer) {
+    $('journeyUpdateDestination').value = '';
+    $('journeyUpdateDestinationOther').value = '';
+    $('journeyUpdateDestinationOtherField').hidden = true;
+  } else {
+    toggleOtherDestination('journeyUpdateDestination', 'journeyUpdateDestinationOtherField', 'journeyUpdateDestinationOther');
   }
 }
 
@@ -575,8 +635,8 @@ function updatePayload() {
   if (!tinhTrang || tinhTrang.length > 1500) throw new Error('Vui lòng nhập Tình trạng/chẩn đoán.');
   let noiDen = item.noiHienTai;
   if (status === 'CHUYEN_TIEP_BENH_VIEN_KHAC') {
-    noiDen = String($('journeyUpdateDestination').value || '').trim();
-    if (!noiDen || noiDen.length > 300) throw new Error('Vui lòng nhập Nơi đến khi chuyển tiếp bệnh viện khác.');
+    noiDen = resolvedDestination('journeyUpdateDestination', 'journeyUpdateDestinationOther');
+    if (!noiDen || noiDen.length > 300) throw new Error('Vui lòng chọn hoặc nhập Nơi đến khi chuyển tiếp bệnh viện khác.');
     if (normalizeText(noiDen) === normalizeText(item.noiHienTai)) throw new Error('Nơi đến mới phải khác nơi hiện tại.');
   }
   return { status, tinhTrangKhiVe: '', lyDo, tinhTrang, noiDen };
@@ -615,6 +675,8 @@ async function saveJourneyUpdate() {
       theBHYT: latest.theBHYT || '',
       theBHYTNorm: latest.theBHYTNorm || '',
       doiTuongKey: latest.doiTuongKey,
+      hinhThucChuyen: latest.hinhThucChuyen || inferLegacyTransferType(latest),
+      hinhThucChuyenKhac: latest.hinhThucChuyenKhac || '',
       noiDiBanDau: latest.noiDiBanDau || CENTER_NAME,
       noiHienTai: isReturn ? CENTER_NAME : (isTransfer ? payload.noiDen : latest.noiHienTai),
       lyDoHienTai: isReturn ? latest.lyDoHienTai : payload.lyDo,
@@ -646,6 +708,8 @@ async function saveJourneyUpdate() {
       trangThaiSau: payload.status,
       noiTruoc: latest.noiHienTai || '',
       noiSau: isReturn ? CENTER_NAME : (isTransfer ? payload.noiDen : latest.noiHienTai || ''),
+      hinhThucChuyen: latest.hinhThucChuyen || inferLegacyTransferType(latest),
+      hinhThucChuyenKhac: latest.hinhThucChuyenKhac || '',
       lyDo: payload.lyDo,
       tinhTrangChanDoan: payload.tinhTrang,
       tinhTrangKhiVe: payload.tinhTrangKhiVe,
@@ -662,6 +726,8 @@ async function saveJourneyUpdate() {
         thuTu: nextOrder,
         noiDi: latest.noiHienTai || '',
         noiDen: isReturn ? CENTER_NAME : payload.noiDen,
+        hinhThucChuyen: latest.hinhThucChuyen || inferLegacyTransferType(latest),
+        hinhThucChuyenKhac: latest.hinhThucChuyenKhac || '',
         lyDo: isReturn ? 'Trở về Trung tâm' : payload.lyDo,
         tinhTrangChanDoan: isReturn ? payload.tinhTrangKhiVe : payload.tinhTrang,
         trangThaiSauChang: payload.status,
@@ -707,6 +773,7 @@ function openDetail(id) {
   $('journeyDetailTitle').textContent = item.doiTuong || 'Hành trình chuyển viện';
   $('journeyDetailMeta').innerHTML = `
     <div><span>Thẻ BHYT</span><strong>${esc(item.theBHYT || 'Chưa ghi nhận')}</strong></div>
+    <div><span>Hình thức chuyển</span><strong>${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</strong></div>
     <div><span>Trạng thái</span><strong>${esc(statusLabel(item.trangThaiHienTai))}</strong></div>
     <div><span>Rời Trung tâm</span><strong>${esc(fmtDateTime(item.ngayGioDi))}</strong></div>
     <div><span>${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? 'Ngày giờ về' : 'Cập nhật cuối'}</span><strong>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</strong></div>`;
@@ -714,9 +781,11 @@ function openDetail(id) {
   $('journeyTimeline').innerHTML = events.length ? events.map((event) => {
     const move = event.noiTruoc && event.noiSau && normalizeText(event.noiTruoc) !== normalizeText(event.noiSau)
       ? `<div class="journey-timeline-route"><span>${esc(event.noiTruoc)}</span><b>→</b><span>${esc(event.noiSau)}</span></div>` : '';
+    const typeLine = event.loaiSuKien === 'MO_HANH_TRINH'
+      ? `<p><b>Hình thức chuyển:</b> ${esc(transferTypeLabel(event.hinhThucChuyen || inferLegacyTransferType(item), event.hinhThucChuyenKhac || item.hinhThucChuyenKhac))}</p>` : '';
     const body = event.loaiSuKien === 'DA_VE_TRUNG_TAM'
       ? `<p><b>Tình trạng khi về:</b> ${esc(event.tinhTrangKhiVe || '—')}</p>`
-      : `<p><b>Lý do:</b> ${esc(event.lyDo || '—')}</p><p><b>Tình trạng/chẩn đoán:</b> ${esc(event.tinhTrangChanDoan || '—')}</p>`;
+      : `${typeLine}<p><b>Lý do:</b> ${esc(event.lyDo || '—')}</p><p><b>Tình trạng/chẩn đoán:</b> ${esc(event.tinhTrangChanDoan || '—')}</p>`;
     return `<div class="journey-timeline-item">
       <div class="journey-timeline-dot"></div>
       <div class="journey-timeline-card">
@@ -761,6 +830,8 @@ function initEvents() {
   });
   $('journeyCreateSave')?.addEventListener('click', createJourney);
   $('journeyCreateCancel')?.addEventListener('click', () => setSubView('tracking'));
+  $('journeyTransferType')?.addEventListener('change', updateCreateDynamicFields);
+  $('journeyTo')?.addEventListener('change', updateCreateDynamicFields);
   $('journeyBHYT')?.addEventListener('input', () => { $('journeyBHYT').value = normalizeBHYT($('journeyBHYT').value); });
   $('journeyTrackingSearch')?.addEventListener('input', renderTracking);
   $('journeyTrackingReload')?.addEventListener('click', () => loadJourneys(true));
@@ -782,6 +853,7 @@ function initEvents() {
     if (button.getAttribute('data-kind') === 'view') openDetail(button.getAttribute('data-id'));
   });
   $('journeyUpdateStatus')?.addEventListener('change', updateUpdateFields);
+  $('journeyUpdateDestination')?.addEventListener('change', () => toggleOtherDestination('journeyUpdateDestination', 'journeyUpdateDestinationOtherField', 'journeyUpdateDestinationOther'));
   $('journeyUpdateCancel')?.addEventListener('click', closeUpdateDialog);
   $('journeyUpdateCloseX')?.addEventListener('click', closeUpdateDialog);
   $('journeyUpdateSave')?.addEventListener('click', saveJourneyUpdate);

@@ -420,3 +420,56 @@
     border-radius: 18px;
   }
 }
+
+/* ===== PROFESSIONAL WORKSPACE REFINEMENT — 8.1.1 ===== */
+#reportsView .report-head{
+  position:relative;
+  padding:18px 22px;
+  margin-bottom:12px;
+  border:1px solid #eadde3;
+  border-left:4px solid #a9255e;
+  border-radius:18px;
+  box-shadow:0 8px 24px rgba(74,29,48,.045);
+  background:linear-gradient(110deg,#fff 0%,#fff 72%,#fff8fb 100%);
+}
+#reportsView .report-head h2{
+  margin:0 0 4px;
+  font-size:clamp(22px,2.2vw,28px);
+  line-height:1.2;
+  letter-spacing:-.025em;
+}
+#reportsView .report-head p{font-size:13px;line-height:1.45;color:#796a71}
+#reportsView .report-kicker{margin-bottom:5px;font-size:10px;letter-spacing:.14em}
+#reportsView .report-workspace{
+  border:1px solid #eadde3;
+  border-radius:18px;
+  box-shadow:0 10px 28px rgba(74,29,48,.05);
+  background:#fff;
+}
+#reportsView .report-top-tabs{
+  background:#fcf8fa;
+  border-bottom:1px solid #eadde3;
+}
+#reportsView .report-type-tab{
+  min-height:50px;
+  font-size:14px;
+  letter-spacing:.01em;
+}
+#reportsView .report-type-tab.active{
+  background:#fff;
+  color:#861e4b;
+  border-bottom-width:2px;
+}
+
+@media (max-width:780px){
+  #reportsView .report-head{
+    padding:14px 15px;
+    margin-bottom:10px;
+    border-left-width:3px;
+    border-radius:15px;
+  }
+  #reportsView .report-head h2{font-size:20px}
+  #reportsView .report-head p{font-size:12px}
+  #reportsView .report-top-tabs{position:relative}
+  #reportsView .report-type-tab{min-height:46px;font-size:13px}
+}

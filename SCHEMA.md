@@ -1,4 +1,4 @@
-# SCHEMA REALTIME DATABASE — 8.1.0
+# SCHEMA REALTIME DATABASE — 8.1.1
 
 ## 1. Các node cũ
 Toàn bộ Rules và dữ liệu của HSBA, `tongHopYTe`, `yTeApp` và các node Báo cáo hiện hữu được giữ nguyên. Module Hành trình chuyển viện chỉ bổ sung node mới.
@@ -62,11 +62,18 @@ baoCaoYTe/
         theBHYT
         theBHYTNorm
         doiTuongKey
+        hinhThucChuyen:
+          CAP_CUU |
+          TAI_KHAM |
+          CHUYEN_VIEN |
+          KHAC
+        hinhThucChuyenKhac
         noiDiBanDau
         noiHienTai
         lyDoHienTai
         tinhTrangChanDoanHienTai
         trangThaiHienTai:
+          DANG_THEO_DOI |
           TAI_KHAM |
           DANG_DIEU_TRI |
           CHUYEN_TIEP_BENH_VIEN_KHAC |
@@ -94,6 +101,8 @@ baoCaoYTe/
           thuTu
           noiDi
           noiDen
+          hinhThucChuyen
+          hinhThucChuyenKhac
           lyDo
           tinhTrangChanDoan
           trangThaiSauChang
@@ -111,6 +120,8 @@ baoCaoYTe/
           trangThaiSau
           noiTruoc
           noiSau
+          hinhThucChuyen
+          hinhThucChuyenKhac
           lyDo
           tinhTrangChanDoan
           tinhTrangKhiVe

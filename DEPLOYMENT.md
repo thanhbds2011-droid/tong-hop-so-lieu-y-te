@@ -1,4 +1,4 @@
-# TRIỂN KHAI PRODUCTION 8.1.0
+# TRIỂN KHAI PRODUCTION 8.1.1
 
 ## Thứ tự bắt buộc
 
@@ -14,7 +14,7 @@ So với Rules 8.0.3, bản này chỉ bổ sung dưới `baoCaoYTe`:
 - `hanhTrinhDangMo`
 
 ### Bước 3 — Upload source GitHub
-Dán đè production 8.1.0 lên repo hiện tại.
+Dán đè production 8.1.1 lên repo hiện tại.
 
 File mới:
 - `journeys.js`
@@ -31,6 +31,6 @@ File nghiệp vụ được cập nhật:
 Mở cửa sổ ẩn danh hoặc Ctrl+Shift+R.
 
 ### Bước 5 — Kiểm thử
-Thực hiện checklist trong `TEST_HANH_TRINH_8.1.0.md`.
+Thực hiện checklist trong `TEST_HANH_TRINH_8.1.1.md`.
 
 Không chạy lại migration. Dữ liệu Chuyển viện cũ được giữ nguyên và hiển thị trong Lịch sử.
