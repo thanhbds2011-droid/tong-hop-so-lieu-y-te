@@ -1,7 +1,7 @@
 {
-  "version": "8.3.4",
-  "releasedAt": "2026-08-13T20:52:00+07:00",
-  "title": "Journey Visual Polish",
-  "message": "Tinh gọn khu vực Báo cáo, bỏ nhãn hướng dẫn thừa và bổ sung icon người/xe cứu thương để lịch sử hành trình dễ nhận biết hơn trên desktop và điện thoại.",
+  "version": "8.3.5",
+  "releasedAt": "2026-08-13T21:12:00+07:00",
+  "title": "Minimal Journey UI",
+  "message": "Tinh gọn giao diện lịch sử chuyển viện: bỏ icon trang trí trong danh sách và cửa sổ chi tiết, đồng thời bỏ nhãn “LỊCH SỬ HÀNH TRÌNH” để tập trung trực tiếp vào tên đối tượng và dữ liệu hành trình.",
   "required": false
 }

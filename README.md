@@ -1,8 +1,8 @@
-## Phiên bản production 8.3.4
+## Phiên bản production 8.3.5
 
-Phiên bản 8.3.4 giữ nguyên nghiệp vụ production của 8.3.3 và tinh chỉnh giao diện Báo cáo/Hành trình: bỏ nhãn “BÁO CÁO PHÒNG Y TẾ”, bổ sung icon người cho đối tượng và icon xe cứu thương cho lộ trình. Realtime Sync, Update Manager, PWA, Authentication, phân quyền và Firebase Rules giữ nguyên.
+Phiên bản 8.3.5 giữ nguyên toàn bộ nghiệp vụ production của 8.3.4 và tinh gọn lại giao diện Lịch sử chuyển viện theo phản hồi người dùng cuối: bỏ icon người/xe cứu thương vì tạo nhiễu thị giác, bỏ nhãn “LỊCH SỬ HÀNH TRÌNH” trong cửa sổ chi tiết, chỉ giữ tên đối tượng làm tiêu đề chính. Realtime Sync, Update Manager, PWA, Authentication, phân quyền và Firebase Rules giữ nguyên.
 
-# Ứng dụng Phòng Y tế — Firebase Production 8.3.4
+# Ứng dụng Phòng Y tế — Firebase Production 8.3.5
 
 Bản 8.1.1 giữ nguyên kiến trúc quyền hiện tại và bổ sung **Hành trình chuyển viện** cho phân hệ Báo cáo.
 

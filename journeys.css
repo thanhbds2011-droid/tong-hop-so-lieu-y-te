@@ -1,4 +1,4 @@
-/* Hành trình chuyển viện — production 8.3.4
+/* Hành trình chuyển viện — production 8.3.5
    Consolidated UI: không dùng lớp override chồng chéo. */
 
 #transferJourneyPanel[hidden],
@@ -1219,71 +1219,6 @@
   #journeyHistoryPanel .journey-reload-text { display: none; }
 }
 
-/* ===== 8.3.4 PROFESSIONAL JOURNEY ICONOGRAPHY ===== */
-.journey-person-heading {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-.journey-person-heading > span:last-child {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.journey-person-icon,
-.journey-route-icon {
-  flex: 0 0 auto;
-  display: inline-grid;
-  place-items: center;
-  color: #9b2455;
-  background: #f8eaf0;
-  border: 1px solid #efd5df;
-}
-.journey-person-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-}
-.journey-person-icon svg {
-  width: 14px;
-  height: 14px;
-}
-.journey-route-icon {
-  width: 25px;
-  height: 25px;
-  margin-right: 1px;
-  border-radius: 8px;
-  color: #a9255e;
-  background: #fff1f6;
-}
-.journey-route-icon svg {
-  width: 15px;
-  height: 15px;
-}
-.journey-dialog-kicker-icon {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.journey-dialog-kicker-icon svg {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-}
-.journey-detail-person-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.journey-person-icon-detail {
-  width: 27px;
-  height: 27px;
-  border-radius: 9px;
-}
-.journey-person-icon-detail svg {
-  width: 15px;
-  height: 15px;
-}
 
 /* ===== 8.3.2 HISTORY VISUAL HIERARCHY ===== */
 .journey-history-title > div > strong {
@@ -1383,12 +1318,3 @@
   }
 }
 
-/* 8.3.4 mobile icon scale */
-@media (max-width: 760px) {
-  .journey-person-heading { gap: 6px; }
-  .journey-person-icon { width: 22px; height: 22px; border-radius: 7px; }
-  .journey-person-icon svg { width: 13px; height: 13px; }
-  .journey-route-icon { width: 23px; height: 23px; border-radius: 7px; }
-  .journey-route-icon svg { width: 14px; height: 14px; }
-  .journey-person-icon-detail { width: 25px; height: 25px; }
-}

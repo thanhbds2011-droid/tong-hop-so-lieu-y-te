@@ -1,0 +1,30 @@
+ỨNG DỤNG PHÒNG Y TẾ v8.3.5 – MINIMAL JOURNEY UI
+
+1. MỤC TIÊU
+- Giữ nguyên toàn bộ nghiệp vụ đang ổn định của v8.3.4.
+- Giảm nhiễu thị giác tại Lịch sử chuyển viện.
+- Bỏ icon người và xe cứu thương vừa thêm ở v8.3.4.
+- Bỏ hoàn toàn nhãn “LỊCH SỬ HÀNH TRÌNH” trong cửa sổ Xem hành trình.
+- Tên đối tượng trở thành tiêu đề trực tiếp của cửa sổ chi tiết.
+
+2. THAY ĐỔI GIAO DIỆN
+- Danh sách Lịch sử: không còn icon trước tên đối tượng.
+- Dòng lộ trình: không còn icon xe cứu thương.
+- Modal chi tiết: không còn icon và không còn dòng “LỊCH SỬ HÀNH TRÌNH”.
+- Giữ lại phân cấp typography hiện tại: tên đậm, BHYT rõ, lộ trình đậm vừa, thời gian đậm/nghiêng, trạng thái semantic.
+
+3. DỮ LIỆU / FIREBASE
+- Không đổi schema.
+- Không migration.
+- Firebase Realtime Database Rules giữ nguyên byte-for-byte so với v8.3.4.
+- Realtime Sync giữa nhiều máy giữ nguyên.
+
+4. CẬP NHẬT ỨNG DỤNG
+- Version/cache nâng 8.3.4 → 8.3.5.
+- Các máy đã có Update Manager sẽ nhận thông báo v8.3.5.
+- Không cần gỡ PWA hoặc xóa cache thủ công trong điều kiện bình thường.
+
+5. TRIỂN KHAI
+Nếu repo hiện tại đang đúng v8.3.4, dùng ZIP “cac-file-dan-de-y-te-v8.3.5.zip”, dán đè các file bên trong rồi Commit/Push lên GitHub Pages.
+
+Không cần dán lại Firebase Rules.
