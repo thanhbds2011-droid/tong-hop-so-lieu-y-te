@@ -197,7 +197,10 @@ function updateModuleUi(external) {
   }
 
   if ($('reportPermissionModeBtn')) $('reportPermissionModeBtn').hidden = true;
-  if ($('btnNewReport')) $('btnNewReport').hidden = !canEditReport();
+  if ($('btnNewReport')) {
+    $('btnNewReport').hidden = !canEditReport() || reportState.type === 'CHUYEN_VIEN';
+    $('btnNewReport').textContent = '+ Lập báo cáo tử vong';
+  }
 }
 
 async function routeAfterLogin(result) {
@@ -361,10 +364,28 @@ function renderReports() {
 
 function setReportType(type) {
   reportState.type = type === 'TU_VONG' ? 'TU_VONG' : 'CHUYEN_VIEN';
+  const isTransfer = reportState.type === 'CHUYEN_VIEN';
   document.querySelectorAll('.report-type-tab').forEach((tab) => {
     tab.classList.toggle('active', tab.getAttribute('data-report-type') === reportState.type);
   });
-  renderReports();
+  if ($('transferJourneyPanel')) $('transferJourneyPanel').hidden = !isTransfer;
+  if ($('reportListPanel')) $('reportListPanel').hidden = isTransfer;
+  if ($('reportPermissionPanel')) $('reportPermissionPanel').hidden = true;
+  if ($('reportModeRow')) $('reportModeRow').hidden = true;
+  if ($('btnNewReport')) {
+    $('btnNewReport').hidden = isTransfer || !canEditReport();
+    $('btnNewReport').textContent = '+ Lập báo cáo tử vong';
+  }
+  if ($('reportPageTitle')) $('reportPageTitle').textContent = isTransfer ? 'Theo dõi hành trình chuyển viện' : 'Báo cáo tử vong';
+  if ($('reportPageSubtitle')) $('reportPageSubtitle').textContent = isTransfer
+    ? 'Theo dõi đối tượng từ khi rời Trung tâm đến khi trở về hoặc kết thúc hành trình.'
+    : 'Lập, tra cứu và quản lý báo cáo tử vong theo phân công chuyên môn.';
+  if (isTransfer) {
+    if (window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.setVisible === 'function') window.YTE_JOURNEYS.setVisible(true);
+  } else {
+    if (window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.setVisible === 'function') window.YTE_JOURNEYS.setVisible(false);
+    loadReports(false);
+  }
 }
 
 function setReportMode(mode) {
@@ -380,7 +401,7 @@ function setReportMode(mode) {
 
 async function activateReportsView() {
   await refreshAccess();
-  if (!validPermission(reportState.permission)) {
+  if (!validPermission(reportState.permission) && !isOwner(reportState.user)) {
     activateView('home');
     return;
   }
@@ -388,7 +409,12 @@ async function activateReportsView() {
   $('reportToDate').value = $('reportToDate').value || todayIso();
   $('reportPermissionModeBtn').hidden = true;
   if (!canAdminReport() && reportState.mode === 'permissions') setReportMode('list');
-  await loadReports(false);
+  setReportType(reportState.type);
+  if (reportState.type === 'CHUYEN_VIEN' && window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.activate === 'function') {
+    await window.YTE_JOURNEYS.activate();
+  } else if (reportState.type === 'TU_VONG') {
+    await loadReports(false);
+  }
 }
 
 function resetReportForm(type) {
@@ -428,6 +454,10 @@ function setReportFormReadonly(readonly) {
 
 function openNewReport() {
   if (!canEditReport()) return;
+  if (reportState.type === 'CHUYEN_VIEN') {
+    if (window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.setSubView === 'function') window.YTE_JOURNEYS.setSubView('create');
+    return;
+  }
   resetReportForm(reportState.type);
   $('reportDialogTitle').textContent = 'Lập báo cáo ' + typeLabel(reportState.type).toLowerCase();
   $('reportReporter').textContent = String(reportState.user?.displayName || reportState.user?.email || '');
@@ -809,6 +839,7 @@ function initEvents() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !$('reportLayer').hidden) closeReportForm();
   });
+  setReportType(reportState.type);
 }
 
 function start() {
