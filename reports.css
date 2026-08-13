@@ -1,4 +1,4 @@
-/* Reports / application portal — production 8.2.0 */
+/* Reports / application portal — production 8.3.0 */
 
 /* ===== PORTAL ===== */
 .app-home-hero {
@@ -101,12 +101,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 11px;
-  padding: 16px 20px;
+  margin-bottom: 10px;
+  padding: 14px 20px;
   border-left: 3px solid #a9255e;
-  border-radius: 15px;
+  border-radius: 14px;
   background: #fff;
-  box-shadow: 0 4px 14px rgba(74,29,48,.035);
+  box-shadow: 0 3px 12px rgba(74,29,48,.03);
 }
 .report-head h2 {
   margin-bottom: 4px;
@@ -126,8 +126,9 @@
 .report-workspace {
   padding: 0;
   overflow: hidden;
-  border-radius: 15px;
-  box-shadow: 0 4px 16px rgba(74,29,48,.035);
+  border: 1px solid #eadfe3;
+  border-radius: 14px;
+  box-shadow: 0 3px 14px rgba(74,29,48,.03);
 }
 .report-top-tabs {
   display: grid;
@@ -184,7 +185,7 @@
 
 .report-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
   margin-bottom: 12px;
 }
@@ -394,7 +395,7 @@
     padding: 15px;
   }
   .report-stats {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
   .report-stat { padding: 12px; }

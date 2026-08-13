@@ -11,22 +11,22 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=8.2.0">
-  <link rel="stylesheet" href="./ui-fixes.css?v=8.2.0">
-  <link rel="stylesheet" href="./reports.css?v=8.2.0">
-  <link rel="stylesheet" href="./journeys.css?v=8.2.0">
-  <script src="./app-config.js?v=8.2.0"></script>
-  <script type="module" src="./app.js?v=8.2.0"></script>
-  <script type="module" src="./reports.js?v=8.2.0"></script>
-  <script type="module" src="./journeys.js?v=8.2.0"></script>
-  <script defer src="./ui-fixes.js?v=8.2.0"></script>
+  <link rel="stylesheet" href="./styles.css?v=8.3.0">
+  <link rel="stylesheet" href="./ui-fixes.css?v=8.3.0">
+  <link rel="stylesheet" href="./reports.css?v=8.3.0">
+  <link rel="stylesheet" href="./journeys.css?v=8.3.0">
+  <script src="./app-config.js?v=8.3.0"></script>
+  <script type="module" src="./app.js?v=8.3.0"></script>
+  <script type="module" src="./reports.js?v=8.3.0"></script>
+  <script type="module" src="./journeys.js?v=8.3.0"></script>
+  <script defer src="./ui-fixes.js?v=8.3.0"></script>
 </head>
 <body>
 <header class="app-header">
     <div class="header-inner">
       <div class="brand">
         <div class="brand-mark brand-mark-logo" aria-hidden="true">
-          <img src="./assets/icon-192.png?v=8.2.0" alt="">
+          <img src="./assets/icon-192.png?v=8.3.0" alt="">
         </div>
         <div>
           <small>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</small>
@@ -133,7 +133,7 @@
             <div class="login-brand-glow login-brand-glow-one" aria-hidden="true"></div>
             <div class="login-brand-glow login-brand-glow-two" aria-hidden="true"></div>
             <div class="login-logo-wrap">
-              <img class="login-app-logo" src="./assets/icon-512.png?v=8.2.0" alt="Logo Tổng hợp số liệu Phòng Y tế">
+              <img class="login-app-logo" src="./assets/icon-512.png?v=8.3.0" alt="Logo Tổng hợp số liệu Phòng Y tế">
             </div>
             <div class="login-brand-copy">
               <span>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</span>
@@ -231,10 +231,8 @@
           </div>
 
           <div id="journeyTrackingPanel" class="journey-panel">
-            <div class="journey-stats">
-              <div class="journey-stat"><span>Đang ngoài Trung tâm</span><strong id="journeyOpenCount">0</strong></div>
-              <div class="journey-stat warn"><span>Chưa cập nhật &gt; 12 giờ</span><strong id="journeyStaleCount">0</strong></div>
-              <div class="journey-stat danger"><span>Đã ngoài &gt; 24 giờ</span><strong id="journeyOver24Count">0</strong></div>
+            <div class="journey-stats journey-stats-single" aria-label="Tổng quan đối tượng đang ngoài Trung tâm">
+              <div class="journey-stat journey-stat-primary"><span>Đang ngoài Trung tâm</span><strong id="journeyOpenCount">0</strong></div>
             </div>
             <div class="journey-toolbar">
               <div class="journey-search"><label>Tìm đối tượng<input id="journeyTrackingSearch" type="search" autocomplete="off" placeholder="Tên, thẻ BHYT, nơi đang khám/điều trị..."></label></div>
@@ -276,10 +274,9 @@
           </div>
 
           <div id="journeyHistoryPanel" class="journey-panel" hidden>
-            <div class="journey-history-summary">
-              <div class="journey-stat"><span>Đã về Trung tâm</span><strong id="journeyReturnedCount">0</strong></div>
-              <div class="journey-stat danger"><span>Tử vong tại bệnh viện</span><strong id="journeyHospitalDeathCount">0</strong></div>
-              <div class="journey-stat"><span>Dữ liệu chuyển viện cũ</span><strong id="journeyLegacyCount">0</strong></div>
+            <div class="journey-history-summary" aria-label="Tổng quan hành trình đã kết thúc">
+              <div class="journey-stat journey-stat-returned"><span>Đã về Trung tâm</span><strong id="journeyReturnedCount">0</strong></div>
+              <div class="journey-stat journey-stat-death"><span>Tử vong tại bệnh viện</span><strong id="journeyHospitalDeathCount">0</strong></div>
             </div>
             <div class="journey-toolbar">
               <div class="journey-search"><label>Tìm lịch sử<input id="journeyHistorySearch" type="search" autocomplete="off" placeholder="Tên đối tượng, BHYT, nơi đến..."></label></div>
@@ -302,8 +299,7 @@
         <div id="reportListPanel" hidden>
           <div class="report-stats">
             <div class="report-stat"><span>Trong khoảng lọc</span><strong id="reportFilteredCount">0</strong></div>
-            <div class="report-stat"><span>Chuyển viện cũ</span><strong id="reportTransferCount">0</strong></div>
-            <div class="report-stat"><span>Tử vong</span><strong id="reportDeathCount">0</strong></div>
+            <div class="report-stat"><span>Tổng báo cáo tử vong</span><strong id="reportDeathCount">0</strong></div>
           </div>
           <div class="report-filters">
             <div class="field"><label>Từ ngày<input id="reportFromDate" type="date"></label></div>
@@ -461,7 +457,7 @@
   </div>
 
   <div id="journeyUpdateLayer" class="confirm-layer" role="dialog" aria-modal="true" aria-labelledby="journeyUpdateTitle" hidden>
-    <div class="journey-dialog-card">
+    <div class="journey-dialog-card journey-update-dialog">
       <div class="journey-dialog-head"><div><span class="journey-dialog-kicker">HÀNH TRÌNH CHUYỂN VIỆN</span><h3 id="journeyUpdateTitle">Cập nhật hành trình</h3></div><button id="journeyUpdateCloseX" class="dialog-close" type="button" aria-label="Đóng">×</button></div>
       <div class="journey-current-box">
         <div><span>Đối tượng</span><strong id="journeyUpdatePatient">—</strong></div>
@@ -484,16 +480,16 @@
       </div>
       <div class="journey-business-note">Đã về Trung tâm hoặc Tử vong tại bệnh viện sẽ kết thúc hành trình.</div>
       <div id="journeyUpdateError" class="category-error" aria-live="polite"></div>
-      <div class="confirm-actions"><button id="journeyUpdateCancel" class="btn btn-ghost" type="button">Quay lại</button><button id="journeyUpdateSave" class="btn btn-primary" type="button">Lưu cập nhật</button></div>
+      <div class="confirm-actions journey-dialog-footer"><button id="journeyUpdateCancel" class="btn btn-ghost" type="button">Quay lại</button><button id="journeyUpdateSave" class="btn btn-primary" type="button">Lưu cập nhật</button></div>
     </div>
   </div>
 
   <div id="journeyDetailLayer" class="confirm-layer" role="dialog" aria-modal="true" aria-labelledby="journeyDetailTitle" hidden>
-    <div class="journey-dialog-card">
+    <div class="journey-dialog-card journey-detail-dialog">
       <div class="journey-dialog-head"><div><span class="journey-dialog-kicker">LỊCH SỬ HÀNH TRÌNH</span><h3 id="journeyDetailTitle">Hành trình chuyển viện</h3></div><button id="journeyDetailClose" class="dialog-close" type="button" aria-label="Đóng">×</button></div>
       <div id="journeyDetailMeta" class="journey-detail-meta"></div>
       <div id="journeyTimeline" class="journey-timeline"></div>
-      <div class="confirm-actions"><button id="journeyDetailCloseBottom" class="btn btn-primary" type="button">Đóng</button></div>
+      <div class="confirm-actions journey-dialog-footer"><button id="journeyDetailCloseBottom" class="btn btn-primary" type="button">Đóng</button></div>
     </div>
   </div>
 

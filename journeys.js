@@ -31,13 +31,15 @@ const state = {
   subView: 'tracking',
   openCases: [],
   closedCases: [],
-  legacyTransfers: [],
   selectedCase: null,
   selectedCaseRaw: null,
   loading: false,
   loadedAt: 0,
   initialized: false,
-  refreshTimer: null
+  refreshTimer: null,
+  createBaseline: '',
+  updateBaseline: '',
+  lastFocus: null
 };
 
 function $(id) { return document.getElementById(id); }
@@ -58,10 +60,6 @@ function normalizeBHYT(value) {
 function todayIso() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-function fmtDate(value) {
-  const p = String(value || '').split('-');
-  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : String(value || '');
 }
 function fmtDateTime(value) {
   const n = Number(value || 0);
@@ -220,11 +218,56 @@ function journeyRouteHtml(item) {
   });
   return places.map((place, index) => `${index ? '<b>→</b>' : ''}<span>${esc(place)}</span>`).join('');
 }
-function staleBadge(item) {
-  const hours = hoursSince(item.updatedAt || item.ngayGioDi);
-  if (hours >= 24) return `<span class="journey-alert danger">Chưa cập nhật ${Math.floor(hours)} giờ</span>`;
-  if (hours >= 12) return `<span class="journey-alert warn">Chưa cập nhật ${Math.floor(hours)} giờ</span>`;
-  return '';
+function alertBadges(item) {
+  const badges = [];
+  const sinceUpdate = hoursSince(item.updatedAt || item.ngayGioDi);
+  const sinceDeparture = hoursSince(item.ngayGioDi);
+  if (sinceUpdate >= 12) badges.push('<span class="journey-alert warn">Cần cập nhật</span>');
+  if (sinceDeparture >= 24) badges.push('<span class="journey-alert danger">Ngoài Trung tâm lâu</span>');
+  return badges.join('');
+}
+
+function routeSearchText(item) {
+  const stages = Object.values(item.chang || {});
+  return stages.map((stage) => `${stage.noiDi || ''} ${stage.noiDen || ''}`).join(' ');
+}
+function formSignature(ids) {
+  return ids.map((id) => {
+    const el = $(id);
+    if (!el) return '';
+    return `${id}:${String(el.value || '')}`;
+  }).join('|');
+}
+const CREATE_FIELD_IDS = ['journeyPatient','journeyBHYT','journeyTransferType','journeyTransferTypeOther','journeyTo','journeyToOther','journeyReason','journeyDiagnosis','journeyNote'];
+const UPDATE_FIELD_IDS = ['journeyUpdateStatus','journeyUpdateDestination','journeyUpdateDestinationOther','journeyUpdateReason','journeyUpdateDiagnosis','journeyReturnCondition','journeyUpdateNote'];
+function isCreateDirty() { return !!state.createBaseline && formSignature(CREATE_FIELD_IDS) !== state.createBaseline; }
+function isUpdateDirty() { return !!state.updateBaseline && formSignature(UPDATE_FIELD_IDS) !== state.updateBaseline; }
+function confirmDiscard() {
+  return window.confirm('Bạn có thay đổi chưa lưu. Bạn có muốn bỏ các thay đổi này không?');
+}
+function setBodyModalState(open) {
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+function restoreFocus() {
+  const target = state.lastFocus;
+  state.lastFocus = null;
+  if (target && target.isConnected && typeof target.focus === 'function') window.setTimeout(() => target.focus(), 0);
+}
+function timelineBadge(event, item) {
+  if (event.loaiSuKien === 'MO_HANH_TRINH') {
+    return transferTypeLabel(event.hinhThucChuyen || inferLegacyTransferType(item), event.hinhThucChuyenKhac || item.hinhThucChuyenKhac);
+  }
+  if (event.loaiSuKien === 'CHUYEN_TIEP') return 'Chuyển tiếp';
+  if (event.loaiSuKien === 'DA_VE_TRUNG_TAM') return 'Đã về Trung tâm';
+  if (event.loaiSuKien === 'TU_VONG_TAI_BENH_VIEN') return 'Tử vong tại bệnh viện';
+  return statusLabel(event.trangThaiSau);
+}
+function timelineTitle(event) {
+  const from = String(event.noiTruoc || '').trim();
+  const to = String(event.noiSau || '').trim();
+  if (from && to && normalizeText(from) !== normalizeText(to)) return `${from} → ${to}`;
+  const place = to || from;
+  return place ? `Cập nhật tại ${place}` : 'Cập nhật hành trình';
 }
 
 async function refreshPermission() {
@@ -245,20 +288,13 @@ async function loadJourneys(force) {
   state.loading = true;
   showState('journeyTrackingLoadState', 'Đang tải hành trình chuyển viện...', '', true);
   try {
-    const [journeySnap, legacySnap] = await Promise.all([
-      get(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien`)),
-      get(ref(db, `${REPORT_ROOT}/baoCao`))
-    ]);
+    const journeySnap = await get(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien`));
     const rawJourneys = snapshotObject(journeySnap);
-    const rawLegacy = snapshotObject(legacySnap);
     const all = Object.keys(rawJourneys).map((id) => caseFromRaw(id, rawJourneys[id]));
     state.openCases = all.filter((item) => item.trangThaiKyThuat === 'OPEN')
       .sort((a, b) => Number(a.ngayGioDi || 0) - Number(b.ngayGioDi || 0));
     state.closedCases = all.filter((item) => item.trangThaiKyThuat === 'CLOSED')
       .sort((a, b) => Number(b.ngayGioVe || b.updatedAt || 0) - Number(a.ngayGioVe || a.updatedAt || 0));
-    state.legacyTransfers = Object.keys(rawLegacy).map((id) => ({ id, ...(rawLegacy[id] || {}) }))
-      .filter((item) => item.loaiBaoCao === 'CHUYEN_VIEN' && item.trangThai !== 'deleted')
-      .sort((a, b) => String(b.ngayBaoCao || '').localeCompare(String(a.ngayBaoCao || '')));
     state.loadedAt = Date.now();
     renderTracking();
     renderHistory();
@@ -281,11 +317,7 @@ function renderTracking() {
       item.lyDoHienTai, item.tinhTrangChanDoanHienTai, item.ghiChu
     ].join(' ')).includes(search);
   });
-  const stale12 = state.openCases.filter((item) => hoursSince(item.updatedAt || item.ngayGioDi) >= 12).length;
-  const over24 = state.openCases.filter((item) => hoursSince(item.ngayGioDi) >= 24).length;
   if ($('journeyOpenCount')) $('journeyOpenCount').textContent = String(state.openCases.length);
-  if ($('journeyStaleCount')) $('journeyStaleCount').textContent = String(stale12);
-  if ($('journeyOver24Count')) $('journeyOver24Count').textContent = String(over24);
   if ($('journeyTrackingBadge')) $('journeyTrackingBadge').textContent = String(state.openCases.length);
 
   const box = $('journeyTrackingList');
@@ -297,10 +329,7 @@ function renderTracking() {
 
   box.innerHTML = rows.map((item) => {
     const canWrite = canEdit();
-    const alert = staleBadge(item);
-    const statusPill = item.trangThaiHienTai && item.trangThaiHienTai !== 'DANG_THEO_DOI'
-      ? `<span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span>`
-      : '';
+    const alerts = alertBadges(item);
     const note = String(item.ghiChu || '').trim();
     return `<article class="journey-card">
       <div class="journey-card-main">
@@ -311,7 +340,6 @@ function renderTracking() {
           </div>
           <div class="journey-card-badges">
             <span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span>
-            ${statusPill}
           </div>
         </div>
         <div class="journey-location">
@@ -329,7 +357,7 @@ function renderTracking() {
           <div class="journey-diagnosis"><span>Tình trạng/chẩn đoán</span><p>${esc(item.tinhTrangChanDoanHienTai || '—')}</p></div>
         </div>
         ${note ? `<div class="journey-note"><span>Ghi chú</span><p>${esc(note)}</p></div>` : ''}
-        ${alert ? `<div class="journey-card-foot">${alert}</div>` : ''}
+        ${alerts ? `<div class="journey-card-foot">${alerts}</div>` : ''}
       </div>
       <div class="journey-card-actions">
         <button class="small-btn btn-soft journey-action" data-kind="view" data-id="${esc(item.id)}" type="button">Xem hành trình</button>
@@ -343,43 +371,41 @@ function renderTracking() {
 function renderHistory() {
   const search = normalizeText($('journeyHistorySearch')?.value || '');
   const filter = $('journeyHistoryStatus')?.value || 'all';
-  const currentRows = state.closedCases.filter((item) => {
+  const rows = state.closedCases.filter((item) => {
     if (filter !== 'all' && item.trangThaiHienTai !== filter) return false;
     if (!search) return true;
-    return normalizeText([item.doiTuong, item.theBHYT, item.noiHienTai, statusLabel(item.trangThaiHienTai), item.tinhTrangKhiVe, item.ghiChu].join(' ')).includes(search);
+    return normalizeText([
+      item.doiTuong, item.theBHYT, statusLabel(item.trangThaiHienTai),
+      item.tinhTrangKhiVe, item.ghiChu, routeSearchText(item)
+    ].join(' ')).includes(search);
   });
-  const legacyRows = filter === 'all' ? state.legacyTransfers.filter((item) => {
-    if (!search) return true;
-    return normalizeText([item.hoTenBenhNhan, item.noiChuyen, item.noiDen, item.chanDoan, item.legacyNguoiNhap, item.createdByName].join(' ')).includes(search);
-  }) : [];
 
   if ($('journeyReturnedCount')) $('journeyReturnedCount').textContent = String(state.closedCases.filter((x) => x.trangThaiHienTai === 'DA_VE_TRUNG_TAM').length);
   if ($('journeyHospitalDeathCount')) $('journeyHospitalDeathCount').textContent = String(state.closedCases.filter((x) => x.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN').length);
-  if ($('journeyLegacyCount')) $('journeyLegacyCount').textContent = String(state.legacyTransfers.length);
 
   const box = $('journeyHistoryList');
   if (!box) return;
-  const currentHtml = currentRows.map((item) => `<article class="journey-history-card">
+  if (!rows.length) {
+    box.innerHTML = '<div class="journey-empty"><strong>Chưa có lịch sử phù hợp.</strong><span>Điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</span></div>';
+    return;
+  }
+  box.innerHTML = rows.map((item) => `<article class="journey-history-card">
     <div class="journey-history-mark ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓' : 'TV'}</div>
     <div class="journey-history-main">
       <div class="journey-card-title"><div><strong>${esc(item.doiTuong)}</strong><span class="journey-bhyt">BHYT: ${esc(item.theBHYT || 'Chưa ghi nhận')}</span></div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
       <div class="journey-history-line">${journeyRouteHtml(item)}</div>
-      <div class="journey-row-meta"><span>Đi: ${esc(fmtDateTime(item.ngayGioDi))}</span><span>${item.ngayGioVe ? `Về: ${esc(fmtDateTime(item.ngayGioVe))}` : `Kết thúc: ${esc(fmtDateTime(item.updatedAt))}`}</span></div>
+      <div class="journey-row-meta"><span><b>Đi:</b> ${esc(fmtDateTime(item.ngayGioDi))}</span><span><b>${item.ngayGioVe ? 'Về:' : 'Kết thúc:'}</b> ${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</span></div>
     </div>
     <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">Xem hành trình</button></div>
   </article>`).join('');
+}
 
-  const legacyHtml = legacyRows.map((item) => `<article class="journey-history-card is-legacy">
-    <div class="journey-history-mark legacy">CV</div>
-    <div class="journey-history-main">
-      <div class="journey-card-title"><div><strong>${esc(item.hoTenBenhNhan || '—')}</strong><span class="journey-bhyt">Dữ liệu chuyển viện trước khi triển khai hành trình</span></div><span class="journey-status legacy">Dữ liệu cũ</span></div>
-      <div class="journey-history-line"><span>${esc(item.noiChuyen || '—')}</span><b>→</b><span>${esc(item.noiDen || '—')}</span></div>
-      <div class="journey-row-meta"><span>Ngày: ${esc(fmtDate(item.ngayChuyenVien || item.ngayBaoCao))}</span><span>Người nhập: ${esc(item.createdByName || item.legacyNguoiNhap || '—')}</span></div>
-      ${item.chanDoan ? `<p class="journey-legacy-note">${esc(item.chanDoan)}</p>` : ''}
-    </div>
-  </article>`).join('');
-
-  box.innerHTML = currentHtml + legacyHtml || '<div class="journey-empty"><strong>Chưa có lịch sử phù hợp.</strong><span>Điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</span></div>';
+function requestSubView(name) {
+  if (state.subView === 'create' && name !== 'create' && isCreateDirty()) {
+    if (!confirmDiscard()) return;
+    resetCreateForm();
+  }
+  setSubView(name);
 }
 
 function setSubView(name) {
@@ -395,7 +421,7 @@ function setSubView(name) {
   });
   if (name === 'tracking') loadJourneys(false);
   if (name === 'history') loadJourneys(false);
-  if (name === 'create') resetCreateForm();
+  if (name === 'create' && !state.createBaseline) resetCreateForm();
 }
 
 function updateCreateDynamicFields() {
@@ -423,6 +449,7 @@ function resetCreateForm() {
   updateCreateDynamicFields();
   const user = auth.currentUser;
   $('journeyReporter').textContent = user ? String(user.displayName || user.email || '—') : '—';
+  state.createBaseline = formSignature(CREATE_FIELD_IDS);
 }
 
 function createPayload() {
@@ -619,8 +646,11 @@ function openUpdateDialog(id, preset) {
   const user = auth.currentUser;
   $('journeyUpdateReporter').textContent = user ? String(user.displayName || user.email || '—') : '—';
   updateUpdateFields();
+  state.updateBaseline = formSignature(UPDATE_FIELD_IDS);
+  state.lastFocus = document.activeElement;
   $('journeyUpdateLayer').hidden = false;
-  document.body.style.overflow = 'hidden';
+  setBodyModalState(true);
+  window.setTimeout(() => $('journeyUpdateStatus')?.focus(), 0);
 }
 
 function updateUpdateFields() {
@@ -640,11 +670,15 @@ function updateUpdateFields() {
   }
 }
 
-function closeUpdateDialog() {
+function closeUpdateDialog(force = false) {
+  if (!force && isUpdateDirty() && !confirmDiscard()) return false;
   $('journeyUpdateLayer').hidden = true;
-  document.body.style.overflow = '';
+  setBodyModalState(false);
   state.selectedCase = null;
+  state.updateBaseline = '';
   $('journeyUpdateError').textContent = '';
+  restoreFocus();
+  return true;
 }
 
 function updatePayload() {
@@ -789,7 +823,7 @@ async function saveJourneyUpdate() {
       createdAt: ts
     };
     await update(ref(db), updates);
-    closeUpdateDialog();
+    closeUpdateDialog(true);
     showToast(isReturn ? 'Đã xác nhận đối tượng về Trung tâm.' : isDeath ? 'Đã kết thúc hành trình với trạng thái tử vong tại bệnh viện.' : 'Đã cập nhật hành trình.', 'ok');
     await loadJourneys(true);
     setSubView(isClosed ? 'history' : 'tracking');
@@ -806,50 +840,57 @@ function openDetail(id) {
   const item = findCase(id);
   if (!item) return;
   state.selectedCase = item;
+  state.lastFocus = document.activeElement;
   $('journeyDetailTitle').textContent = item.doiTuong || 'Hành trình chuyển viện';
+  const closed = item.trangThaiKyThuat === 'CLOSED';
   $('journeyDetailMeta').innerHTML = `
     <div><span>Thẻ BHYT</span><strong>${esc(item.theBHYT || 'Chưa ghi nhận')}</strong></div>
-    <div><span>Hình thức chuyển</span><strong>${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</strong></div>
+    <div><span>Hình thức chuyển ban đầu</span><strong>${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</strong></div>
     <div><span>Trạng thái</span><strong>${esc(statusLabel(item.trangThaiHienTai))}</strong></div>
     <div><span>Rời Trung tâm</span><strong>${esc(fmtDateTime(item.ngayGioDi))}</strong></div>
-    <div><span>${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? 'Ngày giờ về' : 'Cập nhật cuối'}</span><strong>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</strong></div>`;
+    <div><span>${closed ? 'Kết thúc' : 'Cập nhật gần nhất'}</span><strong>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</strong></div>`;
   const events = Object.values(item.lichSu || {}).sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
   $('journeyTimeline').innerHTML = events.length ? events.map((event) => {
-    const move = event.noiTruoc && event.noiSau && normalizeText(event.noiTruoc) !== normalizeText(event.noiSau)
-      ? `<div class="journey-timeline-route"><span>${esc(event.noiTruoc)}</span><b>→</b><span>${esc(event.noiSau)}</span></div>` : '';
-    const typeLine = event.loaiSuKien === 'MO_HANH_TRINH'
-      ? `<p><b>Hình thức chuyển:</b> ${esc(transferTypeLabel(event.hinhThucChuyen || inferLegacyTransferType(item), event.hinhThucChuyenKhac || item.hinhThucChuyenKhac))}</p>` : '';
-    const noteLine = String(event.ghiChu || '').trim()
-      ? `<p><b>Ghi chú:</b> ${esc(event.ghiChu)}</p>` : '';
-    const body = event.loaiSuKien === 'DA_VE_TRUNG_TAM'
-      ? `<p><b>Tình trạng khi về:</b> ${esc(event.tinhTrangKhiVe || '—')}</p>${noteLine}`
-      : `${typeLine}<p><b>Lý do:</b> ${esc(event.lyDo || '—')}</p><p><b>Tình trạng/chẩn đoán:</b> ${esc(event.tinhTrangChanDoan || '—')}</p>${noteLine}`;
+    const note = String(event.ghiChu || '').trim();
+    const reason = String(event.lyDo || '').trim();
+    const diagnosis = String(event.tinhTrangChanDoan || '').trim();
+    const returnCondition = String(event.tinhTrangKhiVe || '').trim();
+    const lines = [];
+    if (event.loaiSuKien === 'DA_VE_TRUNG_TAM') {
+      if (returnCondition) lines.push(`<p><b>Tình trạng khi về:</b> ${esc(returnCondition)}</p>`);
+    } else {
+      if (reason) lines.push(`<p><b>Lý do:</b> ${esc(reason)}</p>`);
+      if (diagnosis) lines.push(`<p><b>Tình trạng/chẩn đoán:</b> ${esc(diagnosis)}</p>`);
+    }
+    if (note) lines.push(`<p><b>Ghi chú:</b> ${esc(note)}</p>`);
+    const personLabel = event.loaiSuKien === 'MO_HANH_TRINH' ? 'Người nhập' : 'Người cập nhật';
     return `<div class="journey-timeline-item">
       <div class="journey-timeline-dot"></div>
       <div class="journey-timeline-card">
-        <div class="journey-timeline-head"><strong>${esc(eventLabel(event.loaiSuKien))}</strong><span>${esc(fmtDateTime(event.createdAt))}</span></div>
-        ${move}
-        <div class="journey-timeline-status">${esc(statusLabel(event.trangThaiSau))}</div>
-        ${body}
-        <div class="journey-timeline-by">Người nhập: ${esc(event.displayName || '—')}</div>
+        <div class="journey-timeline-head"><strong>${esc(timelineTitle(event))}</strong><span>${esc(fmtDateTime(event.createdAt))}</span></div>
+        <div class="journey-timeline-status ${statusClass(event.trangThaiSau)}">${esc(timelineBadge(event, item))}</div>
+        ${lines.join('')}
+        <div class="journey-timeline-by">${personLabel}: ${esc(event.displayName || '—')}</div>
       </div>
     </div>`;
   }).join('') : '<div class="journey-empty">Chưa có lịch sử hành trình.</div>';
   $('journeyDetailLayer').hidden = false;
-  document.body.style.overflow = 'hidden';
+  setBodyModalState(true);
+  window.setTimeout(() => $('journeyDetailClose')?.focus(), 0);
 }
 
 function closeDetail() {
   $('journeyDetailLayer').hidden = true;
-  document.body.style.overflow = '';
+  setBodyModalState(false);
   state.selectedCase = null;
+  restoreFocus();
 }
 
 async function activate() {
   await refreshPermission();
   if (!validPermission(state.permission) && !isOwner()) return;
   if ($('journeyCreateTab')) $('journeyCreateTab').hidden = !canEdit();
-  resetCreateForm();
+  if (!state.createBaseline) resetCreateForm();
   await loadJourneys(false);
   setSubView(state.subView || 'tracking');
 }
@@ -864,10 +905,10 @@ function initEvents() {
   if (state.initialized) return;
   state.initialized = true;
   document.querySelectorAll('.journey-subtab').forEach((button) => {
-    button.addEventListener('click', () => setSubView(button.getAttribute('data-journey-view')));
+    button.addEventListener('click', () => requestSubView(button.getAttribute('data-journey-view')));
   });
   $('journeyCreateSave')?.addEventListener('click', createJourney);
-  $('journeyCreateCancel')?.addEventListener('click', () => setSubView('tracking'));
+  $('journeyCreateCancel')?.addEventListener('click', () => requestSubView('tracking'));
   $('journeyTransferType')?.addEventListener('change', updateCreateDynamicFields);
   $('journeyTo')?.addEventListener('change', updateCreateDynamicFields);
   $('journeyBHYT')?.addEventListener('input', () => { $('journeyBHYT').value = normalizeBHYT($('journeyBHYT').value); });
@@ -892,17 +933,20 @@ function initEvents() {
   });
   $('journeyUpdateStatus')?.addEventListener('change', updateUpdateFields);
   $('journeyUpdateDestination')?.addEventListener('change', () => toggleOtherDestination('journeyUpdateDestination', 'journeyUpdateDestinationOtherField', 'journeyUpdateDestinationOther'));
-  $('journeyUpdateCancel')?.addEventListener('click', closeUpdateDialog);
-  $('journeyUpdateCloseX')?.addEventListener('click', closeUpdateDialog);
+  $('journeyUpdateCancel')?.addEventListener('click', () => closeUpdateDialog(false));
+  $('journeyUpdateCloseX')?.addEventListener('click', () => closeUpdateDialog(false));
   $('journeyUpdateSave')?.addEventListener('click', saveJourneyUpdate);
-  $('journeyUpdateLayer')?.addEventListener('click', (event) => { if (event.target === $('journeyUpdateLayer')) closeUpdateDialog(); });
   $('journeyDetailClose')?.addEventListener('click', closeDetail);
   $('journeyDetailCloseBottom')?.addEventListener('click', closeDetail);
-  $('journeyDetailLayer')?.addEventListener('click', (event) => { if (event.target === $('journeyDetailLayer')) closeDetail(); });
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    if (!$('journeyUpdateLayer')?.hidden) closeUpdateDialog();
+    if (!$('journeyUpdateLayer')?.hidden) closeUpdateDialog(false);
     else if (!$('journeyDetailLayer')?.hidden) closeDetail();
+  });
+  window.addEventListener('beforeunload', (event) => {
+    if (!isCreateDirty() && !(!$('journeyUpdateLayer')?.hidden && isUpdateDirty())) return;
+    event.preventDefault();
+    event.returnValue = '';
   });
   state.refreshTimer = setInterval(() => {
     const panel = $('transferJourneyPanel');

@@ -323,7 +323,6 @@ function renderReports() {
 
   const allActive = reportState.reports.filter((item) => item.trangThai !== 'deleted');
   $('reportFilteredCount').textContent = String(rows.length);
-  $('reportTransferCount').textContent = String(allActive.filter((item) => item.loaiBaoCao === 'CHUYEN_VIEN').length);
   $('reportDeathCount').textContent = String(allActive.filter((item) => item.loaiBaoCao === 'TU_VONG').length);
 
   if (!rows.length) {

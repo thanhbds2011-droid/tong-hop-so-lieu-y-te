@@ -1,0 +1,37 @@
+NÂNG CẤP 8.3.0 - ỨNG DỤNG PHÒNG Y TẾ
+
+1. CÁC FILE ĐÃ SỬA
+- index.html
+- journeys.js
+- journeys.css
+- reports.css
+- app-config.js
+- app.js
+- service-worker.js
+- offline.html
+
+2. THAY ĐỔI CHÍNH
+- Dashboard Đang theo dõi chỉ còn chỉ số Đang ngoài Trung tâm.
+- Bỏ KPI Chưa cập nhật > 12 giờ và Đã ngoài > 24 giờ; cảnh báo chỉ xuất hiện trên card khi cần.
+- Lịch sử chỉ còn Đã về Trung tâm và Tử vong tại bệnh viện.
+- Module Hành trình chuyển viện không còn đọc/hiển thị dữ liệu chuyển viện cũ từ baoCaoYTe/baoCao. Dữ liệu cũ KHÔNG bị xóa khỏi Firebase.
+- Timeline được tinh gọn: tiêu đề là lộ trình thực tế; trạng thái chỉ còn một badge ngắn, không lặp tiêu đề.
+- Modal lịch sử có footer Đóng riêng, timeline cuộn độc lập, khóa scroll nền và khôi phục focus.
+- Form cập nhật/lập chuyển viện cảnh báo khi rời form có dữ liệu chưa lưu.
+- Nâng cache/PWA lên 8.3.0.
+
+3. FIREBASE RULES
+Firebase Rules giữ nguyên 8.2.0. Không có schema mới và không cần migration.
+
+4. CÁCH NÂNG CẤP
+- Sao lưu repo hiện tại.
+- Dán đè các file trong gói "cac-file-dan-de-y-te-v8.3.0.zip".
+- Commit/push lên GitHub Pages.
+- Chờ deploy hoàn tất rồi tải lại ứng dụng. Service Worker 8.3.0 sẽ loại cache phiên bản cũ thuộc cùng prefix.
+
+5. KIỂM TRA NHANH SAU DEPLOY
+- Báo cáo > Chuyển viện > Đang theo dõi: chỉ còn 1 KPI.
+- Lịch sử: chỉ còn 2 KPI và không có dữ liệu chuyển viện cũ.
+- Mở một hành trình: timeline không lặp "Chuyển tiếp bệnh viện khác" hoặc "Đã về Trung tâm".
+- Kiểm tra Lập chuyển viện, Cập nhật, Đã về Trung tâm, Tử vong tại bệnh viện.
+- Kiểm tra desktop và mobile/PWA.

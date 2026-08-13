@@ -1,20 +1,20 @@
 'use strict';
 
 const CACHE_PREFIX = 'tong-hop-so-lieu-y-te-firebase-';
-const CACHE_NAME = CACHE_PREFIX + 'v8.2.0';
+const CACHE_NAME = CACHE_PREFIX + 'v8.3.0';
 const LEGACY_CACHE_NAMES = new Set(['yte-tan-hiep-v5']);
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=8.2.0',
-  './ui-fixes.css?v=8.2.0',
-  './reports.css?v=8.2.0',
-  './journeys.css?v=8.2.0',
-  './app-config.js?v=8.2.0',
-  './app.js?v=8.2.0',
-  './reports.js?v=8.2.0',
-  './journeys.js?v=8.2.0',
-  './ui-fixes.js?v=8.2.0',
+  './styles.css?v=8.3.0',
+  './ui-fixes.css?v=8.3.0',
+  './reports.css?v=8.3.0',
+  './journeys.css?v=8.3.0',
+  './app-config.js?v=8.3.0',
+  './app.js?v=8.3.0',
+  './reports.js?v=8.3.0',
+  './journeys.js?v=8.3.0',
+  './ui-fixes.js?v=8.3.0',
   './manifest.webmanifest',
   './offline.html',
   './assets/favicon-32.png',
