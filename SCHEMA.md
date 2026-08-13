@@ -72,6 +72,7 @@ baoCaoYTe/
         noiHienTai
         lyDoHienTai
         tinhTrangChanDoanHienTai
+        ghiChu (optional, tối đa 2000 ký tự)
         trangThaiHienTai:
           DANG_THEO_DOI |
           TAI_KHAM |
@@ -105,6 +106,7 @@ baoCaoYTe/
           hinhThucChuyenKhac
           lyDo
           tinhTrangChanDoan
+          ghiChu (optional, tối đa 2000 ký tự)
           trangThaiSauChang
           thoiDiem
           uid
@@ -124,6 +126,7 @@ baoCaoYTe/
           hinhThucChuyenKhac
           lyDo
           tinhTrangChanDoan
+          ghiChu (optional, tối đa 2000 ký tự)
           tinhTrangKhiVe
           uid
           email

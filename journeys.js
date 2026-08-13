@@ -170,6 +170,12 @@ function showState(id, text, type, spinning) {
   box.className = 'inline-state ' + (type || '');
   box.innerHTML = text ? `${spinning ? '<span class="spinner"></span>' : ''}<span>${esc(text)}</span>` : '';
 }
+function friendlyError(error, fallback) {
+  const message = String(error && error.message ? error.message : error || '').trim();
+  const technical = /(permission[_ -]?denied|firebase|network|failed to fetch|auth\/|database|internal|unavailable)/i.test(message);
+  if (!message || technical) return fallback || 'Không thể thực hiện thao tác. Vui lòng kiểm tra kết nối hoặc quyền truy cập rồi thử lại.';
+  return message;
+}
 function patientKey(name, bhyt) {
   const raw = `${normalizeText(name)}|${normalizeBHYT(bhyt)}`;
   let hash = 2166136261;
@@ -218,7 +224,7 @@ function staleBadge(item) {
   const hours = hoursSince(item.updatedAt || item.ngayGioDi);
   if (hours >= 24) return `<span class="journey-alert danger">Chưa cập nhật ${Math.floor(hours)} giờ</span>`;
   if (hours >= 12) return `<span class="journey-alert warn">Chưa cập nhật ${Math.floor(hours)} giờ</span>`;
-  return '<span class="journey-alert ok">Đang được theo dõi</span>';
+  return '';
 }
 
 async function refreshPermission() {
@@ -259,7 +265,7 @@ async function loadJourneys(force) {
     showState('journeyTrackingLoadState', '', '', false);
   } catch (error) {
     console.error(error);
-    showState('journeyTrackingLoadState', error.message || String(error), 'err', false);
+    showState('journeyTrackingLoadState', friendlyError(error, 'Không tải được hành trình chuyển viện. Vui lòng thử lại.'), 'err', false);
   } finally {
     state.loading = false;
   }
@@ -271,7 +277,8 @@ function renderTracking() {
     if (!search) return true;
     return normalizeText([
       item.doiTuong, item.theBHYT, item.noiHienTai, statusLabel(item.trangThaiHienTai),
-      transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac), item.lyDoHienTai, item.tinhTrangChanDoanHienTai
+      transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac),
+      item.lyDoHienTai, item.tinhTrangChanDoanHienTai, item.ghiChu
     ].join(' ')).includes(search);
   });
   const stale12 = state.openCases.filter((item) => hoursSince(item.updatedAt || item.ngayGioDi) >= 12).length;
@@ -287,8 +294,14 @@ function renderTracking() {
     box.innerHTML = '<div class="journey-empty"><strong>Không có đối tượng đang theo dõi.</strong><span>Các hành trình chưa kết thúc sẽ xuất hiện tại đây.</span></div>';
     return;
   }
+
   box.innerHTML = rows.map((item) => {
     const canWrite = canEdit();
+    const alert = staleBadge(item);
+    const statusPill = item.trangThaiHienTai && item.trangThaiHienTai !== 'DANG_THEO_DOI'
+      ? `<span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span>`
+      : '';
+    const note = String(item.ghiChu || '').trim();
     return `<article class="journey-card">
       <div class="journey-card-main">
         <div class="journey-card-title">
@@ -296,7 +309,10 @@ function renderTracking() {
             <strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>
             <span class="journey-bhyt">BHYT: ${esc(item.theBHYT || 'Chưa ghi nhận')}</span>
           </div>
-          <div class="journey-card-badges"><span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
+          <div class="journey-card-badges">
+            <span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span>
+            ${statusPill}
+          </div>
         </div>
         <div class="journey-location">
           <span>Hiện tại</span>
@@ -308,8 +324,12 @@ function renderTracking() {
           <div><span>Cập nhật gần nhất</span><strong>${esc(fmtDateTime(item.updatedAt))}</strong></div>
           <div><span>Người cập nhật</span><strong>${esc(item.updatedByName || item.createdByName || '—')}</strong></div>
         </div>
-        <div class="journey-diagnosis"><span>Tình trạng/chẩn đoán</span><p>${esc(item.tinhTrangChanDoanHienTai || '—')}</p></div>
-        <div class="journey-card-foot">${staleBadge(item)}</div>
+        <div class="journey-clinical-grid">
+          <div class="journey-reason"><span>Lý do</span><p>${esc(item.lyDoHienTai || '—')}</p></div>
+          <div class="journey-diagnosis"><span>Tình trạng/chẩn đoán</span><p>${esc(item.tinhTrangChanDoanHienTai || '—')}</p></div>
+        </div>
+        ${note ? `<div class="journey-note"><span>Ghi chú</span><p>${esc(note)}</p></div>` : ''}
+        ${alert ? `<div class="journey-card-foot">${alert}</div>` : ''}
       </div>
       <div class="journey-card-actions">
         <button class="small-btn btn-soft journey-action" data-kind="view" data-id="${esc(item.id)}" type="button">Xem hành trình</button>
@@ -326,7 +346,7 @@ function renderHistory() {
   const currentRows = state.closedCases.filter((item) => {
     if (filter !== 'all' && item.trangThaiHienTai !== filter) return false;
     if (!search) return true;
-    return normalizeText([item.doiTuong, item.theBHYT, item.noiHienTai, statusLabel(item.trangThaiHienTai), transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac), item.tinhTrangKhiVe].join(' ')).includes(search);
+    return normalizeText([item.doiTuong, item.theBHYT, item.noiHienTai, statusLabel(item.trangThaiHienTai), item.tinhTrangKhiVe, item.ghiChu].join(' ')).includes(search);
   });
   const legacyRows = filter === 'all' ? state.legacyTransfers.filter((item) => {
     if (!search) return true;
@@ -342,7 +362,7 @@ function renderHistory() {
   const currentHtml = currentRows.map((item) => `<article class="journey-history-card">
     <div class="journey-history-mark ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓' : 'TV'}</div>
     <div class="journey-history-main">
-      <div class="journey-card-title"><div><strong>${esc(item.doiTuong)}</strong><span class="journey-bhyt">BHYT: ${esc(item.theBHYT || 'Chưa ghi nhận')}</span></div><div class="journey-card-badges"><span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div></div>
+      <div class="journey-card-title"><div><strong>${esc(item.doiTuong)}</strong><span class="journey-bhyt">BHYT: ${esc(item.theBHYT || 'Chưa ghi nhận')}</span></div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
       <div class="journey-history-line">${journeyRouteHtml(item)}</div>
       <div class="journey-row-meta"><span>Đi: ${esc(fmtDateTime(item.ngayGioDi))}</span><span>${item.ngayGioVe ? `Về: ${esc(fmtDateTime(item.ngayGioVe))}` : `Kết thúc: ${esc(fmtDateTime(item.updatedAt))}`}</span></div>
     </div>
@@ -397,8 +417,9 @@ function resetCreateForm() {
   $('journeyTransferTypeOther').value = '';
   $('journeyReason').value = '';
   $('journeyDiagnosis').value = '';
+  $('journeyNote').value = '';
   $('journeyCreateError').textContent = '';
-  $('journeySystemTime').textContent = 'Tự động ghi thời điểm thực tế khi lưu';
+  $('journeySystemTime').textContent = 'Tự động ghi khi xác nhận';
   updateCreateDynamicFields();
   const user = auth.currentUser;
   $('journeyReporter').textContent = user ? String(user.displayName || user.email || '—') : '—';
@@ -410,6 +431,7 @@ function createPayload() {
   const noiDen = resolvedDestination('journeyTo', 'journeyToOther');
   const lyDo = String($('journeyReason').value || '').trim();
   const tinhTrang = String($('journeyDiagnosis').value || '').trim();
+  const ghiChu = String($('journeyNote').value || '').trim();
   const hinhThucChuyen = String($('journeyTransferType').value || '');
   const hinhThucChuyenKhac = hinhThucChuyen === 'KHAC' ? String($('journeyTransferTypeOther').value || '').trim() : '';
   if (doiTuong.length < 2 || doiTuong.length > 150) throw new Error('Vui lòng nhập Đối tượng từ 2 đến 150 ký tự.');
@@ -419,6 +441,7 @@ function createPayload() {
   if (!noiDen || noiDen.length > 300) throw new Error('Vui lòng chọn hoặc nhập Nơi đến.');
   if (!lyDo || lyDo.length > 1000) throw new Error('Vui lòng nhập Lý do.');
   if (!tinhTrang || tinhTrang.length > 1500) throw new Error('Vui lòng nhập Tình trạng/chẩn đoán.');
+  if (ghiChu.length > 2000) throw new Error('Ghi chú không được vượt quá 2.000 ký tự.');
   return {
     doiTuong,
     doiTuongNorm: normalizeText(doiTuong),
@@ -428,6 +451,7 @@ function createPayload() {
     noiDen,
     lyDo,
     tinhTrang,
+    ghiChu,
     hinhThucChuyen,
     hinhThucChuyenKhac,
     trangThai: 'DANG_THEO_DOI'
@@ -452,7 +476,7 @@ async function createJourney() {
   if (!canEdit()) return;
   let payload;
   try { payload = createPayload(); }
-  catch (error) { $('journeyCreateError').textContent = error.message || String(error); return; }
+  catch (error) { $('journeyCreateError').textContent = friendlyError(error); return; }
   const user = auth.currentUser;
   if (!user) { $('journeyCreateError').textContent = 'Vui lòng đăng nhập lại.'; return; }
   $('journeyCreateError').textContent = '';
@@ -484,6 +508,7 @@ async function createJourney() {
       noiHienTai: payload.noiDen,
       lyDoHienTai: payload.lyDo,
       tinhTrangChanDoanHienTai: payload.tinhTrang,
+      ghiChu: payload.ghiChu,
       trangThaiHienTai: payload.trangThai,
       trangThaiKyThuat: 'OPEN',
       ngayGioDi: ts,
@@ -512,6 +537,7 @@ async function createJourney() {
       hinhThucChuyenKhac: payload.hinhThucChuyenKhac,
       lyDo: payload.lyDo,
       tinhTrangChanDoan: payload.tinhTrang,
+      ghiChu: payload.ghiChu,
       trangThaiSauChang: payload.trangThai,
       thoiDiem: ts,
       uid: user.uid,
@@ -530,6 +556,7 @@ async function createJourney() {
       hinhThucChuyenKhac: payload.hinhThucChuyenKhac,
       lyDo: payload.lyDo,
       tinhTrangChanDoan: payload.tinhTrang,
+      ghiChu: payload.ghiChu,
       tinhTrangKhiVe: '',
       uid: user.uid,
       email,
@@ -560,7 +587,7 @@ async function createJourney() {
     setSubView('tracking');
   } catch (error) {
     console.error(error);
-    $('journeyCreateError').textContent = error.message || String(error);
+    $('journeyCreateError').textContent = friendlyError(error, 'Không thể lưu hành trình chuyển viện. Vui lòng thử lại.');
   } finally {
     $('journeyCreateSave').disabled = false;
     $('journeyCreateSave').textContent = 'Xác nhận chuyển viện';
@@ -586,8 +613,9 @@ function openUpdateDialog(id, preset) {
   $('journeyUpdateReason').value = '';
   $('journeyUpdateDiagnosis').value = '';
   $('journeyReturnCondition').value = '';
+  $('journeyUpdateNote').value = '';
   $('journeyUpdateError').textContent = '';
-  $('journeyUpdateSystemTime').textContent = 'Tự động ghi thời điểm thực tế khi xác nhận';
+  $('journeyUpdateSystemTime').textContent = 'Tự động ghi khi xác nhận';
   const user = auth.currentUser;
   $('journeyUpdateReporter').textContent = user ? String(user.displayName || user.email || '—') : '—';
   updateUpdateFields();
@@ -623,30 +651,35 @@ function updatePayload() {
   const item = state.selectedCase;
   if (!item) throw new Error('Không xác định được hành trình cần cập nhật.');
   const status = String($('journeyUpdateStatus').value || '');
+  const ghiChu = String($('journeyUpdateNote').value || '').trim();
   if (!ALL_STATUSES.includes(status)) throw new Error('Trạng thái hiện tại chưa hợp lệ.');
+  if (ghiChu.length > 2000) throw new Error('Ghi chú không được vượt quá 2.000 ký tự.');
+
   if (status === 'DA_VE_TRUNG_TAM') {
     const tinhTrangKhiVe = String($('journeyReturnCondition').value || '').trim();
     if (!tinhTrangKhiVe || tinhTrangKhiVe.length > 1500) throw new Error('Vui lòng nhập Tình trạng khi về.');
-    return { status, tinhTrangKhiVe, lyDo: '', tinhTrang: '', noiDen: CENTER_NAME };
+    return { status, tinhTrangKhiVe, lyDo: '', tinhTrang: '', noiDen: CENTER_NAME, ghiChu };
   }
+
   const lyDo = String($('journeyUpdateReason').value || '').trim();
   const tinhTrang = String($('journeyUpdateDiagnosis').value || '').trim();
   if (!lyDo || lyDo.length > 1000) throw new Error('Vui lòng nhập Lý do.');
   if (!tinhTrang || tinhTrang.length > 1500) throw new Error('Vui lòng nhập Tình trạng/chẩn đoán.');
+
   let noiDen = item.noiHienTai;
   if (status === 'CHUYEN_TIEP_BENH_VIEN_KHAC') {
     noiDen = resolvedDestination('journeyUpdateDestination', 'journeyUpdateDestinationOther');
     if (!noiDen || noiDen.length > 300) throw new Error('Vui lòng chọn hoặc nhập Nơi đến khi chuyển tiếp bệnh viện khác.');
     if (normalizeText(noiDen) === normalizeText(item.noiHienTai)) throw new Error('Nơi đến mới phải khác nơi hiện tại.');
   }
-  return { status, tinhTrangKhiVe: '', lyDo, tinhTrang, noiDen };
+  return { status, tinhTrangKhiVe: '', lyDo, tinhTrang, noiDen, ghiChu };
 }
 
 async function saveJourneyUpdate() {
   if (!canEdit() || !state.selectedCase) return;
   let payload;
   try { payload = updatePayload(); }
-  catch (error) { $('journeyUpdateError').textContent = error.message || String(error); return; }
+  catch (error) { $('journeyUpdateError').textContent = friendlyError(error); return; }
   const user = auth.currentUser;
   if (!user) { $('journeyUpdateError').textContent = 'Vui lòng đăng nhập lại.'; return; }
   $('journeyUpdateSave').disabled = true;
@@ -681,6 +714,7 @@ async function saveJourneyUpdate() {
       noiHienTai: isReturn ? CENTER_NAME : (isTransfer ? payload.noiDen : latest.noiHienTai),
       lyDoHienTai: isReturn ? latest.lyDoHienTai : payload.lyDo,
       tinhTrangChanDoanHienTai: isReturn ? latest.tinhTrangChanDoanHienTai : payload.tinhTrang,
+      ghiChu: payload.ghiChu || latest.ghiChu || '',
       trangThaiHienTai: payload.status,
       trangThaiKyThuat: isClosed ? 'CLOSED' : 'OPEN',
       ngayGioDi: Number(latest.ngayGioDi || 0),
@@ -712,6 +746,7 @@ async function saveJourneyUpdate() {
       hinhThucChuyenKhac: latest.hinhThucChuyenKhac || '',
       lyDo: payload.lyDo,
       tinhTrangChanDoan: payload.tinhTrang,
+      ghiChu: payload.ghiChu,
       tinhTrangKhiVe: payload.tinhTrangKhiVe,
       uid: user.uid,
       email,
@@ -730,6 +765,7 @@ async function saveJourneyUpdate() {
         hinhThucChuyenKhac: latest.hinhThucChuyenKhac || '',
         lyDo: isReturn ? 'Trở về Trung tâm' : payload.lyDo,
         tinhTrangChanDoan: isReturn ? payload.tinhTrangKhiVe : payload.tinhTrang,
+        ghiChu: payload.ghiChu,
         trangThaiSauChang: payload.status,
         thoiDiem: ts,
         uid: user.uid,
@@ -759,7 +795,7 @@ async function saveJourneyUpdate() {
     setSubView(isClosed ? 'history' : 'tracking');
   } catch (error) {
     console.error(error);
-    $('journeyUpdateError').textContent = error.message || String(error);
+    $('journeyUpdateError').textContent = friendlyError(error, 'Không thể cập nhật hành trình. Vui lòng thử lại.');
   } finally {
     $('journeyUpdateSave').disabled = false;
     $('journeyUpdateSave').textContent = 'Lưu cập nhật';
@@ -783,9 +819,11 @@ function openDetail(id) {
       ? `<div class="journey-timeline-route"><span>${esc(event.noiTruoc)}</span><b>→</b><span>${esc(event.noiSau)}</span></div>` : '';
     const typeLine = event.loaiSuKien === 'MO_HANH_TRINH'
       ? `<p><b>Hình thức chuyển:</b> ${esc(transferTypeLabel(event.hinhThucChuyen || inferLegacyTransferType(item), event.hinhThucChuyenKhac || item.hinhThucChuyenKhac))}</p>` : '';
+    const noteLine = String(event.ghiChu || '').trim()
+      ? `<p><b>Ghi chú:</b> ${esc(event.ghiChu)}</p>` : '';
     const body = event.loaiSuKien === 'DA_VE_TRUNG_TAM'
-      ? `<p><b>Tình trạng khi về:</b> ${esc(event.tinhTrangKhiVe || '—')}</p>`
-      : `${typeLine}<p><b>Lý do:</b> ${esc(event.lyDo || '—')}</p><p><b>Tình trạng/chẩn đoán:</b> ${esc(event.tinhTrangChanDoan || '—')}</p>`;
+      ? `<p><b>Tình trạng khi về:</b> ${esc(event.tinhTrangKhiVe || '—')}</p>${noteLine}`
+      : `${typeLine}<p><b>Lý do:</b> ${esc(event.lyDo || '—')}</p><p><b>Tình trạng/chẩn đoán:</b> ${esc(event.tinhTrangChanDoan || '—')}</p>${noteLine}`;
     return `<div class="journey-timeline-item">
       <div class="journey-timeline-dot"></div>
       <div class="journey-timeline-card">

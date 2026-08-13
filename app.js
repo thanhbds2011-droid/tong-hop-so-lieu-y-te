@@ -192,7 +192,7 @@ async function ensureOwnerPermission(user) {
 }
 
 async function ensureRegistrationRequest(user, profile) {
-  if (!user) throw new Error('Chưa xác định được tài khoản Firebase.');
+  if (!user) throw new Error('Chưa xác định được tài khoản. Vui lòng đăng nhập lại.');
   const requestRef = ref(firebaseDatabase, `${ROOT}/yeuCauDangKy/${user.uid}`);
   const snap = await get(requestRef);
   const existing = snapshotObject(snap);
@@ -600,12 +600,12 @@ async function registerAccountFirebase(payload) {
   const password = String(payload.password || '');
   if (fullName.length < 2) throw new Error('Vui lòng nhập đầy đủ họ và tên.');
   if (!email || !email.includes('@')) throw new Error('Địa chỉ email chưa hợp lệ.');
-  if (password.length < 6) throw new Error('Mật khẩu Firebase phải có ít nhất 6 ký tự.');
+  if (password.length < 6) throw new Error('Mật khẩu phải có ít nhất 6 ký tự.');
 
   const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
   await updateProfile(credential.user, { displayName: fullName });
   const result = await resolveApplicationAccess(credential.user, { displayName: fullName, username });
-  result.message = 'Đăng ký Firebase thành công. Yêu cầu cấp quyền Tổng hợp Y tế đã được gửi đến Quản trị viên.';
+  result.message = 'Đăng ký thành công. Yêu cầu cấp quyền Tổng hợp Y tế đã được gửi đến Quản trị viên.';
   return result;
 }
 
@@ -637,7 +637,7 @@ async function requestPasswordResetFirebase(identifier) {
   const email = normalizeEmail(identifier);
   if (!email || !email.includes('@')) throw new Error('Vui lòng nhập email đã đăng ký.');
   await sendPasswordResetEmail(firebaseAuth, email);
-  return { success: true, message: 'Firebase đã gửi liên kết đặt lại mật khẩu đến email của bạn.' };
+  return { success: true, message: 'Hệ thống đã gửi liên kết đặt lại mật khẩu đến email của bạn.' };
 }
 
 async function changePasswordFirebase(payload) {
@@ -652,7 +652,7 @@ async function changePasswordFirebase(payload) {
   const credential = EmailAuthProvider.credential(user.email, currentPassword);
   await reauthenticateWithCredential(user, credential);
   await updatePassword(user, newPassword);
-  return { success: true, message: 'Đã đổi mật khẩu Firebase.' };
+  return { success: true, message: 'Đã đổi mật khẩu.' };
 }
 
 async function getAdminCategoriesFirebase() {
@@ -873,7 +873,7 @@ async function adminRevokeUserFirebase(uid) {
     updatedAt: Date.now()
   });
   await writeAuditLog(admin, 'Thu hồi quyền Tổng hợp số liệu', item.email || uid, '');
-  return { success: true, message: 'Đã thu hồi quyền Tổng hợp Y tế. Firebase Authentication và quyền HSBA (nếu có) được giữ nguyên.' };
+  return { success: true, message: 'Đã thu hồi quyền Tổng hợp Y tế. Tài khoản đăng nhập và quyền HSBA (nếu có) được giữ nguyên.' };
 }
 
 
@@ -980,7 +980,7 @@ async function firebaseCall(name, ...args) {
     case 'adminDeleteUser': return adminRevokeUserFirebase(args[1] || args[0]);
     case 'getAdminReportUsers': return getAdminReportUsersFirebase();
     case 'adminSetReportPermission': return adminSetReportPermissionFirebase(args[0], args[1], args[2]);
-    default: throw new Error(`Chức năng Firebase không hợp lệ: ${name}`);
+    default: throw new Error(`Chức năng không hợp lệ: ${name}`);
   }
 }
 
@@ -1009,7 +1009,7 @@ var AUTO_SYNC_MS = 300000;
       return firebaseCall.apply(null,[name].concat(args)).catch(function(error){
         var messageText=error&&error.message?error.message:String(error||'Có lỗi xảy ra.');
         if(/auth\/invalid-credential|auth\/invalid-login-credentials|auth\/wrong-password|auth\/user-not-found/.test(String(error&&error.code||'')+' '+messageText))messageText='Email hoặc mật khẩu không đúng.';
-        if(/auth\/email-already-in-use/.test(String(error&&error.code||'')))messageText='Email này đã tồn tại trên Firebase Authentication.';
+        if(/auth\/email-already-in-use/.test(String(error&&error.code||'')))messageText='Email này đã được đăng ký.';
         if(/PERMISSION_DENIED|permission_denied/i.test(messageText))messageText='Bạn không có quyền thực hiện thao tác này hoặc dữ liệu vừa thay đổi. Vui lòng tải lại.';
         throw new Error(messageText);
       });
@@ -1181,7 +1181,7 @@ var AUTO_SYNC_MS = 300000;
       catch(error){state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi()}
     }
     async function login(){
-      setBusy(true,'Đang đăng nhập Firebase...');
+      setBusy(true,'Đang đăng nhập...');
       try{
         var result=await call('loginAccount',{identifier:$('loginIdentifier').value,password:$('loginPassword').value,entryDate:$('entryDate').value});
         applySessionResult(result);clearMessage();
@@ -1203,7 +1203,7 @@ var AUTO_SYNC_MS = 300000;
     }
     async function register(){
       if($('regPassword').value!==$('regConfirm').value){message('Mật khẩu nhập lại chưa khớp.','err');return}
-      setBusy(true,'Đang tạo tài khoản Firebase...');
+      setBusy(true,'Đang tạo tài khoản...');
       try{
         var result=await call('registerAccount',{fullName:$('regName').value,username:$('regUsername').value,email:$('regEmail').value,password:$('regPassword').value,entryDate:$('entryDate').value});
         applySessionResult(result);showView('dashboard');message(result.message||'Đã gửi yêu cầu cấp quyền.','warn');
@@ -1535,7 +1535,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'8.1.1'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'8.2.0'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.auth-tab').forEach(function(tab){tab.addEventListener('click',function(){switchAuth(tab.getAttribute('data-auth-tab'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
