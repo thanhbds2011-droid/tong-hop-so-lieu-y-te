@@ -1,0 +1,26 @@
+UI REDESIGN VALIDATION
+System: TONG-HOP-Y-TE
+Business Stable: v1.0
+Runtime/PWA: 9.2.1
+UI build: 2026-08-14-v1
+
+PASS - app.js unchanged vs Business Stable baseline
+PASS - reports.js unchanged vs Business Stable baseline
+PASS - journeys.js unchanged vs Business Stable baseline
+PASS - app-config.js unchanged vs Business Stable baseline
+PASS - ui.js unchanged vs Business Stable baseline
+PASS - update-manager.js unchanged vs Business Stable baseline
+PASS - JavaScript syntax all runtime JS
+PASS - manifest.webmanifest JSON
+PASS - version.json JSON
+PASS - styles.css parse
+PASS - reports.css parse
+PASS - journeys.css parse
+PASS - ui-redesign.css parse
+PASS - 258 DOM IDs, no duplicates
+PASS - DOM ID set identical to baseline
+PASS - static JavaScript DOM references resolved
+PASS - no Firestore API/import detected
+PASS - service-worker app shell includes ui-redesign.css
+
+NOTE - Firebase production end-to-end business tests are outside this UI-only build and should retain the Business Stable live-test checklist.
