@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
-<meta content="#7F1830" name="theme-color"/>
+<meta content="#963F3F" name="theme-color"/>
 <meta content="light" name="color-scheme"/>
 <meta content="Ứng dụng Phòng Y tế - Tổng hợp số liệu và báo cáo chuyên môn" name="description"/>
 <meta content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; manifest-src 'self'; frame-src 'self' https://hsba-trung-tam-test.firebaseapp.com https://accounts.google.com https://*.firebaseapp.com; connect-src 'self' https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.gstatic.com;" http-equiv="Content-Security-Policy"/>
@@ -16,7 +16,7 @@
 
 <link href="./reports.css?v=9.2.1" rel="stylesheet"/>
 <link href="./journeys.css?v=9.2.1" rel="stylesheet"/>
-<link href="./ui-redesign.css?v=20260814" rel="stylesheet"/>
+<link href="./desktop-v12.css?v=20260814-1" rel="stylesheet"/>
 
 <script src="./app-config.js?v=9.2.1"></script>
 <script defer src="./ui.js?v=9.2.1"></script>
@@ -26,7 +26,7 @@
 <script src="./journeys.js?v=9.2.1" type="module"></script>
 
 </head>
-<body class="ui-modern">
+<body>
 <header class="app-header">
 <div class="header-inner">
 <div class="brand">
@@ -141,7 +141,7 @@
 <div class="entry-simple-page">
 <div class="page-header entry-app-head">
 <div class="page-heading entry-title-block">
-<div class="page-title-row"><span class="page-title-icon is-entry" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span><div><h2>Nhập liệu</h2><p class="page-subtitle">Ghi nhận chỉ tiêu phát sinh theo ngày, nhanh và có thể truy vết.</p></div></div>
+<div class="page-title-row"><span class="page-title-icon is-entry" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span><div><h2>Nhập liệu</h2></div></div>
 </div>
 <div class="field entry-date-field"><label>Ngày<input id="entryDate" type="date"/></label></div>
 <button class="compat-control" id="btnLoadDay" type="button">Tải lại</button>
@@ -174,7 +174,7 @@
 </div>
 </section>
 <section class="view" id="reportsView">
-<div class="card report-head unified-care-head"><div class="page-title-row"><span class="page-title-icon is-report" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h4l3 3v4h-7z"></path><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg></span><div><h2 id="reportPageTitle">Chuyển viện &amp; tử vong</h2><p class="page-subtitle">Theo dõi hành trình, kết quả và lịch sử nghiệp vụ tập trung.</p><p class="compat-control" hidden id="reportPageSubtitle"></p></div></div><button class="compat-control" hidden id="btnNewReport" type="button">+ Tử vong tại Trung tâm</button></div>
+<div class="card report-head unified-care-head"><div class="page-title-row"><span class="page-title-icon is-report" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h4l3 3v4h-7z"></path><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg></span><div><h2 id="reportPageTitle">Chuyển viện &amp; tử vong</h2><p id="reportPageSubtitle">Theo dõi hành trình, kết quả và lịch sử nghiệp vụ.</p></div></div><button class="compat-control" hidden id="btnNewReport" type="button">+ Tử vong tại Trung tâm</button></div>
 <div class="card report-workspace unified-care-workspace">
 <div id="transferJourneyPanel">
 <div aria-label="Tổng quan chuyển viện và tử vong" class="journey-dashboard">
@@ -240,6 +240,7 @@
 </div>
 </div>
 <div class="journey-panel" hidden="" id="journeyHistoryPanel">
+<div class="desktop-history-heading"><div><h3>Lịch sử nghiệp vụ</h3><p>Tra cứu hành trình đã kết thúc và các trường hợp tử vong.</p></div></div>
 <div class="journey-toolbar">
 <div class="journey-search search-wrap">
 <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>

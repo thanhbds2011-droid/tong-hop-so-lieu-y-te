@@ -11,6 +11,7 @@ const APP_SHELL = [
   './reports.css?v=9.2.1',
   './journeys.css?v=9.2.1',
   './ui-redesign.css?v=20260814',
+  './desktop-v12.css?v=20260814-1',
   './app-config.js?v=9.2.1',
   './ui.js?v=9.2.1',
   './update-manager.js?v=9.2.1',
