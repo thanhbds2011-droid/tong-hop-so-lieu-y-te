@@ -2,7 +2,7 @@
 
 (function () {
   const cfg = window.YTE_APP_CONFIG || {};
-  const currentVersion = String(cfg.VERSION || '8.3.6');
+  const currentVersion = String(cfg.VERSION || '8.5.1');
   const CHECK_INTERVAL_MS = 60000;
   const DISMISS_TTL_MS = 15 * 60 * 1000;
   let registration = null;
@@ -147,9 +147,25 @@
     }
   }
 
+  function hasUnsavedChanges() {
+    const guards = [
+      window.YTE_APP_UI && window.YTE_APP_UI.hasUnsavedChanges,
+      window.YTE_REPORTS && window.YTE_REPORTS.hasUnsavedChanges,
+      window.YTE_JOURNEYS && window.YTE_JOURNEYS.hasUnsavedChanges
+    ];
+    return guards.some((guard) => {
+      try { return typeof guard === 'function' && guard(); }
+      catch (_) { return false; }
+    });
+  }
+
   async function applyUpdate() {
     const banner = ensureBanner();
     const button = banner.querySelector('#appUpdateNow');
+    if (hasUnsavedChanges()) {
+      const proceed = window.confirm('Bạn đang có dữ liệu chưa lưu. Nếu cập nhật ngay, nội dung đang nhập có thể bị mất. Bạn có muốn tiếp tục cập nhật?');
+      if (!proceed) return;
+    }
     button.disabled = true;
     button.textContent = 'Đang cập nhật...';
     try {

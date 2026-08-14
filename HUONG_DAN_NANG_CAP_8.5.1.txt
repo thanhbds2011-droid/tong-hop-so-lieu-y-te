@@ -1,0 +1,50 @@
+ỨNG DỤNG PHÒNG Y TẾ — NÂNG CẤP v8.5.1
+
+MỤC TIÊU
+- Giữ số liệu Chuyển viện/Tử vong tự động nhưng cho phép người phụ trách Tổng hợp số liệu kiểm tra và sửa thủ công.
+- Số tự động là giá trị tham chiếu mặc định.
+- Nếu không sửa: số tự động được dùng nguyên.
+- Nếu sửa: số đã kiểm tra là số liệu chính thức; số tự động vẫn hiển thị để đối chiếu.
+- Mọi lần sửa phải có lịch sử người điều chỉnh dựa trên Gmail/tài khoản được cấp quyền.
+
+CÁCH HOẠT ĐỘNG
+Ví dụ:
+1. Người phụ trách Báo cáo lập 02 chuyển viện -> hệ thống tự động có Chuyển viện = 2.
+2. Người phụ trách Tổng hợp số liệu kiểm tra:
+   - nếu đúng: không cần làm gì;
+   - nếu phát hiện 01 báo cáo trùng: bấm Sửa, nhập 1, ghi lý do.
+3. Màn hình sau đó hiển thị:
+   - Số chính thức: 1 lượt;
+   - Tự động: 2 lượt;
+   - trạng thái: Đã điều chỉnh.
+4. Nút Lịch sử hiển thị 2 -> 1, lý do, tên, Gmail và thời điểm người điều chỉnh.
+
+FIREBASE RULES
+Có thay đổi tối thiểu:
+- tongHopYTe/lichSu: tài khoản Tổng hợp Y tế active=true được quyền đọc lịch sử điều chỉnh.
+- Quyền ghi không mở rộng; chỉ admin/nhaplieu hợp lệ tiếp tục ghi như trước.
+- Lịch sử bắt buộc UID/email từ Firebase Authentication; tên hiển thị và role được đối chiếu với tongHopYTe/phanQuyen/{uid}.
+- Không thay Authentication.
+- Không thay Rules của HSBA hoặc luồng Chuyển viện/Tử vong.
+
+TRÌNH TỰ DEPLOY
+A. Firebase Realtime Database Rules
+1. Mở Firebase Console -> Realtime Database -> Rules.
+2. Dán toàn bộ firebase-database.rules.json của v8.5.1.
+3. Publish.
+
+B. GitHub Pages
+1. Thay source bằng bộ v8.5.1 hoặc dán đè các file trong ZIP patch.
+2. Commit + Push.
+3. Chờ GitHub Pages deploy.
+
+C. PWA
+- Update Manager sẽ nhận v8.5.1.
+- Không cần xóa cache.
+- Không cần gỡ/cài lại PWA.
+
+KHÔNG CẦN
+- Migration dữ liệu.
+- Xóa dữ liệu cũ.
+- Đổi Firebase project.
+- Đổi Authentication.

@@ -11,24 +11,24 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
   <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css?v=8.4.0">
-  <link rel="stylesheet" href="./ui-fixes.css?v=8.4.0">
-  <link rel="stylesheet" href="./reports.css?v=8.4.0">
-  <link rel="stylesheet" href="./journeys.css?v=8.4.0">
-  <link rel="stylesheet" href="./professional-ui.css?v=8.4.0">
-  <script src="./app-config.js?v=8.4.0"></script>
-  <script defer src="./update-manager.js?v=8.4.0"></script>
-  <script type="module" src="./app.js?v=8.4.0"></script>
-  <script type="module" src="./reports.js?v=8.4.0"></script>
-  <script type="module" src="./journeys.js?v=8.4.0"></script>
-  <script defer src="./ui-fixes.js?v=8.4.0"></script>
+  <link rel="stylesheet" href="./styles.css?v=8.5.1">
+  <link rel="stylesheet" href="./ui-fixes.css?v=8.5.1">
+  <link rel="stylesheet" href="./reports.css?v=8.5.1">
+  <link rel="stylesheet" href="./journeys.css?v=8.5.1">
+  <link rel="stylesheet" href="./professional-ui.css?v=8.5.1">
+  <script src="./app-config.js?v=8.5.1"></script>
+  <script defer src="./update-manager.js?v=8.5.1"></script>
+  <script type="module" src="./app.js?v=8.5.1"></script>
+  <script type="module" src="./reports.js?v=8.5.1"></script>
+  <script type="module" src="./journeys.js?v=8.5.1"></script>
+  <script defer src="./ui-fixes.js?v=8.5.1"></script>
 </head>
 <body>
 <header class="app-header">
     <div class="header-inner">
       <div class="brand">
         <div class="brand-mark brand-mark-logo" aria-hidden="true">
-          <img src="./assets/icon-192.png?v=8.4.0" alt="">
+          <img src="./assets/icon-192.png?v=8.5.1" alt="">
         </div>
         <div>
           <small>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</small>
@@ -135,7 +135,7 @@
             <div class="login-brand-glow login-brand-glow-one" aria-hidden="true"></div>
             <div class="login-brand-glow login-brand-glow-two" aria-hidden="true"></div>
             <div class="login-logo-wrap">
-              <img class="login-app-logo" src="./assets/icon-512.png?v=8.4.0" alt="Logo Tổng hợp số liệu Phòng Y tế">
+              <img class="login-app-logo" src="./assets/icon-512.png?v=8.5.1" alt="Logo Tổng hợp số liệu Phòng Y tế">
             </div>
             <div class="login-brand-copy">
               <span>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</span>
@@ -231,31 +231,42 @@
     </section>
 
     <section id="reportsView" class="view">
-      <div class="card report-head">
+      <div class="card report-head unified-care-head">
         <div>
-          <h2 id="reportPageTitle">Theo dõi hành trình chuyển viện</h2>
-          <p id="reportPageSubtitle">Theo dõi đối tượng từ khi rời Trung tâm đến khi trở về hoặc kết thúc hành trình.</p>
+          <h2 id="reportPageTitle">Chuyển viện &amp; tử vong</h2>
+          <p id="reportPageSubtitle">Quản lý một luồng nghiệp vụ thống nhất: chuyển viện, theo dõi ngoài Trung tâm và ghi nhận tử vong.</p>
         </div>
-        <button id="btnNewReport" class="btn btn-primary" type="button" hidden>+ Lập báo cáo tử vong</button>
+        <button id="btnNewReport" class="btn btn-primary" type="button" hidden>+ Tử vong tại Trung tâm</button>
       </div>
 
-      <div class="card report-workspace">
-        <div class="report-top-tabs" role="tablist" aria-label="Loại báo cáo">
-          <button class="report-type-tab active" data-report-type="CHUYEN_VIEN" type="button">Chuyển viện</button>
-          <button class="report-type-tab" data-report-type="TU_VONG" type="button">Tử vong</button>
-        </div>
-
+      <div class="card report-workspace unified-care-workspace">
         <div id="transferJourneyPanel">
-          <div class="journey-subtabs" role="tablist" aria-label="Theo dõi chuyển viện">
+          <div class="journey-dashboard" aria-label="Tổng quan chuyển viện và tử vong">
+            <div class="journey-dashboard-card journey-dashboard-open">
+              <span>Đang ngoài Trung tâm</span>
+              <strong id="journeyOpenCount">0</strong>
+              <small>Hiện tại</small>
+            </div>
+            <div class="journey-dashboard-card journey-dashboard-transfer">
+              <span>Lượt chuyển viện</span>
+              <strong id="journeyTodayTransferCount">0</strong>
+              <small>Hôm nay</small>
+            </div>
+            <div class="journey-dashboard-card journey-dashboard-death">
+              <span>Tử vong</span>
+              <strong id="journeyTodayDeathCount">0</strong>
+              <small>Hôm nay · mọi nơi</small>
+            </div>
+          </div>
+
+          <div class="journey-subtabs unified-care-tabs" role="tablist" aria-label="Chuyển viện và tử vong">
             <button class="journey-subtab active" data-journey-view="tracking" type="button">Đang theo dõi <span id="journeyTrackingBadge" class="journey-tab-badge">0</span></button>
             <button id="journeyCreateTab" class="journey-subtab" data-journey-view="create" type="button">Lập chuyển viện</button>
+            <button id="journeyCenterDeathTab" class="journey-subtab" data-journey-view="centerDeath" type="button">Tử vong tại Trung tâm</button>
             <button class="journey-subtab" data-journey-view="history" type="button">Lịch sử</button>
           </div>
 
           <div id="journeyTrackingPanel" class="journey-panel">
-            <div class="journey-stats journey-stats-single" aria-label="Tổng quan đối tượng đang ngoài Trung tâm">
-              <div class="journey-stat journey-stat-primary"><span>Đang ngoài Trung tâm</span><strong id="journeyOpenCount">0</strong></div>
-            </div>
             <div class="journey-toolbar">
               <div class="journey-search"><label>Tìm đối tượng<input id="journeyTrackingSearch" type="search" autocomplete="off" placeholder="Tên, thẻ BHYT, nơi đang khám/điều trị..."></label></div>
               <div class="journey-toolbar-actions"><button id="journeyTrackingReload" class="btn btn-soft journey-reload-btn" type="button" aria-label="Làm mới danh sách"><span class="journey-reload-icon" aria-hidden="true">↻</span><span class="journey-reload-text">Làm mới</span></button></div>
@@ -267,7 +278,7 @@
           <div id="journeyCreatePanel" class="journey-panel" hidden>
             <div class="journey-form-card">
               <div class="journey-form-head">
-                <div><h3>Lập chuyển viện</h3><p>Mở một hành trình mới khi đối tượng rời Trung tâm.</p></div>
+                <div><h3>Lập chuyển viện</h3><p>Mỗi lần xác nhận tạo một lượt chuyển viện và tự đồng bộ sang chỉ tiêu Chuyển viện trong Tổng hợp số liệu.</p></div>
               </div>
               <div id="journeyCreateForm" class="journey-form-grid journey-create-grid">
                 <div class="journey-form-section-title"><span class="journey-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></span><strong>Thông tin đối tượng</strong></div>
@@ -297,15 +308,26 @@
             </div>
           </div>
 
+          <div id="journeyCenterDeathPanel" class="journey-panel" hidden>
+            <div class="journey-form-card center-death-intro">
+              <div class="journey-form-head">
+                <div><h3>Tử vong tại Trung tâm</h3><p>Chỉ dùng khi đối tượng tử vong tại Trung tâm. Nếu đối tượng đang ở bệnh viện, hãy mở hành trình đang theo dõi và cập nhật trạng thái <b>Tử vong tại bệnh viện</b>.</p></div>
+              </div>
+              <div class="center-death-callout"><strong>Một trường hợp chỉ ghi nhận một lần.</strong><span>Hệ thống sẽ đưa trường hợp vào Lịch sử và tự cập nhật thống kê tử vong.</span></div>
+              <div class="journey-form-actions"><button id="btnOpenCenterDeathForm" class="btn btn-primary" type="button">Ghi nhận tử vong tại Trung tâm</button></div>
+            </div>
+          </div>
+
           <div id="journeyHistoryPanel" class="journey-panel" hidden>
-            <div class="journey-history-summary" aria-label="Tổng quan hành trình đã kết thúc">
+            <div class="journey-history-summary" aria-label="Tổng quan lịch sử">
               <div class="journey-stat journey-stat-returned"><span>Đã về Trung tâm</span><strong id="journeyReturnedCount">0</strong></div>
               <div class="journey-stat journey-stat-death"><span>Tử vong tại bệnh viện</span><strong id="journeyHospitalDeathCount">0</strong></div>
+              <div class="journey-stat journey-stat-center-death"><span>Tử vong tại Trung tâm</span><strong id="journeyCenterDeathCount">0</strong></div>
             </div>
             <div class="journey-toolbar">
-              <div class="journey-search"><label>Tìm lịch sử<input id="journeyHistorySearch" type="search" autocomplete="off" placeholder="Tên đối tượng, BHYT, nơi đến..."></label></div>
+              <div class="journey-search"><label>Tìm lịch sử<input id="journeyHistorySearch" type="search" autocomplete="off" placeholder="Tên đối tượng, BHYT, nơi đến, nguyên nhân..."></label></div>
               <div class="journey-toolbar-actions">
-                <select id="journeyHistoryStatus" aria-label="Lọc trạng thái"><option value="all">Tất cả</option><option value="DA_VE_TRUNG_TAM">Đã về Trung tâm</option><option value="TU_VONG_TAI_BENH_VIEN">Tử vong tại bệnh viện</option></select>
+                <select id="journeyHistoryStatus" aria-label="Lọc trạng thái"><option value="all">Tất cả</option><option value="DA_VE_TRUNG_TAM">Đã về Trung tâm</option><option value="TU_VONG_TAI_BENH_VIEN">Tử vong tại bệnh viện</option><option value="TU_VONG_TAI_TRUNG_TAM">Tử vong tại Trung tâm</option></select>
                 <button id="journeyHistoryReload" class="btn btn-soft journey-reload-btn" type="button"><span class="journey-reload-icon" aria-hidden="true">↻</span><span class="journey-reload-text">Làm mới</span></button>
               </div>
             </div>
@@ -315,7 +337,7 @@
 
         <div id="reportModeRow" class="report-mode-row" hidden>
           <div class="report-mode-tabs">
-            <button id="reportListModeBtn" class="report-mode-tab active" data-report-mode="list" type="button">Danh sách báo cáo</button>
+            <button id="reportListModeBtn" class="report-mode-tab active" data-report-mode="list" type="button">Danh sách tử vong tại Trung tâm</button>
             <button id="reportPermissionModeBtn" class="report-mode-tab" data-report-mode="permissions" type="button" hidden>Phân quyền</button>
           </div>
         </div>
@@ -323,12 +345,12 @@
         <div id="reportListPanel" hidden>
           <div class="report-stats">
             <div class="report-stat"><span>Trong khoảng lọc</span><strong id="reportFilteredCount">0</strong></div>
-            <div class="report-stat"><span>Tổng báo cáo tử vong</span><strong id="reportDeathCount">0</strong></div>
+            <div class="report-stat"><span>Tổng tử vong tại Trung tâm</span><strong id="reportDeathCount">0</strong></div>
           </div>
           <div class="report-filters">
             <div class="field"><label>Từ ngày<input id="reportFromDate" type="date"></label></div>
             <div class="field"><label>Đến ngày<input id="reportToDate" type="date"></label></div>
-            <div class="field report-search-field"><label>Tìm bệnh nhân<input id="reportSearch" type="search" autocomplete="off" placeholder="Nhập họ tên, nơi tử vong, nguyên nhân..."></label></div>
+            <div class="field report-search-field"><label>Tìm đối tượng<input id="reportSearch" type="search" autocomplete="off" placeholder="Nhập họ tên, nguyên nhân..."></label></div>
             <button id="btnReloadReports" class="btn btn-soft" type="button">Làm mới</button>
           </div>
           <div id="reportLoadState" class="inline-state" hidden></div>
@@ -408,15 +430,27 @@
       <div class="confirm-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
       <h3 id="adjustTitle">Điều chỉnh số liệu</h3>
       <p id="adjustContext" class="adjust-context"></p>
-      <div class="adjust-current"><span>Tổng đang lưu</span><strong id="adjustCurrentValue">0</strong></div>
+      <div class="adjust-current"><span>Số liệu đang dùng</span><strong id="adjustCurrentValue">0</strong></div>
+      <p id="adjustAutoReference" class="adjust-auto-reference" hidden></p>
       <div class="adjust-form">
         <div class="field"><label>Số liệu mới<input id="adjustNewValue" type="number" min="0" step="1" inputmode="numeric"></label></div>
+        <div class="field"><label><span id="adjustReasonLabel">Lý do điều chỉnh</span><textarea id="adjustReason" maxlength="500" rows="3" placeholder="Nhập lý do nếu cần lưu để đối chiếu"></textarea></label></div>
         <div id="adjustProgress" class="adjust-progress" role="status" aria-live="polite" hidden><span class="spinner"></span><span>Đang lưu dữ liệu, vui lòng chờ...</span></div>
         <div id="adjustError" class="adjust-error" aria-live="polite"></div>
       </div>
       <div class="adjust-actions" style="justify-content:flex-end">
         <div class="adjust-actions-right"><button id="adjustCancel" class="btn btn-ghost" type="button">Quay lại</button><button id="adjustSave" class="btn btn-primary" type="button">Lưu thay đổi</button></div>
       </div>
+    </div>
+  </div>
+  <div id="dataHistoryLayer" class="confirm-layer" role="dialog" aria-modal="true" aria-labelledby="dataHistoryTitle" hidden>
+    <div class="data-history-card">
+      <div class="data-history-head">
+        <div><h3 id="dataHistoryTitle">Lịch sử điều chỉnh</h3><p id="dataHistoryContext"></p></div>
+        <button id="dataHistoryClose" class="dialog-close" type="button" aria-label="Đóng lịch sử">×</button>
+      </div>
+      <div id="dataHistoryList" class="data-history-list"></div>
+      <div class="data-history-footer"><button id="dataHistoryFooterClose" class="btn btn-primary" type="button">Đóng</button></div>
     </div>
   </div>
   <div id="categoryLayer" class="confirm-layer" role="dialog" aria-modal="true" aria-labelledby="categoryDialogTitle" hidden>
@@ -437,35 +471,26 @@
   </div>
 
   <div id="reportLayer" class="confirm-layer" role="dialog" aria-modal="true" aria-labelledby="reportDialogTitle" hidden>
-    <div class="report-dialog-card">
+    <div class="report-dialog-card center-death-dialog">
       <div class="report-dialog-head">
         <div>
-          <span id="reportDialogBadge" class="report-dialog-badge">CHUYỂN VIỆN</span>
-          <h3 id="reportDialogTitle">Lập báo cáo</h3>
+          <span id="reportDialogBadge" class="report-dialog-badge">TỬ VONG TẠI TRUNG TÂM</span>
+          <h3 id="reportDialogTitle">Ghi nhận tử vong tại Trung tâm</h3>
         </div>
         <button id="reportCloseX" class="dialog-close" type="button" aria-label="Đóng">×</button>
       </div>
 
       <div class="report-form-grid">
-        <div class="field full"><label>Họ tên bệnh nhân *<input id="reportPatientName" maxlength="150" autocomplete="off"></label></div>
+        <div class="field full"><label>Họ tên đối tượng *<input id="reportPatientName" maxlength="150" autocomplete="off"></label></div>
         <div class="field"><label>Giới tính *<select id="reportGender"><option value="">Chọn giới tính</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option></select></label></div>
         <div class="field"><label>Năm sinh / ngày sinh<input id="reportBirthYear" maxlength="50" placeholder="Ví dụ: 1959 hoặc 06/09/1993"></label></div>
         <div class="field full"><label>Địa chỉ<input id="reportAddress" maxlength="300"></label></div>
 
-        <div class="report-kind-fields full" data-kind="CHUYEN_VIEN">
+        <div class="report-kind-fields full" data-kind="TU_VONG">
           <div class="report-form-grid nested">
-            <div class="field full"><label>Chẩn đoán *<textarea id="reportDiagnosis" rows="3" maxlength="1500"></textarea></label></div>
-            <div class="field"><label>Ngày chuyển viện *<input id="reportTransferDate" type="date"></label></div>
-            <div class="field"><label>Nơi chuyển *<input id="reportTransferFrom" maxlength="300"></label></div>
-            <div class="field full"><label>Nơi đến *<input id="reportTransferTo" maxlength="300"></label></div>
-          </div>
-        </div>
-
-        <div class="report-kind-fields full" data-kind="TU_VONG" hidden>
-          <div class="report-form-grid nested">
-            <div class="field full"><label>Nguyên nhân *<textarea id="reportCause" rows="3" maxlength="1500"></textarea></label></div>
+            <div class="field full"><label>Nguyên nhân tử vong *<textarea id="reportCause" rows="3" maxlength="1500"></textarea></label></div>
             <div class="field"><label>Ngày tử vong *<input id="reportDeathDate" type="date"></label></div>
-            <div class="field"><label>Nơi tử vong *<input id="reportDeathPlace" maxlength="300"></label></div>
+            <div class="field"><label>Nơi tử vong<input id="reportDeathPlace" type="hidden" value="Trung tâm Bảo trợ xã hội Tân Hiệp"><span class="journey-readonly-place"><span aria-hidden="true">⌖</span><strong>Trung tâm Bảo trợ xã hội Tân Hiệp</strong></span></label></div>
           </div>
         </div>
 
@@ -475,8 +500,9 @@
       <div id="reportFormError" class="category-error" aria-live="polite"></div>
       <div class="confirm-actions">
         <button id="reportCancel" class="btn btn-ghost" type="button">Quay lại</button>
-        <button id="reportSave" class="btn btn-primary" type="button">Lưu báo cáo</button>
+        <button id="reportSave" class="btn btn-primary" type="button">Lưu tử vong</button>
       </div>
+      <input id="reportDiagnosis" type="hidden"><input id="reportTransferDate" type="hidden"><input id="reportTransferFrom" type="hidden"><input id="reportTransferTo" type="hidden">
     </div>
   </div>
 

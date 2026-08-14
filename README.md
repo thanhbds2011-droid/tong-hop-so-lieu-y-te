@@ -1,73 +1,105 @@
-## Phiên bản production 8.3.5
+# Ứng dụng Phòng Y tế — Firebase Production 8.5.1
 
-Phiên bản 8.3.5 giữ nguyên toàn bộ nghiệp vụ production của 8.3.4 và tinh gọn lại giao diện Lịch sử chuyển viện theo phản hồi người dùng cuối: bỏ icon người/xe cứu thương vì tạo nhiễu thị giác, bỏ nhãn “LỊCH SỬ HÀNH TRÌNH” trong cửa sổ chi tiết, chỉ giữ tên đối tượng làm tiêu đề chính. Realtime Sync, Update Manager, PWA, Authentication, phân quyền và Firebase Rules giữ nguyên.
+Ứng dụng nghiệp vụ Phòng Y tế của Trung tâm Bảo trợ xã hội Tân Hiệp.
 
-# Ứng dụng Phòng Y tế — Firebase Production 8.3.5
+## Kiến trúc
 
-Bản 8.1.1 giữ nguyên kiến trúc quyền hiện tại và bổ sung **Hành trình chuyển viện** cho phân hệ Báo cáo.
+- Frontend: HTML, CSS, JavaScript thuần trên GitHub Pages.
+- Xác thực: Firebase Authentication / Google Sign-In.
+- Cơ sở dữ liệu: Firebase Realtime Database.
+- PWA: `manifest.webmanifest`, `service-worker.js`, offline shell và Update Manager.
+- Không dùng Cloud Firestore.
 
-## Phân hệ
+## Phân hệ chính
 
-1. **Tổng hợp số liệu** — giữ nguyên `tongHopYTe` và nghiệp vụ production hiện có.
-2. **Báo cáo** — quyền dùng chung tại `baoCaoYTe/phanQuyen`:
-   - **Chuyển viện**: Đang theo dõi / Lập chuyển viện / Lịch sử.
-   - **Tử vong**: giữ nguyên nghiệp vụ báo cáo hiện tại.
+1. **Tổng quan** — tổng hợp các chỉ tiêu theo ngày/khoảng thời gian.
+2. **Nhập liệu** — nhập các chỉ tiêu thủ công còn lại.
+3. **Báo cáo — Chuyển viện & tử vong** — một luồng nghiệp vụ thống nhất.
+4. **Quản trị** — danh mục và phân quyền theo vai trò hiện có.
 
-Firebase Authentication dùng chung. Người dùng có thể được cấp quyền Tổng hợp, Báo cáo, cả hai hoặc không có quyền.
+## Chuyển viện & tử vong — 8.5.1
 
-## Nguyên tắc 8.1.1
+Báo cáo được tổ chức thành bốn màn hình:
 
-- Không dùng Firestore.
-- Không thay đổi node HSBA.
-- Không thay đổi schema/rules `tongHopYTe`.
-- Không tự động ghi Chuyển viện/Tử vong sang Tổng hợp số liệu.
-- Không tự tạo Báo cáo tử vong khi hành trình kết thúc bằng `Tử vong tại bệnh viện`.
-- Ngày giờ nghiệp vụ của Hành trình chuyển viện dùng Firebase Server Timestamp.
-- Một đối tượng không được mở đồng thời hai hành trình chuyển viện.
-- Chuyển tiếp bệnh viện tạo chặng mới; chặng/lịch sử cũ không bị sửa đè.
-- Hành trình kết thúc khi `Đã về Trung tâm` hoặc `Tử vong tại bệnh viện`.
-- Role `viewer` chỉ xem; `nhaplieu` và `admin` được lập/cập nhật.
+- **Đang theo dõi:** hành trình có `trangThaiKyThuat = OPEN`.
+- **Lập chuyển viện:** mở hành trình mới; mỗi hành trình mới tương ứng đúng 01 lượt chuyển viện.
+- **Tử vong tại Trung tâm:** chỉ dùng khi đối tượng tử vong tại Trung tâm.
+- **Lịch sử:** Đã về Trung tâm, Tử vong tại bệnh viện và Tử vong tại Trung tâm.
 
-## Node bổ sung 8.1.1
+Nếu đối tượng tử vong trong khi đang có hành trình ngoài Trung tâm, **không lập thêm báo cáo tử vong**. Người dùng cập nhật chính hành trình đó thành `TU_VONG_TAI_BENH_VIEN`; hành trình chuyển từ `OPEN` sang `CLOSED` và xuất hiện trong Lịch sử.
+
+Dữ liệu báo cáo/chuyển viện cũ được giữ nguyên trong Realtime Database để tương thích ngược nhưng không được biến thành một luồng nghiệp vụ song song.
+
+## Dashboard nghiệp vụ
+
+Màn hình Chuyển viện & tử vong hiển thị:
+
+- **Đang ngoài Trung tâm:** số hành trình đang `OPEN`.
+- **Lượt chuyển viện hôm nay:** số hành trình được mở trong ngày.
+- **Tử vong hôm nay:** tổng Tử vong tại bệnh viện + Tử vong tại Trung tâm trong ngày.
+
+## Tích hợp tự động với Tổng hợp số liệu
+
+Các chỉ tiêu **Chuyển viện** và **Tử vong** (nếu tồn tại trong danh mục Tổng hợp) được hệ thống tự động tính từ nghiệp vụ. **Số tự động là số tham chiếu mặc định**, nhưng người có quyền Tổng hợp Y tế vẫn được phép kiểm tra và **Sửa** số liệu chính thức khi phát hiện báo cáo nghiệp vụ sai/trùng/thiếu.
 
 ```text
 baoCaoYTe/
-  hanhTrinhChuyenVien/{caseId}/
-    thongTin
-    chang/{stageId}
-    lichSu/{historyId}
-
-  hanhTrinhDangMo/{doiTuongKey}: {caseId}
+  congKhaiThongKe/
+    chuyenVienTheoNgay/
+      YYYY-MM-DD/
+        {caseId}: true
+    tuVongTheoNgay/
+      YYYY-MM-DD/
+        HOSP_{caseId}: true
+        CENTER_{reportId}: true
 ```
 
-Các node cũ `baoCaoYTe/baoCao`, `phanQuyen`, `lichSu`, `nhatKy`, `cauHinh`, `_migration` giữ nguyên.
+Marker chỉ chứa ID kỹ thuật ngẫu nhiên và boolean; không chứa tên, BHYT, chẩn đoán hay dữ liệu cá nhân. `app.js` đếm marker và ghép realtime vào Tổng quan/Nhập liệu.
 
-## Dữ liệu chuyển viện cũ
+Trong **Nhập số liệu**:
 
-Dữ liệu Chuyển viện cũ vẫn có thể còn lưu tại `baoCaoYTe/baoCao` để bảo toàn dữ liệu, nhưng **không còn được đọc/hiển thị trong module Hành trình chuyển viện**. Phiên bản hiện tại không tự xóa dữ liệu cũ và không yêu cầu migration.
+- nếu chưa có điều chỉnh, giá trị chính thức = giá trị tự động;
+- người nhập liệu vẫn có nút **Sửa**;
+- khi sửa chỉ tiêu tự động, phải nhập lý do;
+- sau khi sửa, giá trị đã kiểm tra được dùng làm số liệu chính thức; giá trị tự động vẫn hiển thị để đối chiếu;
+- mọi lần sửa được ghi `tongHopYTe/lichSu` với giá trị trước/sau, lý do, UID, Gmail, tên hiển thị, role và thời điểm;
+- nút **Lịch sử** cho phép người dùng Tổng hợp Y tế đã được cấp quyền xem lại các lần điều chỉnh.
+
+Tên người điều chỉnh không nhập bằng tay mà lấy từ tài khoản Firebase/Gmail đang đăng nhập và bản ghi phân quyền `tongHopYTe/phanQuyen/{uid}`.
+
+## Quyền
+
+Báo cáo dùng `baoCaoYTe/phanQuyen/{uid}` với các role hiện có:
+
+- `admin`
+- `nhaplieu`
+- `viewer`
+
+Không thay Authentication và không mở rộng quyền của các node HSBA hoặc `tongHopYTe`.
+
+## Realtime và PWA
+
+- Tổng quan, Nhập liệu và Chuyển viện/Tử vong tiếp tục dùng realtime listener.
+- Không yêu cầu F5 để nhận dữ liệu mới.
+- Update Manager kiểm tra `version.json` khi mở app, foreground, online trở lại và định kỳ.
+- Nếu đang có dữ liệu chưa lưu, thao tác **Cập nhật ngay** sẽ cảnh báo trước khi reload.
+- Phiên bản/cache production: **8.5.1**.
 
 ## File production chính
 
 - `index.html`
-- `styles.css`
-- `ui-fixes.css`
-- `reports.css`
-- `journeys.css`
-- `app.js`
-- `reports.js`
-- `journeys.js`
-- `app-config.js`
-- `service-worker.js`
-- `manifest.webmanifest`
+- `styles.css`, `ui-fixes.css`, `reports.css`, `journeys.css`, `professional-ui.css`
+- `app.js`, `reports.js`, `journeys.js`, `ui-fixes.js`
+- `app-config.js`, `update-manager.js`
+- `service-worker.js`, `sw.js`, `manifest.webmanifest`, `offline.html`, `version.json`
 - `firebase-database.rules.json`
 
-Xem `HUONG_DAN_NANG_CAP_8.1.1.txt` để triển khai và `TEST_HANH_TRINH_8.1.1.md` để kiểm thử.
+## Triển khai 8.5.1
 
-## Nâng cấp 8.1.1 — giao diện & danh mục chuyển viện
+Xem:
 
-- Giao diện Báo cáo/Hành trình được thu gọn theo mô hình workspace, giảm card lồng nhau và khoảng trắng dư.
-- `Lập chuyển viện` dùng **Hình thức chuyển**: Cấp cứu, Tái khám, Chuyển viện, Khác. Chọn Khác sẽ mở ô nhập riêng.
-- `Nơi đến` dùng danh mục chọn nhanh: Trung tâm Y tế KV Bình Long, Bệnh viện ĐK Bình Phước, Bệnh viện ĐK Bình Dương, Bệnh viện Chợ Rẫy, Bệnh viện Nhân Ái, hoặc Khác.
-- Khi chọn `Khác`, người dùng nhập tên cơ sở thực tế.
-- Trạng thái kỹ thuật khi mở hành trình là `DANG_THEO_DOI`; sau đó có thể cập nhật Tái khám, Đang điều trị, Chuyển tiếp bệnh viện khác, Tử vong tại bệnh viện hoặc Đã về Trung tâm.
-- Không thay dữ liệu Tổng hợp số liệu, Báo cáo tử vong hoặc HSBA.
+- `HUONG_DAN_NANG_CAP_8.5.1.txt`
+- `TEST_8.5.1.md`
+- `CHANGELOG_8.5.1.md`
+
+Phiên bản này **không yêu cầu migration dữ liệu**. Firebase Rules có bổ sung tối thiểu cho node thống kê dẫn xuất và giới hạn báo cáo độc lập mới chỉ còn Tử vong tại Trung tâm; cần publish Rules trước hoặc đồng thời với source 8.5.1.

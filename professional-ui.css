@@ -1,5 +1,5 @@
 /* ================================================================
-   TAN HIEP HEALTHCARE OPERATIONS UI — v8.4.0
+   TAN HIEP HEALTHCARE OPERATIONS UI — v8.5.1
    Visual design system only. Business logic, DOM ids and Firebase
    data flows remain unchanged.
    ================================================================ */
@@ -1782,4 +1782,12 @@ textarea::placeholder {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+}
+
+/* 8.5.1 — unified care additions loaded last */
+#transferJourneyPanel .journey-history-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 768px) {
+  #transferJourneyPanel .journey-history-summary { grid-template-columns: 1fr; }
 }

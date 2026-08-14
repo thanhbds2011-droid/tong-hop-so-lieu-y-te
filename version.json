@@ -1,7 +1,7 @@
 {
-  "version": "8.4.0",
-  "releasedAt": "2026-08-13T21:53:00+07:00",
-  "title": "Professional Healthcare Workspace UI",
-  "message": "Chuẩn hóa giao diện ứng dụng Phòng Y tế theo mô hình phần mềm nghiệp vụ: desktop sidebar, mobile/PWA bottom navigation, card/form/timeline gọn hơn; giữ nguyên toàn bộ nghiệp vụ và dữ liệu.",
+  "version": "8.5.1",
+  "releasedAt": "2026-08-14T09:50:00+07:00",
+  "title": "Đối soát số liệu tự động",
+  "message": "Giữ số liệu Chuyển viện/Tử vong tự động làm tham chiếu nhưng cho phép người nhập liệu sửa số chính thức; bổ sung lịch sử điều chỉnh với giá trị trước-sau, lý do, tên và Gmail tài khoản được cấp quyền.",
   "required": false
 }
