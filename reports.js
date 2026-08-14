@@ -643,23 +643,52 @@ function reportPayload() {
   };
 }
 
-async function findOpenJourneyConflict(payload) {
+function comparePatientIdentity(source, payload) {
+  const sourceName = normalizeSearch(source.doiTuongNorm || source.doiTuong || source.hoTenNorm || source.hoTenBenhNhan || '');
+  const payloadName = normalizeSearch(payload.hoTenNorm || payload.hoTenBenhNhan || '');
+  const sourceGender = String(source.gioiTinh || '');
+  const payloadGender = String(payload.gioiTinh || '');
+  const sourceYear = Number(source.namSinh || 0);
+  const payloadYear = Number(payload.namSinh || 0);
+  const sourceBhyt = normalizeBHYT(source.theBHYTNorm || source.theBHYT || '');
+  const payloadBhyt = normalizeBHYT(payload.theBHYT || '');
+  const sameProfile = sourceName === payloadName && sourceGender === payloadGender && sourceYear === payloadYear;
+
+  if (sourceBhyt && payloadBhyt && sourceBhyt === payloadBhyt && !sameProfile) {
+    return { match: false, conflict: true, reason: 'Mã BHYT này đang gắn với họ tên/giới tính/năm sinh khác. Vui lòng kiểm tra lại thông tin.' };
+  }
+  if (sameProfile && sourceBhyt && payloadBhyt && sourceBhyt !== payloadBhyt) {
+    return { match: false, conflict: true, reason: 'Đối tượng cùng họ tên, giới tính và năm sinh đang có mã BHYT khác. Vui lòng kiểm tra lại trước khi ghi nhận.' };
+  }
+  if (!sameProfile) return { match: false, conflict: false };
+  if (!sourceBhyt || !payloadBhyt || sourceBhyt === payloadBhyt) return { match: true, conflict: false };
+  return { match: false, conflict: false };
+}
+
+async function findJourneyConflict(payload) {
   const snap = await get(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien`));
   const raw = snapshotObject(snap);
-  const name = normalizeSearch(payload.hoTenBenhNhan);
-  const gender = String(payload.gioiTinh || '');
-  const year = Number(payload.namSinh || 0);
-  const bhyt = normalizeBHYT(payload.theBHYT || '');
   for (const id of Object.keys(raw)) {
     const info = raw[id] && raw[id].thongTin ? raw[id].thongTin : {};
-    if (info.trangThaiKyThuat !== 'OPEN') continue;
-    const sameProfile = normalizeSearch(info.doiTuongNorm || info.doiTuong) === name && String(info.gioiTinh || '') === gender && Number(info.namSinh || 0) === year;
-    const itemBhyt = normalizeBHYT(info.theBHYTNorm || info.theBHYT || '');
-    if (bhyt && itemBhyt && bhyt === itemBhyt) {
-      if (!sameProfile) throw new Error('Mã BHYT này đang thuộc một hành trình có họ tên/giới tính/năm sinh khác. Vui lòng kiểm tra lại thông tin.');
-      return info;
-    }
-    if (sameProfile && (!bhyt || !itemBhyt)) return info;
+    const identity = comparePatientIdentity(info, payload);
+    if (identity.conflict) throw new Error(identity.reason);
+    if (!identity.match) continue;
+    if (info.trangThaiKyThuat === 'OPEN') return { kind: 'OPEN', info };
+    if (info.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN') return { kind: 'HOSPITAL_DEATH', info };
+  }
+  return null;
+}
+
+async function findCenterDeathDuplicate(payload, excludeId) {
+  const snap = await get(ref(db, `${REPORT_ROOT}/baoCao`));
+  const raw = snapshotObject(snap);
+  for (const id of Object.keys(raw)) {
+    const item = { id, ...(raw[id] || {}) };
+    if (!item || item.id === excludeId || item.trangThai === 'deleted' || item.loaiBaoCao !== 'TU_VONG') continue;
+    if (!(item.source === 'CENTER_DEATH' || normalizeSearch(item.noiTuVong) === normalizeSearch('Trung tâm Bảo trợ xã hội Tân Hiệp'))) continue;
+    const identity = comparePatientIdentity(item, payload);
+    if (identity.conflict) throw new Error(identity.reason);
+    if (identity.match) return item;
   }
   return null;
 }
@@ -680,13 +709,18 @@ async function saveReport() {
       : null;
     if (existing && existing.trangThai === 'deleted') throw new Error('Báo cáo đã bị xóa và không thể chỉnh sửa.');
 
-    if (!existing && payload.loaiBaoCao === 'TU_VONG') {
-      const openCase = await findOpenJourneyConflict(payload);
-      if (openCase) throw new Error(`Đối tượng đang có hành trình ngoài Trung tâm tại ${openCase.noiHienTai || 'cơ sở y tế'}. Nếu tử vong trong quá trình chuyển viện, hãy cập nhật trạng thái Tử vong tại bệnh viện trên hành trình đó.`);
-      const nameNorm = normalizeSearch(payload.hoTenBenhNhan);
-      const bhytNorm = normalizeBHYT(payload.theBHYT || '');
-      const duplicateDeath = reportState.reports.find((item) => item.trangThai !== 'deleted' && item.loaiBaoCao === 'TU_VONG' && (item.source === 'CENTER_DEATH' || normalizeSearch(item.noiTuVong) === normalizeSearch('Trung tâm Bảo trợ xã hội Tân Hiệp')) && String(item.ngayBaoCao || '') === payload.ngayBaoCao && normalizeSearch(item.hoTenNorm || item.hoTenBenhNhan) === nameNorm && String(item.gioiTinh || '') === payload.gioiTinh && Number(item.namSinh || 0) === Number(payload.namSinh || 0) && (!bhytNorm || !normalizeBHYT(item.theBHYT || '') || normalizeBHYT(item.theBHYT || '') === bhytNorm));
-      if (duplicateDeath) throw new Error('Trường hợp tử vong tại Trung tâm này đã được ghi nhận trong ngày. Vui lòng kiểm tra Lịch sử trước khi tạo mới.');
+    if (payload.loaiBaoCao === 'TU_VONG') {
+      const journeyConflict = await findJourneyConflict(payload);
+      if (journeyConflict && journeyConflict.kind === 'OPEN') {
+        throw new Error(`Đối tượng đang có hành trình ngoài Trung tâm tại ${journeyConflict.info.noiHienTai || 'cơ sở y tế'}. Nếu tử vong trong quá trình chuyển viện, hãy cập nhật trạng thái Tử vong tại bệnh viện trên hành trình đó.`);
+      }
+      if (journeyConflict && journeyConflict.kind === 'HOSPITAL_DEATH') {
+        throw new Error('Đối tượng đã được ghi nhận tử vong tại bệnh viện trong một hành trình chuyển viện. Không tạo thêm tử vong tại Trung tâm để tránh đếm trùng.');
+      }
+      const duplicateDeath = await findCenterDeathDuplicate(payload, existing && existing.id);
+      if (duplicateDeath) {
+        throw new Error(`Đối tượng đã có bản ghi tử vong tại Trung tâm ngày ${fmtDate(duplicateDeath.ngayBaoCao || duplicateDeath.ngayTuVong || '')}. Vui lòng mở bản ghi hiện có để chỉnh sửa thay vì tạo thêm.`);
+      }
     }
     const now = Date.now();
     const generated = reportState.editingId || ((payload.loaiBaoCao === 'TU_VONG' ? 'TV_' : 'CV_') + push(ref(db, `${REPORT_ROOT}/baoCao`)).key);

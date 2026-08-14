@@ -310,7 +310,7 @@ async function ensureRegistrationRequest(user, profile) {
   const requestRef = ref(firebaseDatabase, `${ROOT}/yeuCauDangKy/${user.uid}`);
   const snap = await get(requestRef);
   const existing = snapshotObject(snap);
-  if (existing.status === 'pending' || existing.status === 'approved') return existing;
+  if (existing.status === 'pending' || existing.status === 'approved' || existing.status === 'rejected') return existing;
 
   const displayName = String(
     (profile && profile.displayName) || user.displayName || user.email || ''
@@ -459,11 +459,10 @@ async function resolveApplicationAccess(user, profile) {
     };
   }
 
-  // Giữ tương thích với các yêu cầu cấp quyền Tổng hợp số liệu đã tồn tại trước đây,
-  // nhưng không tự tạo yêu cầu mới. Người dùng mới được ghi vào yTeApp/nguoiDung
-  // để Quản trị viên có thể cấp đúng phân hệ.
-  const requestSnap = await get(ref(firebaseDatabase, `${ROOT}/yeuCauDangKy/${user.uid}`));
-  const request = snapshotObject(requestSnap);
+  // Người dùng đã xác thực Google nhưng chưa có quyền ở bất kỳ phân hệ nào
+  // được ghi nhận thành yêu cầu chờ duyệt. Đăng ký không tự cấp quyền.
+  // Nếu yêu cầu đã bị từ chối, giữ nguyên trạng thái rejected cho đến khi admin xử lý/xóa.
+  const request = await ensureRegistrationRequest(user, profile);
   return {
     success: true,
     active: false,
@@ -618,7 +617,9 @@ async function adjustDailyDataFirebase(payload) {
     throw new Error('Số liệu vừa được cập nhật từ thiết bị khác. Ứng dụng đã tự đồng bộ; vui lòng kiểm tra giá trị mới và thực hiện lại.');
   }
   const beforeValue = currentSnap.exists() ? Number(current.giaTri || 0) : (derivedKind ? Number(autoValue || 0) : 0);
-  if (beforeValue === newValue) throw new Error('Số liệu mới đang bằng số hiện tại.');
+  // Giá trị 0 là dữ liệu hợp lệ ở lần ghi nhận đầu tiên. Chỉ chặn thao tác
+  // không làm thay đổi dữ liệu khi bản ghi thực tế đã tồn tại.
+  if (currentSnap.exists() && beforeValue === newValue) throw new Error('Số liệu mới đang bằng số hiện tại.');
 
   const nextVersion = expectedVersion + 1;
   const action = derivedKind ? 'Điều chỉnh số liệu tự động' : (currentSnap.exists() ? 'Điều chỉnh' : 'Ghi nhận');
@@ -1072,16 +1073,26 @@ async function requireReportPermissionManager() {
 
 async function getAdminReportUsersFirebase() {
   await requireReportPermissionManager();
-  const [directorySnap, permissionSnap, displayNameSnap] = await Promise.all([
+  const [directorySnap, permissionSnap, displayNameSnap, deletedSnap, requestSnap] = await Promise.all([
     get(ref(firebaseDatabase, `${YTE_APP_ROOT}/nguoiDung`)),
     get(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen`)),
-    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/tenHienThi`)).catch(() => null)
+    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/tenHienThi`)).catch(() => null),
+    get(ref(firebaseDatabase, `${ROOT}/cauHinh/taiKhoanDaXoa`)).catch(() => null),
+    get(ref(firebaseDatabase, `${ROOT}/yeuCauDangKy`)).catch(() => null)
   ]);
   const directory = snapshotObject(directorySnap);
   const permissions = snapshotObject(permissionSnap);
   const customNames = snapshotObject(displayNameSnap);
+  const deletedUsers = snapshotObject(deletedSnap);
+  const requests = snapshotObject(requestSnap);
   const uids = new Set([...Object.keys(directory), ...Object.keys(permissions)]);
-  const users = Array.from(uids).map((uid) => {
+  const users = Array.from(uids).filter((uid) => {
+    // Xóa khỏi ứng dụng phải đồng nhất ở cả màn hình Tài khoản Tổng hợp và Quyền Báo cáo.
+    // Nếu người dùng đăng nhập lại và phát sinh một yêu cầu pending mới, họ được xem là
+    // đăng ký lại và có thể xuất hiện để admin xét duyệt/cấp quyền lại.
+    if (!deletedUsers[uid] || permissions[uid]) return true;
+    return !!(requests[uid] && requests[uid].status === 'pending');
+  }).map((uid) => {
     const profile = directory[uid] || {};
     const permission = permissions[uid] || {};
     return {
@@ -1903,7 +1914,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.2.0'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.2.1'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;

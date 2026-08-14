@@ -1,5 +1,5 @@
 /* ================================================================
-   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.2.0
+   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.2.1
    Shared design system, application shell and cross-module components.
    Business logic lives in app.js / reports.js / journeys.js.
    ================================================================ */
@@ -715,7 +715,7 @@ body.is-busy .loading-layer { display: grid; }
 .offline-card p { margin: 0 0 18px; color: var(--color-text-2); }
 
 /* ================================================================
-   PRODUCTION UX 9.2.0
+   PRODUCTION UX 9.2.1
    General reporting dashboard + selector-first data entry.
    ================================================================ */
 .nav-item { position: relative; }

@@ -132,10 +132,21 @@ function patientFactsHtml(item, options = {}) {
   if (options.includeBHYT !== false) parts.push(`<span>BHYT: <b>${esc(bhyt || 'Chưa ghi nhận')}</b></span>`);
   return parts.length ? `<div class="journey-person-facts">${parts.join('<i aria-hidden="true">•</i>')}</div>` : '';
 }
-function todayIso() {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+function isoDateAt(value) {
+  const date = value instanceof Date ? value : new Date(Number(value || Date.now()));
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
   const part = (type) => parts.find((item) => item.type === type)?.value || '';
   return `${part('year')}-${part('month')}-${part('day')}`;
+}
+function todayIso() { return isoDateAt(Date.now()); }
+async function serverTodayIso() {
+  try {
+    const offsetSnap = await get(ref(db, '.info/serverTimeOffset'));
+    const offset = offsetSnap.exists() ? Number(offsetSnap.val() || 0) : 0;
+    return isoDateAt(Date.now() + offset);
+  } catch (_) {
+    return todayIso();
+  }
 }
 function isoDateFromTimestamp(value) {
   const n = Number(value || 0);
@@ -297,6 +308,41 @@ function activeDuplicate(payload) {
     if (sameProfile && b && itemBhyt && b !== itemBhyt) {
       return { conflict: true, item, message: 'Đối tượng cùng họ tên, giới tính và năm sinh đang có hành trình nhưng mã BHYT khác. Vui lòng kiểm tra lại trước khi tạo hành trình mới.' };
     }
+  }
+  return null;
+}
+
+function compareIdentity(payload, item) {
+  const n = normalizeText(payload.doiTuong);
+  const g = String(payload.gioiTinh || '').trim();
+  const y = Number(payload.namSinh || 0);
+  const b = normalizeBHYT(payload.theBHYT);
+  const itemName = normalizeText(item.doiTuongNorm || item.doiTuong || item.hoTenNorm || item.hoTenBenhNhan);
+  const itemGender = String(item.gioiTinh || '').trim();
+  const itemYear = Number(item.namSinh || 0);
+  const itemBhyt = normalizeBHYT(item.theBHYTNorm || item.theBHYT);
+  const sameProfile = itemName === n && itemGender === g && itemYear === y;
+  if (b && itemBhyt && b === itemBhyt) return sameProfile ? 'same' : 'conflict';
+  if (sameProfile && (!b || !itemBhyt)) return 'same';
+  if (sameProfile && b && itemBhyt && b !== itemBhyt) return 'conflict';
+  return 'different';
+}
+
+async function deceasedDuplicate(payload) {
+  for (const item of state.closedCases.filter((row) => row.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN')) {
+    const match = compareIdentity(payload, item);
+    if (match === 'conflict') return { conflict: true, message: 'Thông tin đối tượng trùng hồ sơ tử vong tại bệnh viện nhưng họ tên/giới tính/năm sinh/BHYT không khớp hoàn toàn. Vui lòng kiểm tra lại.' };
+    if (match === 'same') return { deceased: true, label: 'tử vong tại bệnh viện' };
+  }
+  const reportSnap = await get(ref(db, `${REPORT_ROOT}/baoCao`));
+  const raw = snapshotObject(reportSnap);
+  for (const [id, src] of Object.entries(raw)) {
+    if (!src || src.trangThai === 'deleted' || src.loaiBaoCao !== 'TU_VONG') continue;
+    if (!(src.source === 'CENTER_DEATH' || normalizeText(src.noiTuVong) === normalizeText(CENTER_NAME))) continue;
+    const item = centerDeathFromRaw(id, src);
+    const match = compareIdentity(payload, item);
+    if (match === 'conflict') return { conflict: true, message: 'Thông tin đối tượng trùng hồ sơ tử vong tại Trung tâm nhưng họ tên/giới tính/năm sinh/BHYT không khớp hoàn toàn. Vui lòng kiểm tra lại.' };
+    if (match === 'same') return { deceased: true, label: 'tử vong tại Trung tâm' };
   }
   return null;
 }
@@ -471,18 +517,20 @@ function startJourneyRealtime() {
 }
 
 async function loadJourneys(force) {
-  if (!validPermission(state.permission) && !isOwner()) return;
+  if (!validPermission(state.permission) && !isOwner()) return false;
   startJourneyRealtime();
-  if (!force && state.loadedAt) { renderTracking(); renderHistory(); return; }
-  if (state.loading && !force) return;
+  if (!force && state.loadedAt) { renderTracking(); renderHistory(); return true; }
+  if (state.loading && !force) return true;
   state.loading = true;
   showState('journeyTrackingLoadState', 'Đang tải hành trình chuyển viện...', '', true);
   try {
     const journeySnap = await get(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien`));
     applyJourneySnapshot(journeySnap);
+    return true;
   } catch (error) {
     console.error(error);
     showState('journeyTrackingLoadState', friendlyError(error, 'Không tải được hành trình chuyển viện. Vui lòng thử lại.'), 'err', false);
+    return false;
   } finally {
     state.loading = false;
   }
@@ -758,16 +806,21 @@ async function createJourney() {
   $('journeyCreateSave').disabled = true;
   $('journeyCreateSave').textContent = 'Đang lưu...';
   try {
-    await loadJourneys(true);
+    const refreshed = await loadJourneys(true);
+    if (!refreshed) throw new Error('Không thể kiểm tra dữ liệu hành trình mới nhất. Vui lòng kiểm tra kết nối và thử lại để tránh tạo trùng hồ sơ.');
     const duplicate = activeDuplicate(payload);
     if (duplicate && duplicate.conflict) throw new Error(duplicate.message);
     if (duplicate && duplicate.duplicate) throw new Error(`Đối tượng đang có hành trình chưa kết thúc tại ${duplicate.item.noiHienTai || 'cơ sở y tế'}.`);
+    const deceased = await deceasedDuplicate(payload);
+    if (deceased && deceased.conflict) throw new Error(deceased.message);
+    if (deceased && deceased.deceased) throw new Error(`Đối tượng đã được ghi nhận ${deceased.label}. Không thể lập hành trình chuyển viện mới.`);
 
     const caseId = 'HTCV_' + push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien`)).key;
     await claimOpenIndex(payload.doiTuongKey, caseId);
     const stageId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/chang`)).key;
     const historyId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/lichSu`)).key;
-    const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${todayIso().slice(0, 7)}`)).key;
+    const businessDate = await serverTodayIso();
+    const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${businessDate.slice(0, 7)}`)).key;
     const displayName = await resolveCurrentDisplayName();
     const email = normalizeEmail(user.email);
     const ts = serverTimestamp();
@@ -841,13 +894,13 @@ async function createJourney() {
       displayName,
       createdAt: ts
     };
-    updates[`${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${todayIso()}/${caseId}`] = true;
+    updates[`${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${businessDate}/${caseId}`] = true;
     updates[`${REPORT_ROOT}/nhatKy/${todayIso().slice(0, 7)}/${logId}`] = {
       action: 'Lập hành trình chuyển viện',
       content: `${payload.doiTuong} · ${CENTER_NAME} → ${payload.noiDen}`,
       reportId: caseId,
       loaiBaoCao: 'CHUYEN_VIEN',
-      dataDate: todayIso(),
+      dataDate: businessDate,
       uid: user.uid,
       email,
       displayName,
@@ -980,7 +1033,8 @@ async function saveJourneyUpdate() {
     if (latest.trangThaiKyThuat !== 'OPEN') throw new Error('Hành trình này đã kết thúc và không thể cập nhật thêm.');
 
     const historyId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/lichSu`)).key;
-    const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${todayIso().slice(0, 7)}`)).key;
+    const businessDate = await serverTodayIso();
+    const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${businessDate.slice(0, 7)}`)).key;
     const displayName = await resolveCurrentDisplayName();
     const email = normalizeEmail(user.email);
     const ts = serverTimestamp();
@@ -1067,14 +1121,14 @@ async function saveJourneyUpdate() {
       updates[`${REPORT_ROOT}/hanhTrinhDangMo/${latest.doiTuongKey}`] = null;
     }
     if (isDeath) {
-      updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${todayIso()}/HOSP_${caseId}`] = true;
+      updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${businessDate}/HOSP_${caseId}`] = true;
     }
     updates[`${REPORT_ROOT}/nhatKy/${todayIso().slice(0, 7)}/${logId}`] = {
       action: eventLabel(eventType),
       content: `${latest.doiTuong} · ${statusLabel(payload.status)}${isTransfer ? ` · ${latest.noiHienTai} → ${payload.noiDen}` : ''}`,
       reportId: caseId,
       loaiBaoCao: 'CHUYEN_VIEN',
-      dataDate: todayIso(),
+      dataDate: businessDate,
       uid: user.uid,
       email,
       displayName,

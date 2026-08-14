@@ -1,5 +1,5 @@
 /* ================================================================
-   JOURNEYS MODULE — production 9.2.0
+   JOURNEYS MODULE — production 9.2.1
    Transfer journey, unified history and related dialogs.
    ================================================================ */
 
@@ -528,7 +528,7 @@
 }
 
 /* ================================================================
-   PRODUCTION JOURNEY UX 9.2.0
+   PRODUCTION JOURNEY UX 9.2.1
    Compact tracking/history, clear status, readable journey details.
    ================================================================ */
 .journey-reload-btn { display: none !important; }

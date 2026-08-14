@@ -1,7 +1,7 @@
 {
-  "version": "9.2.0",
-  "releasedAt": "2026-08-14T16:40:00+07:00",
-  "title": "Gọn hơn, đúng nghiệp vụ hơn",
-  "message": "Tổng quan bỏ nhắc nhập đủ và ô tìm kiếm chỉ tiêu; Nhập liệu chuyển sang chọn chỉ tiêu bằng dropdown; Đang theo dõi và Lịch sử gọn hơn; Quản trị bổ sung xóa tài khoản khỏi phạm vi Ứng dụng Phòng Y tế.",
+  "version": "9.2.1",
+  "releasedAt": "2026-08-14T17:10:00+07:00",
+  "title": "Business Stable v1.0",
+  "message": "Chốt nghiệp vụ và tăng độ ổn định: giá trị 0 được lưu đúng ngay lần đầu; tài khoản mới trở về luồng chờ duyệt; tăng kiểm tra chống trùng tử vong và ngăn lập hành trình mới cho đối tượng đã tử vong; không thay đổi kiến trúc Firebase hay nghiệp vụ HSBA.",
   "required": false
 }
