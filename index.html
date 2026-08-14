@@ -12,17 +12,17 @@
 <link href="./manifest.webmanifest" rel="manifest"/>
 <link href="./assets/favicon-32.png" rel="icon" sizes="32x32" type="image/png"/>
 <link href="./assets/apple-touch-icon.png" rel="apple-touch-icon"/>
-<link href="./styles.css?v=9.1.0" rel="stylesheet"/>
+<link href="./styles.css?v=9.2.0" rel="stylesheet"/>
 
-<link href="./reports.css?v=9.1.0" rel="stylesheet"/>
-<link href="./journeys.css?v=9.1.0" rel="stylesheet"/>
+<link href="./reports.css?v=9.2.0" rel="stylesheet"/>
+<link href="./journeys.css?v=9.2.0" rel="stylesheet"/>
 
-<script src="./app-config.js?v=9.1.0"></script>
-<script defer src="./ui.js?v=9.1.0"></script>
-<script defer src="./update-manager.js?v=9.1.0"></script>
-<script src="./app.js?v=9.1.0" type="module"></script>
-<script src="./reports.js?v=9.1.0" type="module"></script>
-<script src="./journeys.js?v=9.1.0" type="module"></script>
+<script src="./app-config.js?v=9.2.0"></script>
+<script defer src="./ui.js?v=9.2.0"></script>
+<script defer src="./update-manager.js?v=9.2.0"></script>
+<script src="./app.js?v=9.2.0" type="module"></script>
+<script src="./reports.js?v=9.2.0" type="module"></script>
+<script src="./journeys.js?v=9.2.0" type="module"></script>
 
 </head>
 <body>
@@ -30,7 +30,7 @@
 <div class="header-inner">
 <div class="brand">
 <div aria-hidden="true" class="brand-mark brand-mark-logo">
-<img alt="" src="./assets/icon-192.png?v=9.1.0"/>
+<img alt="" src="./assets/icon-192.png?v=9.2.0"/>
 </div>
 <div>
 <small>TRUNG TÂM BẢO TRỢ XÃ HỘI TÂN HIỆP</small>
@@ -90,15 +90,11 @@
 </details>
 </div>
 </section>
-<section class="dashboard-action-panel" hidden id="dashboardActionPanel" aria-live="polite">
-<div class="dashboard-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5"></path><path d="M12 16h.01"></path></svg></div>
-<div class="dashboard-action-copy"><span id="dashboardActionEyebrow">Cần xử lý</span><strong id="dashboardActionTitle">—</strong><p id="dashboardActionText"></p></div>
-<div class="dashboard-action-buttons"><button class="btn btn-primary" hidden id="dashboardGoEntry" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg><span>Nhập số liệu</span></button><button class="btn btn-ghost" hidden id="dashboardGoReports" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h4l3 3v4h-7z"></path><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg><span>Chuyển viện</span></button></div>
-</section>
+
 <section class="workspace-panel dashboard-results-panel">
 <div class="section-head">
 <div class="section-title-with-icon"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"></path></svg></span><div><h3>Số liệu theo chỉ tiêu</h3><p>Xem nhanh các số liệu đã ghi nhận trong phạm vi đang chọn.</p></div></div>
-<div class="section-tools"><div class="search-wrap"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input aria-label="Tìm tên chỉ tiêu" autocapitalize="none" autocomplete="off" autocorrect="off" class="search-box" data-1p-ignore="true" data-lpignore="true" id="dashboardSearch" name="category-search-filter" placeholder="Tìm chỉ tiêu..." spellcheck="false" type="search" value=""/></div></div>
+
 </div>
 <div aria-live="polite" class="summary-grid" id="summaryCards"></div>
 </section>
@@ -119,7 +115,7 @@
 <div class="login-stage">
 <div class="login-shell">
 <div class="login-brand-panel">
-<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=9.1.0"/></div>
+<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=9.2.0"/></div>
 </div>
 <div class="login-action-panel">
 <div class="auth-panel active" id="loginPanel">
@@ -141,34 +137,39 @@
 </div>
 </section>
 <section class="view" id="entryView">
-<div class="card entry-panel entry-panel-professional">
+<div class="entry-simple-page">
 <div class="page-header entry-app-head">
-<div class="page-heading entry-title-block"><div class="page-title-row"><span class="page-title-icon is-entry" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span><div><h2>Nhập số liệu</h2><div class="entry-date-row"><div class="field entry-date-field"><label>Ngày<input id="entryDate" type="date"/></label></div></div></div></div></div>
-<div class="entry-head-actions"><div aria-live="polite" class="entry-progress-pill"><strong><b id="recordedIndicatorCount">0</b>/<span id="totalIndicatorCount">0</span></strong><span>hoàn tất</span></div><button aria-controls="entryComposer" aria-expanded="false" class="btn btn-primary entry-add-btn" id="btnOpenEntryComposer" type="button"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg><span>Nhập số liệu</span></button><button class="compat-control" id="btnLoadDay" type="button">Tải lại</button></div>
+<div class="page-heading entry-title-block">
+<div class="page-title-row"><span class="page-title-icon is-entry" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span><div><h2>Nhập liệu</h2></div></div>
 </div>
-<div class="compat-control" hidden id="entryUserName"></div><div class="compat-control" hidden id="entryUserMeta"></div><div class="inline-state" id="entryLoadState"></div>
+<div class="field entry-date-field"><label>Ngày<input id="entryDate" type="date"/></label></div>
+<button class="compat-control" id="btnLoadDay" type="button">Tải lại</button>
 </div>
-<div class="entry-composer-backdrop" hidden="" id="entryComposerBackdrop"></div>
-<div aria-labelledby="entryComposerTitle" aria-modal="true" class="entry-composer entry-composer-dialog" hidden="" id="entryComposer" role="dialog">
-<div class="entry-composer-head">
-<div><h2 id="entryComposerTitle">Nhập số liệu</h2></div>
-<button aria-label="Đóng biểu mẫu" class="entry-composer-close" id="btnCloseEntryComposer" type="button">×</button>
-</div>
-<div class="entry-quick-grid">
-<div class="field entry-quick-category"><label>Chỉ tiêu *<select id="entryCategorySelect"><option value="">Chọn chỉ tiêu cần nhập</option></select></label></div>
-<div class="entry-selected-info" hidden="" id="entrySelectedInfo">
+<div class="compat-control" hidden id="entryUserName"></div><div class="compat-control" hidden id="entryUserMeta"></div>
+<div class="inline-state" id="entryLoadState"></div>
+<section class="workspace-panel entry-simple-panel" aria-labelledby="entrySelectorTitle">
+<div class="entry-simple-heading"><span class="section-icon is-entry" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"></path><path d="m17 15 3 3 3-3" transform="translate(-1 -2)"></path></svg></span><div><h3 id="entrySelectorTitle">Chọn chỉ tiêu</h3><p>Chọn đúng nội dung phát sinh để nhập hoặc xem số liệu đã có.</p></div></div>
+<div class="entry-inline-form" id="entryComposer">
+<div class="field entry-quick-category"><label>Chỉ tiêu<select id="entryCategorySelect"><option value="">Chọn chỉ tiêu cần nhập</option></select></label></div>
+<div class="entry-selected-card" hidden id="entrySelectedInfo">
+<div class="entry-selected-head"><div><span class="entry-selected-kicker" id="entrySelectedGroup">Chỉ tiêu</span><strong id="entrySelectedName">—</strong></div><span class="status-chip" hidden id="entrySelectedStatus"></span></div>
+<div class="entry-selected-facts">
 <div><span>Đơn vị</span><strong id="entrySelectedUnit">—</strong></div>
-<div><span>Hiện tại</span><strong id="entrySelectedCurrent">—</strong></div>
+<div><span>Giá trị hiện tại</span><strong id="entrySelectedCurrent">—</strong></div>
+<div hidden id="entrySelectedAutoRow"><span>Giá trị tự động</span><strong id="entrySelectedAuto">—</strong></div>
+<div hidden id="entrySelectedUpdaterRow"><span>Người cập nhật</span><strong id="entrySelectedUpdater">—</strong></div>
 </div>
-<div class="field entry-quick-value" hidden="" id="entryQuickValueField"><label id="entryQuickValueLabel">Số liệu *<input id="entryQuickValue" inputmode="numeric" min="0" placeholder="Nhập số liệu" step="1" type="number"/></label></div>
 </div>
+<div class="field entry-quick-value" hidden id="entryQuickValueField"><label id="entryQuickValueLabel">Số liệu *<input id="entryQuickValue" inputmode="numeric" min="0" placeholder="Nhập số liệu" step="1" type="number"/></label></div>
 <div aria-live="polite" class="adjust-error" id="entryQuickError"></div>
-<div aria-live="polite" class="adjust-progress" hidden="" id="entryQuickProgress" role="status"><span class="spinner"></span><span>Đang lưu...</span></div>
-<div class="entry-composer-actions"><button class="btn btn-ghost" id="btnCancelQuickEntry" type="button">Hủy</button><button class="btn btn-primary" disabled="" id="btnSaveQuickEntry" type="button">Lưu số liệu</button></div>
+<div aria-live="polite" class="adjust-progress" hidden id="entryQuickProgress" role="status"><span class="spinner"></span><span>Đang lưu...</span></div>
+<div class="entry-inline-actions" hidden id="entryInlineActions">
+<button class="btn btn-ghost" hidden id="btnEntrySelectedHistory" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path><path d="M12 7v5l3 2"></path></svg><span>Xem lịch sử</span></button>
+<button class="btn btn-primary" hidden id="btnEntrySelectedAdjust" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg><span>Điều chỉnh</span></button>
+<button class="btn btn-primary" disabled id="btnSaveQuickEntry" type="button">Lưu số liệu</button>
 </div>
-<div class="card entry-list-card entry-recorded-card">
-<div class="entry-list-toolbar entry-recorded-head"><div class="section-title-with-icon"><span class="section-icon is-entry" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span><div><h3>Theo dõi chỉ tiêu</h3><p>Ưu tiên các chỉ tiêu còn thiếu để hoàn tất số liệu trong ngày.</p></div></div><div class="entry-filter-tabs" role="tablist" aria-label="Lọc trạng thái nhập số liệu"><button class="entry-filter-tab active" data-entry-filter="missing" type="button">Cần nhập <span id="entryMissingCount">0</span></button><button class="entry-filter-tab" data-entry-filter="recorded" type="button">Đã có số liệu <span id="entryRecordedCount">0</span></button><button class="entry-filter-tab" data-entry-filter="all" type="button">Tất cả <span id="entryAllCount">0</span></button></div></div>
-<div aria-live="polite" class="entry-recorded-list" id="indicatorGrid"></div>
+</div>
+</section>
 </div>
 </section>
 <section class="view" id="reportsView">

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Shared interaction layer — production 9.1.0.
+ * Shared interaction layer — production 9.2.0.
  * Owns cross-module UX only: search autofill protection, textarea sizing,
  * mobile keyboard safety, dialog focus management and overflow menus.
  * No Firebase or business logic belongs in this file.
@@ -14,32 +14,6 @@
 
   function isEditable(target) {
     return !!(target && target.matches && target.matches(EDITABLE_SELECTOR));
-  }
-
-  function prepareDashboardSearch() {
-    const input = document.getElementById('dashboardSearch');
-    if (!input) return;
-    input.value = '';
-    input.setAttribute('autocomplete', 'off');
-    input.setAttribute('data-lpignore', 'true');
-    input.setAttribute('data-1p-ignore', 'true');
-
-    const unlock = () => {
-      input.readOnly = false;
-      input.removeAttribute('readonly');
-    };
-    input.addEventListener('pointerdown', unlock, { once: true });
-    input.addEventListener('keydown', unlock, { once: true });
-    input.addEventListener('touchstart', unlock, { once: true, passive: true });
-  }
-
-  function clearDashboardSearchOnReturn() {
-    const input = document.getElementById('dashboardSearch');
-    if (!input) return;
-    input.value = '';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.readOnly = true;
-    input.setAttribute('readonly', '');
   }
 
   function resizeTextarea(textarea) {
@@ -175,15 +149,12 @@
   }
 
   function init() {
-    prepareDashboardSearch();
     setupTextareaAutoGrow();
     setupMobileKeyboardSafety();
     setupDialogFocus();
     setupOverflowMenus();
-    window.setTimeout(clearDashboardSearchOnReturn, 200);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
-  window.addEventListener('pageshow', clearDashboardSearchOnReturn);
 }());

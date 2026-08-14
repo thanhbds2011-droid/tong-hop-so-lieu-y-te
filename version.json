@@ -1,7 +1,7 @@
 {
-  "version": "9.1.0",
-  "releasedAt": "2026-08-14T15:54:00+07:00",
-  "title": "Friendly Task-first UX",
-  "message": "Tối ưu giao diện thân thiện theo góc nhìn người dùng cuối: ưu tiên việc cần làm, lọc chỉ tiêu cần nhập, icon trực quan, danh sách chuyển viện gọn hơn và màn hình chi tiết rõ ràng hơn.",
+  "version": "9.2.0",
+  "releasedAt": "2026-08-14T16:40:00+07:00",
+  "title": "Gọn hơn, đúng nghiệp vụ hơn",
+  "message": "Tổng quan bỏ nhắc nhập đủ và ô tìm kiếm chỉ tiêu; Nhập liệu chuyển sang chọn chỉ tiêu bằng dropdown; Đang theo dõi và Lịch sử gọn hơn; Quản trị bổ sung xóa tài khoản khỏi phạm vi Ứng dụng Phòng Y tế.",
   "required": false
 }

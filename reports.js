@@ -219,7 +219,6 @@ function updateModuleUi(external) {
       ['admin', 'nhaplieu'].includes(reportState.tongHopPermission.role));
   const reportActive = validPermission(reportState.permission);
 
-  if ($('navHome')) $('navHome').hidden = true;
   if ($('navReports')) $('navReports').hidden = !reportActive;
   if ($('moduleTongHopCard')) $('moduleTongHopCard').hidden = !tongHopActive;
   if ($('moduleReportCard')) $('moduleReportCard').hidden = !reportActive;
@@ -402,7 +401,7 @@ function renderReports() {
         </div>
         <div class="report-row-meta">
           <span>${esc(item.gioiTinh || '—')}</span>
-          <span>${esc(item.namSinh || '—')}</span>
+          <span>${item.namSinh ? `Sinh năm ${esc(item.namSinh)}` : '—'}</span>
           <span>${esc(fmtDate(item.ngayBaoCao))}</span>
           <span>${esc(destination)}</span>
         </div>
@@ -509,7 +508,7 @@ function setReportFormReadonly(readonly) {
 }
 function populateReadonlyReportDetails(item) {
   if (!$('reportReadonlyView')) return;
-  const facts=[item.gioiTinh||'',item.namSinh?`Sinh ${item.namSinh}`:'',item.theBHYT?`BHYT ${item.theBHYT}`:''].filter(Boolean);
+  const facts=[item.gioiTinh||'',item.namSinh?`Sinh năm ${item.namSinh}`:'',item.theBHYT?`BHYT ${item.theBHYT}`:''].filter(Boolean);
   $('reportDetailName').textContent=item.hoTenBenhNhan||'Chưa có họ tên';$('reportDetailFacts').textContent=facts.length?facts.join(' · '):'Chưa có thông tin nhân thân';
   $('reportDetailDate').textContent=fmtDate(item.ngayTuVong||item.ngayBaoCao||'');$('reportDetailPlace').textContent=item.noiTuVong||'Trung tâm Bảo trợ xã hội Tân Hiệp';$('reportDetailAddress').textContent=item.diaChi||'—';$('reportDetailCause').textContent=item.nguyenNhan||'—';
   const note=String(item.ghiChu||'').trim();$('reportDetailNote').textContent=note||'—';$('reportDetailNoteRow').hidden=!note;$('reportDetailReporter').textContent=item.createdByName||item.legacyNguoiNhap||'—';

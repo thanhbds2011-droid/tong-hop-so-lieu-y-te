@@ -127,7 +127,7 @@ function iconSvg(name, className = 'journey-btn-icon') {
 function patientFactsHtml(item, options = {}) {
   const parts = [];
   if (validGender(item && item.gioiTinh)) parts.push(`<span>${esc(item.gioiTinh)}</span>`);
-  if (validBirthYear(item && item.namSinh)) parts.push(`<span>Sinh ${esc(item.namSinh)}</span>`);
+  if (validBirthYear(item && item.namSinh)) parts.push(`<span>Sinh năm ${esc(item.namSinh)}</span>`);
   const bhyt = String(item && item.theBHYT || '').trim();
   if (options.includeBHYT !== false) parts.push(`<span>BHYT: <b>${esc(bhyt || 'Chưa ghi nhận')}</b></span>`);
   return parts.length ? `<div class="journey-person-facts">${parts.join('<i aria-hidden="true">•</i>')}</div>` : '';
@@ -318,15 +318,6 @@ function journeyRouteHtml(item) {
   });
   return places.map((place, index) => `${index ? '<b class="journey-route-arrow">→</b>' : ''}<strong class="journey-route-place">${esc(place)}</strong>`).join('');
 }
-function alertBadges(item) {
-  const badges = [];
-  const sinceUpdate = hoursSince(item.updatedAt || item.ngayGioDi);
-  const sinceDeparture = hoursSince(item.ngayGioDi);
-  if (sinceUpdate >= 12) badges.push('<span class="journey-alert warn">Cần cập nhật</span>');
-  if (sinceDeparture >= 24) badges.push('<span class="journey-alert danger">Ngoài Trung tâm lâu</span>');
-  return badges.join('');
-}
-
 function routeSearchText(item) {
   const stages = Object.values(item.chang || {});
   return stages.map((stage) => `${stage.noiDi || ''} ${stage.noiDen || ''}`).join(' ');
@@ -519,9 +510,8 @@ function renderTracking() {
 
   box.innerHTML = rows.map((item) => {
     const canWrite = canEdit();
-    const alerts = alertBadges(item);
     const note = String(item.ghiChu || '').trim();
-    return `<article class="journey-card">
+    return `<article class="journey-card journey-card-compact">
       <div class="journey-card-main">
         <div class="journey-card-title">
           <div class="journey-person-head">
@@ -531,26 +521,22 @@ function renderTracking() {
           <div class="journey-card-badges">
             <span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span>
             <span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span>
-            ${alerts}
           </div>
         </div>
-        <div class="journey-location">
+        <div class="journey-location journey-location-compact">
           <span class="journey-location-label">${iconSvg('pin','journey-inline-icon')}Nơi hiện tại</span>
           <strong>${esc(item.noiHienTai || '—')}</strong>
         </div>
-        <div class="journey-meta-grid journey-meta-compact">
-          <div><span>Rời Trung tâm</span><strong>${esc(fmtDateTime(item.ngayGioDi))}</strong></div>
-          <div><span>Thời gian ngoài Trung tâm</span><strong>${esc(durationText(item.ngayGioDi))}</strong></div>
-          <div><span>Cập nhật</span><strong>${esc(fmtDateTime(item.updatedAt))}</strong></div>
-        </div>
         <details class="journey-card-details">
           <summary>Thông tin chi tiết</summary>
-          <div class="journey-clinical-grid">
-            <div class="journey-reason"><span>Lý do</span><p>${esc(item.lyDoHienTai || '—')}</p></div>
-            <div class="journey-diagnosis"><span>Tình trạng/chẩn đoán</span><p>${esc(item.tinhTrangChanDoanHienTai || '—')}</p></div>
+          <div class="journey-detail-grid-inline">
+            <div><span>Rời Trung tâm</span><strong>${esc(fmtDateTime(item.ngayGioDi))}</strong></div>
+            <div><span>Thời gian ngoài Trung tâm</span><strong>${esc(durationText(item.ngayGioDi))}</strong></div>
+            <div><span>Lý do</span><strong>${esc(item.lyDoHienTai || '—')}</strong></div>
+            <div><span>Tình trạng/chẩn đoán</span><strong>${esc(item.tinhTrangChanDoanHienTai || '—')}</strong></div>
+            ${note ? `<div class="journey-detail-note"><span>Ghi chú</span><strong>${esc(note)}</strong></div>` : ''}
+            <div><span>Người cập nhật</span><strong>${esc(preferredName(item.updatedByUid || item.createdByUid, item.updatedByName || item.createdByName))}</strong></div>
           </div>
-          ${note ? `<div class="journey-note"><span>Ghi chú</span><p>${esc(note)}</p></div>` : ''}
-          <div class="journey-updated-by"><span>Người cập nhật</span><strong>${esc(preferredName(item.updatedByUid || item.createdByUid, item.updatedByName || item.createdByName))}</strong></div>
         </details>
       </div>
       <div class="journey-card-actions">
@@ -633,23 +619,20 @@ function renderHistory() {
   }
   box.innerHTML = rows.map((item) => {
     if (item.kind === 'CENTER_DEATH') {
-      return `<article class="journey-history-card is-center-death">
-        <div class="journey-history-mark is-death">${iconSvg('activity','journey-history-symbol')}</div>
+      return `<article class="journey-history-card journey-history-compact is-center-death">
         <div class="journey-history-main">
-          <div class="journey-card-title journey-history-title"><div class="journey-person-head"><strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>${patientFactsHtml(item)}</div><span class="journey-status is-death">Tử vong tại Trung tâm</span></div>
-          <div class="journey-history-line"><strong class="journey-route-place">${esc(CENTER_NAME)}</strong></div>
-          ${item.nguyenNhan ? `<div class="journey-center-death-cause"><span>Nguyên nhân</span><strong>${esc(item.nguyenNhan)}</strong></div>` : ''}
-          <div class="journey-row-meta"><span class="journey-history-time"><b>Tử vong</b><em>${esc(item.ngayBaoCao ? item.ngayBaoCao.split('-').reverse().join('/') : '—')}</em></span><span class="journey-history-time"><b>Người nhập</b><em>${esc(preferredName(item.createdByUid, item.createdByName))}</em></span></div>
+          <div class="journey-history-title-row"><div class="journey-person-head"><strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>${patientFactsHtml(item)}</div><span class="journey-status is-death">Tử vong tại Trung tâm</span></div>
+          <div class="journey-history-route"><strong>${esc(CENTER_NAME)}</strong></div>
+          <div class="journey-history-summary"><span><b>Tử vong:</b> ${esc(item.ngayBaoCao ? item.ngayBaoCao.split('-').reverse().join('/') : '—')}</span>${item.nguyenNhan ? `<span><b>Nguyên nhân:</b> ${esc(item.nguyenNhan)}</span>` : ''}<span><b>Người nhập:</b> ${esc(preferredName(item.createdByUid, item.createdByName))}</span></div>
         </div>
         <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="center-death-view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem</span></button>${(canEdit() || isOwner() || (state.permission && state.permission.role === 'admin')) ? `<details class="journey-action-menu"><summary aria-label="Thao tác khác">${iconSvg('dots')}</summary><div class="journey-action-popover">${canEdit() ? `<button class="journey-history-action" data-kind="center-death-edit" data-id="${esc(item.id)}" type="button">${iconSvg('edit')}<span>Sửa</span></button>` : ''}${(isOwner() || (state.permission && state.permission.role === 'admin')) ? `<button class="journey-history-action journey-menu-delete" data-kind="center-death-delete" data-id="${esc(item.id)}" type="button"><span>Xóa</span></button>` : ''}</div></details>` : ''}</div>
       </article>`;
     }
-    return `<article class="journey-history-card">
-      <div class="journey-history-mark ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? iconSvg('check','journey-history-symbol') : iconSvg('activity','journey-history-symbol')}</div>
+    return `<article class="journey-history-card journey-history-compact">
       <div class="journey-history-main">
-        <div class="journey-card-title journey-history-title"><div class="journey-person-head"><strong>${esc(item.doiTuong)}</strong>${patientFactsHtml(item)}</div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
-        <div class="journey-history-line">${journeyRouteHtml(item)}</div>
-        <div class="journey-row-meta"><span class="journey-history-time"><b>Đi</b><em>${esc(fmtDateTime(item.ngayGioDi))}</em></span><span class="journey-history-time"><b>${item.ngayGioVe ? 'Về' : 'Kết thúc'}</b><em>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</em></span></div>
+        <div class="journey-history-title-row"><div class="journey-person-head"><strong>${esc(item.doiTuong)}</strong>${patientFactsHtml(item)}</div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
+        <div class="journey-history-route">${journeyRouteHtml(item)}</div>
+        <div class="journey-history-summary"><span><b>Rời Trung tâm:</b> ${esc(fmtDateTime(item.ngayGioDi))}</span><span><b>${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? 'Đã về' : 'Kết thúc'}:</b> ${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</span></div>
       </div>
       <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('route')}<span>Xem hành trình</span><b aria-hidden="true">→</b></button></div>
     </article>`;
@@ -1123,7 +1106,7 @@ function openDetail(id) {
   $('journeyDetailMeta').classList.toggle('has-demographics', hasDemographics);
   $('journeyDetailMeta').innerHTML = `
     ${validGender(item.gioiTinh) ? `<div><span>Giới tính</span><strong>${esc(item.gioiTinh)}</strong></div>` : ''}
-    ${validBirthYear(item.namSinh) ? `<div><span>Năm sinh</span><strong>${esc(item.namSinh)}</strong></div>` : ''}
+    ${validBirthYear(item.namSinh) ? `<div><span>Sinh năm</span><strong>${esc(item.namSinh)}</strong></div>` : ''}
     <div><span>Thẻ BHYT</span><strong>${esc(item.theBHYT || 'Chưa ghi nhận')}</strong></div>
     <div><span>Hình thức chuyển ban đầu</span><strong>${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</strong></div>
     <div><span>Rời Trung tâm</span><strong>${esc(fmtDateTime(item.ngayGioDi))}</strong></div>
