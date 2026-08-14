@@ -1123,7 +1123,7 @@ var AUTO_SYNC_MS = 300000;
       adminCategories:[],categoryLoadedAt:0,categoryPromise:null,adminSection:'users',
       adminReportUsers:[],adminReportLoadedAt:0,adminReportPromise:null,
       editingCategoryCode:'',categorySaving:false,
-      adjustingCode:'',adjustSaving:false,quickEntrySaving:false,
+      adjustingCode:'',adjustSaving:false,quickEntrySaving:false,entryFilter:'missing',
       historyCode:'',historyLoading:false,displayNameEditUid:'',
       dashboardLiveUnsubscribe:null,dashboardTransferStatsUnsubscribe:null,dashboardDeathStatsUnsubscribe:null,categoryLiveUnsubscribe:null,entryLiveUnsubscribe:null,entryTransferStatsUnsubscribe:null,entryDeathStatsUnsubscribe:null,
       dashboardBaseRecords:[],dashboardTransferStats:{},dashboardDeathStats:{},entryBaseRecords:[],entryTransferStats:{},entryDeathStats:{},
@@ -1201,9 +1201,21 @@ var AUTO_SYNC_MS = 300000;
     function uiIcon(name){
       var icons={
         edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/>',
-        history:'<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/><path d="M12 7v5l3 2"/>'
+        history:'<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/><path d="M12 7v5l3 2"/>',
+        plus:'<path d="M12 5v14M5 12h14"/>',
+        dots:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+        check:'<path d="m5 12 4 4L19 6"/>'
       };
       return '<svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(icons[name]||'')+'</svg>';
+    }
+    function uiMetricIcon(category){
+      var kind=metricKindFromCategory(category),text=normalizeMetricText((category&&category.name||'')+' '+(category&&category.group||'')),body='';
+      if(kind==='transfer')body='<path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>';
+      else if(kind==='death')body='<path d="M3 12h4l2-5 4 10 2-5h6"/>';
+      else if(/noi tru|kham|benh|y te|suc khoe/.test(text))body='<path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10Z"/><path d="M9 12h2l1-2 2 4 1-2h2"/>';
+      else if(/thuoc|duoc/.test(text))body='<path d="m10.5 20.5-7-7a4 4 0 0 1 5.7-5.7l7 7a4 4 0 0 1-5.7 5.7Z"/><path d="m8 6 10 10"/>';
+      else body='<path d="M6 3h9l3 3v15H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6"/>';
+      return '<span class="summary-icon '+(kind?'is-'+kind:'')+'" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+body+'</svg></span>';
     }
     function isoLocal(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
     function fmtDate(value){var p=String(value||'').split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:String(value||'')}
@@ -1288,18 +1300,32 @@ var AUTO_SYNC_MS = 300000;
     }
     function aggregate(){var totals={};state.records.forEach(function(record){totals[record.code]=(totals[record.code]||0)+Number(record.value||0)});return totals}
     function categoryMatches(category,query){return!query||String(category.name+' '+category.group+' '+category.unit).toLowerCase().indexOf(query)>=0}
-    function renderAll(){renderSummary(aggregate())}
     function recordedCodeMap(){var map={};state.records.forEach(function(record){map[record.code]=true});return map}
+    function dashboardDayMissingCategories(){
+      if($('rangeType').value!=='day'||state.from!==state.to)return[];
+      var recorded=recordedCodeMap();
+      return state.categories.filter(function(category){return !category.derivedKind&&!recorded[category.code]});
+    }
+    function updateDashboardActionPanel(){
+      var panel=$('dashboardActionPanel');if(!panel)return;
+      var isDay=$('rangeType').value==='day'&&state.from===state.to,hasTongHop=!!state.user,hasReport=hasReportAccess();
+      panel.hidden=!isDay||!hasTongHop;if(panel.hidden)return;
+      var missing=dashboardDayMissingCategories(),complete=missing.length===0;
+      panel.classList.toggle('is-complete',complete);
+      $('dashboardActionEyebrow').textContent=complete?'Đã hoàn tất':'Cần xử lý';
+      $('dashboardActionTitle').textContent=complete?'Số liệu trong ngày đã đầy đủ':missing.length+' chỉ tiêu còn cần nhập';
+      $('dashboardActionText').textContent=complete?'Bạn có thể tiếp tục theo dõi chuyển viện, tử vong hoặc tra cứu lịch sử.':'Ưu tiên hoàn tất các chỉ tiêu còn thiếu để số liệu trong ngày đầy đủ.';
+      $('dashboardGoEntry').hidden=!hasTongHop;$('dashboardGoReports').hidden=!hasReport;
+    }
+    function renderAll(){renderSummary(aggregate());updateDashboardActionPanel()}
     function renderSummary(totals){
       var query=String($('dashboardSearch').value||'').trim().toLowerCase(),recorded=recordedCodeMap();
-      var categories=selectedCategories().filter(function(c){return !!recorded[c.code]&&categoryMatches(c,query)});
-      if(!categories.length){
-        $('summaryCards').innerHTML='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có số liệu trong khoảng này.</strong></div>';
-        return;
-      }
+      var categories=selectedCategories().filter(function(c){return (!!recorded[c.code]||!!c.derivedKind)&&categoryMatches(c,query)});
+      if(!categories.length){$('summaryCards').innerHTML='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có số liệu trong phạm vi này.</strong><span>Chọn thời gian khác hoặc nhập số liệu để bắt đầu.</span></div>';return}
       $('summaryCards').innerHTML=categories.map(function(c){
-        var value=Number(totals[c.code]||0);
-        return'<article class="summary-item summary-recorded-item'+(c.derivedKind?' is-auto-derived':'')+'"><div class="summary-copy"><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+'</p></div><div class="summary-value"><span class="summary-number">'+value.toLocaleString('vi-VN')+'</span><span class="summary-unit">'+esc(c.unit)+'</span>'+(c.derivedKind?'<span class="status-chip is-auto" title="Số liệu được đồng bộ từ Chuyển viện & tử vong">Tự động</span>':'')+'</div></article>';
+        var value=Number(totals[c.code]||0),manual=state.records.some(function(record){return record.code===c.code&&record.manualOverride});
+        var chip=c.derivedKind?'<span class="status-chip '+(manual?'is-adjusted':'is-auto')+'" title="Số liệu được đồng bộ từ Chuyển viện & tử vong">'+(manual?'Đã điều chỉnh':'Tự động')+'</span>':'';
+        return'<article class="summary-item summary-recorded-item'+(c.derivedKind?' is-auto-derived':'')+'">'+uiMetricIcon(c)+'<div class="summary-copy"><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+'</p></div><div class="summary-value"><span class="summary-number">'+value.toLocaleString('vi-VN')+'</span><span class="summary-unit">'+esc(c.unit)+'</span>'+chip+'</div></article>';
       }).join('');
     }
 
@@ -1410,14 +1436,13 @@ var AUTO_SYNC_MS = 300000;
       return text?'Nhập số '+text.toLocaleLowerCase('vi-VN'):'Nhập số liệu';
     }
     function updateEntryDateLabel(){
-      // Phiên bản 9.0.0 chỉ hiển thị ngày tại bộ chọn ngày, không lặp lại ngày ở các khối nội dung.
+      // Phiên bản 9.1.0 chỉ hiển thị ngày tại bộ chọn ngày, không lặp lại ngày ở các khối nội dung.
     }
     function updateEntryStats(){
-      var recordedCount=0,total=state.categories.length;
-      state.categories.forEach(function(category){if(state.dailyByCode[category.code])recordedCount++});
-      if($('recordedIndicatorCount'))$('recordedIndicatorCount').textContent=String(recordedCount);
-      if($('totalIndicatorCount'))$('totalIndicatorCount').textContent=String(total);
-      updateEntryDateLabel();
+      var total=state.categories.length,recordedCount=0,missingCount=0;
+      state.categories.forEach(function(category){if(category.derivedKind||state.dailyByCode[category.code])recordedCount++;else missingCount++});
+      if($('recordedIndicatorCount'))$('recordedIndicatorCount').textContent=String(recordedCount);if($('totalIndicatorCount'))$('totalIndicatorCount').textContent=String(total);
+      if($('entryMissingCount'))$('entryMissingCount').textContent=String(missingCount);if($('entryRecordedCount'))$('entryRecordedCount').textContent=String(recordedCount);if($('entryAllCount'))$('entryAllCount').textContent=String(total);updateEntryDateLabel();
     }
     function renderEntryCategoryOptions(){
       var select=$('entryCategorySelect');if(!select)return;
@@ -1478,6 +1503,7 @@ var AUTO_SYNC_MS = 300000;
       }
       return true;
     }
+    function openQuickEntryForCode(code){var category=state.categories.find(function(item){return item.code===code&&!item.derivedKind});if(!category)return;if(!toggleEntryComposer(true))return;$('entryCategorySelect').value=code;updateQuickEntrySelection(true)}
     function quickEntryPayload(){
       var code=String($('entryCategorySelect').value||''),category=state.categories.find(function(item){return item.code===code});
       if(!category)throw new Error('Vui lòng chọn chỉ tiêu cần nhập.');
@@ -1500,18 +1526,20 @@ var AUTO_SYNC_MS = 300000;
       }catch(error){$('entryQuickError').textContent=error.message||String(error);setQuickEntrySaving(false)}
     }
     function renderIndicators(){
-      renderEntryCategoryOptions();var recorded=state.categories.filter(function(category){return !!state.dailyByCode[category.code]}),box=$('indicatorGrid');
+      renderEntryCategoryOptions();var box=$('indicatorGrid'),filter=state.entryFilter||'missing';
       if(!state.categories.length){box.innerHTML='<div class="empty"><strong>Chưa có danh mục chỉ tiêu.</strong></div>';updateEntryStats();return}
-      if(!recorded.length){box.innerHTML='<div class="entry-recorded-empty"><span class="entry-recorded-empty-icon" aria-hidden="true">＋</span><strong>Chưa có dữ liệu hôm nay.</strong></div>';updateEntryStats();return}
-      box.innerHTML=recorded.map(function(category){
-        var record=state.dailyByCode[category.code],current=Number(record.value||0),auto=!!(record.autoDerived||category.derivedKind),autoValue=auto?Number(record.autoValue==null?current:record.autoValue):null,manual=!!record.manualOverride;
-        var meta=esc(category.group)+(record.updatedBy?' · '+esc(record.updatedBy):'');
-        var autoTitle=auto?'Tự động ghi nhận: '+autoValue.toLocaleString('vi-VN')+' '+esc(category.unit):'';
-        var status=auto?'<span class="status-chip '+(manual?'is-adjusted':'is-auto')+'" title="'+autoTitle+'">'+(manual?'Đã điều chỉnh':'Tự động')+'</span>':'';
-        var actions='<div class="entry-row-actions">'+status+'<button class="adjust-btn adjust-data" data-adjust-code="'+esc(category.code)+'" type="button" aria-label="Sửa '+esc(category.name)+'">'+uiIcon('edit')+'<span>Sửa</span></button><button class="history-btn history-data" data-history-code="'+esc(category.code)+'" type="button" aria-label="Xem lịch sử '+esc(category.name)+'">'+uiIcon('history')+'<span>Lịch sử</span></button></div>';
-        return'<article id="c_'+esc(category.code)+'" class="entry-recorded-row'+(auto?' is-auto-derived':'')+(manual?' is-manual-override':'')+'"><div class="entry-recorded-main"><strong>'+esc(category.name)+'</strong><span>'+meta+'</span></div><div class="entry-recorded-value"><strong>'+current.toLocaleString('vi-VN')+'</strong><span>'+esc(category.unit)+'</span></div>'+actions+'</article>'
-      }).join('');
-      updateEntryStats();
+      document.querySelectorAll('.entry-filter-tab').forEach(function(tab){var active=tab.getAttribute('data-entry-filter')===filter;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',active?'true':'false')});
+      var rows=state.categories.filter(function(category){var complete=!!category.derivedKind||!!state.dailyByCode[category.code];if(filter==='missing')return !complete;if(filter==='recorded')return complete;return true});
+      if(!rows.length){var emptyText=filter==='missing'?'Đã hoàn tất tất cả chỉ tiêu cần nhập.':filter==='recorded'?'Chưa có dữ liệu được ghi nhận.':'Chưa có chỉ tiêu phù hợp.';box.innerHTML='<div class="entry-recorded-empty"><span class="entry-empty-check" aria-hidden="true">'+uiIcon(filter==='missing'?'check':'plus')+'</span><strong>'+emptyText+'</strong><span>'+(filter==='missing'?'Bạn có thể kiểm tra lại số liệu đã có hoặc tiếp tục công việc khác.':'')+'</span></div>';updateEntryStats();return}
+      box.innerHTML=rows.map(function(category){
+        var stored=state.dailyByCode[category.code]||null,auto=!!category.derivedKind;
+        if(!stored&&!auto)return'<article id="c_'+esc(category.code)+'" class="entry-recorded-row is-missing"><div class="entry-recorded-main"><strong>'+esc(category.name)+'</strong><span>'+esc(category.group)+' · '+esc(category.unit)+'</span></div><div class="entry-recorded-value is-missing"><strong>—</strong><span>Chưa nhập</span></div><div class="entry-row-actions"><span class="status-chip is-missing">Cần nhập</span><button class="adjust-btn entry-fill-data" data-entry-code="'+esc(category.code)+'" type="button" aria-label="Nhập '+esc(category.name)+'">'+uiIcon('plus')+'<span>Nhập</span></button></div></article>';
+        var record=stored||{value:0,autoValue:0,autoDerived:true,manualOverride:false,updatedBy:'',version:0},current=Number(record.value||0),autoValue=auto?Number(record.autoValue==null?current:record.autoValue):null,manual=!!record.manualOverride;
+        var meta=esc(category.group)+(record.updatedBy?' · '+esc(record.updatedBy):''),autoTitle=auto?'Tự động ghi nhận: '+autoValue.toLocaleString('vi-VN')+' '+esc(category.unit):'';
+        var status=auto?'<span class="status-chip '+(manual?'is-adjusted':'is-auto')+'" title="'+autoTitle+'">'+(manual?'Đã điều chỉnh':'Tự động')+'</span>':'<span class="status-chip is-complete">Đã nhập</span>',primaryLabel=auto?'Điều chỉnh':'Sửa';
+        var actions='<div class="entry-row-actions">'+status+'<button class="adjust-btn adjust-data" data-adjust-code="'+esc(category.code)+'" type="button" aria-label="'+primaryLabel+' '+esc(category.name)+'">'+uiIcon('edit')+'<span>'+primaryLabel+'</span></button><details class="entry-action-menu"><summary aria-label="Thao tác khác">'+uiIcon('dots')+'</summary><div class="entry-action-popover"><button class="history-data" data-history-code="'+esc(category.code)+'" type="button">'+uiIcon('history')+'<span>Xem lịch sử</span></button></div></details></div>';
+        return'<article id="c_'+esc(category.code)+'" class="entry-recorded-row'+(auto?' is-auto-derived':'')+(manual?' is-manual-override':'')+'"><div class="entry-recorded-main"><strong>'+esc(category.name)+'</strong><span>'+meta+'</span></div><div class="entry-recorded-value"><strong>'+current.toLocaleString('vi-VN')+'</strong><span>'+esc(category.unit)+'</span></div>'+actions+'</article>';
+      }).join('');updateEntryStats();
     }
     async function loadDay(options){
       options=options||{};if(!state.user)return
@@ -1574,16 +1602,16 @@ var AUTO_SYNC_MS = 300000;
       if(!category){toast('Không tìm thấy chỉ tiêu cần cập nhật.','warn');return}
       state.adjustingCode=code;
       var isDerived=!!(category.derivedKind||(record&&record.derivedKind));
-      var autoValue=isDerived&&record?Number(record.autoValue==null?record.value||0:record.autoValue):null;
-      $('adjustTitle').textContent='Chỉnh sửa '+category.name;
+      var autoValue=isDerived?Number(record?(record.autoValue==null?record.value||0:record.autoValue):0):null;
+      $('adjustTitle').textContent=(isDerived?'Điều chỉnh ':'Sửa ')+category.name;
       $('adjustContext').textContent='Ngày '+fmtDate($('entryDate').value)+' · Đơn vị: '+category.unit+' · Có thể nhập 0.';
-      $('adjustCurrentValue').textContent=record?Number(record.value||0).toLocaleString('vi-VN')+' '+category.unit:'Chưa ghi nhận';
+      $('adjustCurrentValue').textContent=record?Number(record.value||0).toLocaleString('vi-VN')+' '+category.unit:(isDerived?'0 '+category.unit:'Chưa ghi nhận');
       $('adjustAutoReference').hidden=!isDerived;
       $('adjustAutoReference').textContent=isDerived?'Số liệu tự động từ Chuyển viện & tử vong: '+autoValue.toLocaleString('vi-VN')+' '+category.unit+'. Số bạn lưu sẽ là số liệu chính thức dùng cho Tổng hợp số liệu.':'';
       $('adjustReasonLabel').textContent=isDerived?'Lý do điều chỉnh *':'Lý do điều chỉnh';
       $('adjustReason').value='';
       $('adjustReason').placeholder=isDerived?'Ví dụ: Báo cáo trùng một trường hợp, đã kiểm tra lại':'Nhập lý do nếu cần lưu để đối chiếu';
-      $('adjustNewValue').value=record?String(Number(record.value||0)):'';
+      $('adjustNewValue').value=record?String(Number(record.value||0)):(isDerived?'0':'');
       $('adjustError').textContent='';
       setAdjustmentSaving(false);
       $('adjustLayer').hidden=false;
@@ -1832,10 +1860,10 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.0.0'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.1.0'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
-      $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=updateRangeFields;$('contentFilter').onchange=renderAll;$('dashboardSearch').oninput=function(){renderSummary(aggregate())};
+      $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields();updateDashboardActionPanel()};$('contentFilter').onchange=renderAll;$('dashboardSearch').oninput=function(){renderSummary(aggregate())};if($('dashboardGoEntry'))$('dashboardGoEntry').onclick=function(){showView('entry')};if($('dashboardGoReports'))$('dashboardGoReports').onclick=function(){showView('reports')};
       $('btnGoogleLogin').onclick=loginGoogle;
       $('confirmAccept').onclick=function(){closeConfirm(true)};$('confirmCancel').onclick=function(){closeConfirm(false)};$('confirmLayer').addEventListener('click',function(event){if(event.target===$('confirmLayer'))closeConfirm(false)});
       $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});
@@ -1845,7 +1873,7 @@ var AUTO_SYNC_MS = 300000;
       window.addEventListener('beforeunload',function(event){if(!quickEntryDirty())return;event.preventDefault();event.returnValue=''});
       $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;
       $('btnOpenEntryComposer').onclick=function(){toggleEntryComposer()};$('btnCloseEntryComposer').onclick=function(){toggleEntryComposer(false)};$('btnCancelQuickEntry').onclick=function(){toggleEntryComposer(false)};if($('entryComposerBackdrop'))$('entryComposerBackdrop').onclick=function(){toggleEntryComposer(false)};$('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
-      $('indicatorGrid').addEventListener('click',function(event){var adjustButton=event.target.closest('.adjust-data');if(adjustButton){openAdjustDialog(adjustButton.getAttribute('data-adjust-code'));return}var historyButton=event.target.closest('.history-data');if(historyButton)openDataHistoryDialog(historyButton.getAttribute('data-history-code'))});
+      document.querySelectorAll('.entry-filter-tab').forEach(function(tab){tab.addEventListener('click',function(){state.entryFilter=tab.getAttribute('data-entry-filter')||'missing';renderIndicators()})});$('indicatorGrid').addEventListener('click',function(event){var fillButton=event.target.closest('.entry-fill-data');if(fillButton){openQuickEntryForCode(fillButton.getAttribute('data-entry-code'));return}var adjustButton=event.target.closest('.adjust-data');if(adjustButton){openAdjustDialog(adjustButton.getAttribute('data-adjust-code'));return}var historyButton=event.target.closest('.history-data');if(historyButton)openDataHistoryDialog(historyButton.getAttribute('data-history-code'))});
       $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='delete')adminDelete(id)});
       $('btnReloadAdminReportUsers').onclick=function(){loadAdminReportUsers(true)};$('adminReportSearch').oninput=renderAdminReportUsers;$('adminReportUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-report-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='grant-entry')adminReportPermission(id,'nhaplieu',true);if(kind==='grant-admin')adminReportPermission(id,'admin',true);if(kind==='role')adminReportPermission(id,value,true);if(kind==='revoke')adminReportPermission(id,'nhaplieu',false)});
       $('displayNameCancel').onclick=closeDisplayNameDialog;$('displayNameCloseX').onclick=closeDisplayNameDialog;$('displayNameSave').onclick=saveDisplayName;$('displayNameLayer').addEventListener('click',function(event){if(event.target===$('displayNameLayer'))closeDisplayNameDialog()});

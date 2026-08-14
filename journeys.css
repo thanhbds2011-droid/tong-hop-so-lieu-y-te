@@ -1,5 +1,5 @@
 /* ================================================================
-   JOURNEYS MODULE — production 9.0.0
+   JOURNEYS MODULE — production 9.1.0
    Transfer journey, unified history and related dialogs.
    ================================================================ */
 
@@ -387,3 +387,49 @@
   .journey-meta-grid { gap: 5px; }
   .journey-meta-grid > div { padding: 7px 8px; }
 }
+
+/* ================================================================
+   FRIENDLY JOURNEY UX 9.1.0
+   Denser tracking cards, visible priorities and clearer detail dialog.
+   ================================================================ */
+.journey-reload-btn { display: none !important; }
+.journey-subtab:hover { color: var(--color-text); background: rgba(255,255,255,.55); }
+.journey-subtab.active { color: var(--color-primary-strong); background: #fff; box-shadow: inset 0 -2px 0 var(--color-primary), 0 1px 3px rgba(0,0,0,.04); }
+.journey-card { padding: 12px 13px; gap: 12px; }
+.journey-card-badges { align-items: flex-start; }
+.journey-status, .journey-type-pill, .journey-alert, .journey-timeline-status { font-size: 11px; }
+.journey-alert.warn { font-weight: 760; }
+.journey-location { margin-top: 8px; }
+.journey-meta-grid { margin-top: 9px; padding-top: 8px; gap: 0; border-top: 1px solid #eeeae8; }
+.journey-meta-grid > div { padding: 0 12px; border-radius: 0; background: transparent; border-right: 1px solid #eeeae8; }
+.journey-meta-grid > div:first-child { padding-left: 0; }
+.journey-meta-grid > div:last-child { padding-right: 0; border-right: 0; }
+.journey-meta-grid span { font-size: 11px; }
+.journey-meta-grid strong { font-size: 12px; }
+.journey-card-details { margin-top: 7px; }
+.journey-card-details > summary { padding-top: 7px; }
+.journey-history-mark { color: var(--color-success); }
+.journey-history-symbol { width: 17px; height: 17px; }
+.journey-history-mark.is-death .journey-history-symbol { color: var(--color-danger); }
+.journey-detail-meta { padding: 15px 18px 4px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.journey-detail-meta > div { min-width: 0; padding: 9px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
+.journey-detail-meta > div > span { display: block; margin-bottom: 3px; color: var(--color-text-3); font-size: 11px; }
+.journey-detail-meta > div > strong { display: block; color: var(--color-text-2); font-size: 12px; font-weight: 690; overflow-wrap: anywhere; }
+.journey-detail-meta .journey-detail-status { grid-column: 1 / -1; padding: 10px 11px; display: flex; align-items: center; gap: 8px; border-color: var(--color-border); background: var(--color-surface-muted); }
+.journey-detail-meta .journey-detail-status > span { margin: 0; }
+.journey-detail-meta .journey-detail-status > strong { color: var(--color-text-2); }
+.journey-detail-meta .journey-detail-status.is-tracking { border-color: #c9d9e7; background: var(--color-info-soft); }
+.journey-detail-meta .journey-detail-status.is-tracking > strong { color: var(--color-info); }
+.journey-detail-meta .journey-detail-status.is-treatment,.journey-detail-meta .journey-detail-status.is-returned { border-color: #cfdfc2; background: var(--color-success-soft); }
+.journey-detail-meta .journey-detail-status.is-treatment > strong,.journey-detail-meta .journey-detail-status.is-returned > strong { color: var(--color-success); }
+.journey-detail-meta .journey-detail-status.is-followup { border-color: #ecd6ad; background: var(--color-warning-soft); }
+.journey-detail-meta .journey-detail-status.is-followup > strong { color: var(--color-warning); }
+.journey-detail-meta .journey-detail-status.is-transfer { border-color: #ded0e8; background: #f7f1fb; }
+.journey-detail-meta .journey-detail-status.is-transfer > strong { color: #76588f; }
+.journey-detail-meta .journey-detail-status.is-death { border-color: #ecd0d0; background: var(--color-danger-soft); }
+.journey-detail-meta .journey-detail-status.is-death > strong { color: var(--color-danger); }
+.journey-timeline-card { padding: 11px 12px; }
+.journey-timeline-head strong { font-size: 13px; }
+.journey-timeline-card p { margin: 7px 0 0; color: var(--color-text-2); font-size: 12.5px; }
+@media (max-width: 760px) { .journey-meta-grid { grid-template-columns: 1fr 1fr; } .journey-meta-grid > div { padding: 0 8px; } .journey-meta-grid > div:nth-child(2) { border-right: 0; } .journey-meta-grid > div:nth-child(3) { grid-column: 1 / -1; padding: 7px 0 0; margin-top: 7px; border-top: 1px solid #eeeae8; border-right: 0; } .journey-detail-meta { grid-template-columns: repeat(2,minmax(0,1fr)); padding-inline: 16px; } .journey-detail-meta .journey-detail-status { grid-column: 1 / -1; } }
+@media (max-width: 430px) { .journey-card-badges { max-width: 58%; } .journey-detail-meta { grid-template-columns: 1fr; } .journey-detail-meta .journey-detail-status { grid-column: 1; } }

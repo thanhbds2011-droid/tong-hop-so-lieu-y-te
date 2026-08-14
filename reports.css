@@ -1,5 +1,5 @@
 /* ================================================================
-   REPORTS MODULE — production 9.0.0
+   REPORTS MODULE — production 9.1.0
    Only report/death-specific presentation belongs here.
    ================================================================ */
 
@@ -116,3 +116,24 @@
   .report-filters { grid-template-columns: 1fr 1fr; }
   .report-search-field { grid-column: 1 / -1; }
 }
+
+/* ---------- Friendly detail view 9.1.0 ---------- */
+.report-detail-view { padding: 18px; }
+.report-detail-person { padding: 13px; display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-subtle); }
+.report-detail-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: var(--color-primary); background: var(--color-primary-soft); }
+.report-detail-avatar svg { width: 21px; height: 21px; }
+.report-detail-person strong { font-size: 16px; }
+.report-detail-person p { margin: 3px 0 0; color: var(--color-text-3); font-size: 12px; }
+.report-detail-grid { margin-top: 12px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.report-detail-grid > div { min-width: 0; padding: 11px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #fff; }
+.report-detail-grid > div.full { grid-column: 1 / -1; }
+.report-detail-grid span { display: block; margin-bottom: 4px; color: var(--color-text-3); font-size: 11.5px; font-weight: 650; }
+.report-detail-grid strong { display: block; color: var(--color-text-2); font-size: 13px; font-weight: 680; white-space: pre-wrap; }
+.report-detail-cause { border-color: #ecd0d0 !important; background: var(--color-danger-soft) !important; }
+.report-detail-cause strong { color: var(--color-danger); font-size: 14px; }
+.report-detail-audit { background: var(--color-surface-muted) !important; }
+#reportLayer.is-readonly .report-form-grid { display: none; }
+#reportLayer.is-readonly .category-error { display: none; }
+#reportLayer.is-readonly .center-death-dialog { width: min(720px,100%); }
+#reportLayer.is-readonly .confirm-actions { justify-content: flex-end; }
+@media (max-width: 760px) { .report-detail-view { padding: 14px 16px; } .report-detail-person { grid-template-columns: auto minmax(0,1fr); } .report-detail-person .journey-status { grid-column: 2; justify-self: start; } .report-detail-grid { grid-template-columns: 1fr; } .report-detail-grid > div.full { grid-column: 1; } }

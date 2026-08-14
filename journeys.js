@@ -117,7 +117,9 @@ function iconSvg(name, className = 'journey-btn-icon') {
     home: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>',
     pin: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
     route: '<circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h4a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4H8"/><path d="m10 12-2 2 2 2"/>',
-    dots: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'
+    dots: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+    activity: '<path d="M3 12h4l2-5 4 10 2-5h6"/>',
+    check: '<path d="m5 12 4 4L19 6"/>'
   };
   const body = icons[name] || '';
   return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
@@ -529,6 +531,7 @@ function renderTracking() {
           <div class="journey-card-badges">
             <span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span>
             <span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span>
+            ${alerts}
           </div>
         </div>
         <div class="journey-location">
@@ -549,7 +552,6 @@ function renderTracking() {
           ${note ? `<div class="journey-note"><span>Ghi chú</span><p>${esc(note)}</p></div>` : ''}
           <div class="journey-updated-by"><span>Người cập nhật</span><strong>${esc(preferredName(item.updatedByUid || item.createdByUid, item.updatedByName || item.createdByName))}</strong></div>
         </details>
-        ${alerts ? `<div class="journey-card-foot">${alerts}</div>` : ''}
       </div>
       <div class="journey-card-actions">
         ${canWrite ? `<button class="small-btn btn-primary journey-action journey-primary-action" data-kind="update" data-id="${esc(item.id)}" type="button">${iconSvg('edit')}<span>Cập nhật</span></button>
@@ -632,7 +634,7 @@ function renderHistory() {
   box.innerHTML = rows.map((item) => {
     if (item.kind === 'CENTER_DEATH') {
       return `<article class="journey-history-card is-center-death">
-        <div class="journey-history-mark is-death">TV</div>
+        <div class="journey-history-mark is-death">${iconSvg('activity','journey-history-symbol')}</div>
         <div class="journey-history-main">
           <div class="journey-card-title journey-history-title"><div class="journey-person-head"><strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>${patientFactsHtml(item)}</div><span class="journey-status is-death">Tử vong tại Trung tâm</span></div>
           <div class="journey-history-line"><strong class="journey-route-place">${esc(CENTER_NAME)}</strong></div>
@@ -643,7 +645,7 @@ function renderHistory() {
       </article>`;
     }
     return `<article class="journey-history-card">
-      <div class="journey-history-mark ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓' : 'TV'}</div>
+      <div class="journey-history-mark ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? iconSvg('check','journey-history-symbol') : iconSvg('activity','journey-history-symbol')}</div>
       <div class="journey-history-main">
         <div class="journey-card-title journey-history-title"><div class="journey-person-head"><strong>${esc(item.doiTuong)}</strong>${patientFactsHtml(item)}</div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
         <div class="journey-history-line">${journeyRouteHtml(item)}</div>

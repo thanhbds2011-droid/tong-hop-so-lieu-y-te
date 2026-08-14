@@ -501,10 +501,19 @@ function updateReportFormKind() {
 
 function setReportFormReadonly(readonly) {
   reportState.readonly = !!readonly;
-  const fields = $('reportLayer').querySelectorAll('input, select, textarea');
-  fields.forEach((field) => { field.disabled = !!readonly; });
-  $('reportSave').hidden = !!readonly;
-  $('reportCancel').textContent = readonly ? 'Đóng' : 'Quay lại';
+  const layer = $('reportLayer');
+  if (layer) layer.classList.toggle('is-readonly', reportState.readonly);
+  const detail = $('reportReadonlyView'); if (detail) detail.hidden = !reportState.readonly;
+  const fields = layer ? layer.querySelectorAll('input, select, textarea') : []; fields.forEach((field) => { field.disabled = !!readonly; });
+  $('reportSave').hidden = !!readonly; $('reportCancel').textContent = readonly ? 'Đóng' : 'Quay lại';
+}
+function populateReadonlyReportDetails(item) {
+  if (!$('reportReadonlyView')) return;
+  const facts=[item.gioiTinh||'',item.namSinh?`Sinh ${item.namSinh}`:'',item.theBHYT?`BHYT ${item.theBHYT}`:''].filter(Boolean);
+  $('reportDetailName').textContent=item.hoTenBenhNhan||'Chưa có họ tên';$('reportDetailFacts').textContent=facts.length?facts.join(' · '):'Chưa có thông tin nhân thân';
+  $('reportDetailDate').textContent=fmtDate(item.ngayTuVong||item.ngayBaoCao||'');$('reportDetailPlace').textContent=item.noiTuVong||'Trung tâm Bảo trợ xã hội Tân Hiệp';$('reportDetailAddress').textContent=item.diaChi||'—';$('reportDetailCause').textContent=item.nguyenNhan||'—';
+  const note=String(item.ghiChu||'').trim();$('reportDetailNote').textContent=note||'—';$('reportDetailNoteRow').hidden=!note;$('reportDetailReporter').textContent=item.createdByName||item.legacyNguoiNhap||'—';
+  preferredDisplayNameByUid(item.createdByUid,item.createdByName||item.legacyNguoiNhap||'—').then((name)=>{if(reportState.editingId===item.id&&$('reportDetailReporter'))$('reportDetailReporter').textContent=name;});
 }
 
 async function openCenterDeathForm() {
@@ -552,6 +561,7 @@ function populateReportForm(item, readonly) {
   $('reportNote').value = item.ghiChu || '';
   $('reportReporter').textContent = item.createdByName || item.legacyNguoiNhap || '—';
   preferredDisplayNameByUid(item.createdByUid, item.createdByName || item.legacyNguoiNhap || '—').then((name) => { if (reportState.editingId === item.id && $('reportReporter')) $('reportReporter').textContent = name; });
+  if (readonly) populateReadonlyReportDetails(item);
   $('reportDialogTitle').textContent = reportState.type === 'TU_VONG' ? ((readonly ? 'Chi tiết' : 'Chỉnh sửa') + ' tử vong tại Trung tâm') : ((readonly ? 'Chi tiết ' : 'Chỉnh sửa ') + typeLabel(reportState.type).toLowerCase());
   $('reportFormError').textContent = '';
   setReportFormReadonly(readonly);
