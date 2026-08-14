@@ -1,0 +1,10 @@
+FIREBASE RULES - ỨNG DỤNG PHÒNG Y TẾ v8.6.0
+
+1. v8.6.0 KHÔNG thay Rules HSBA.
+2. File firebase-yte-rules-fragment-v8.6.0.json chỉ chứa:
+   - tongHopYTe
+   - yTeApp
+   - baoCaoYTe
+3. Đây là FRAGMENT để đối chiếu, KHÔNG phải file Rules toàn Firebase.
+4. Nếu Firebase hiện đang Publish đúng fragment người dùng đã cung cấp thì KHÔNG CẦN sửa/Publish Rules cho v8.6.0.
+5. Tuyệt đối không dán fragment này thay toàn bộ object { "rules": { ... } } và không xóa các node HSBA.

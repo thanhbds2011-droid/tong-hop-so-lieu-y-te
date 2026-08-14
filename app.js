@@ -94,6 +94,7 @@ function mergeDerivedDailyRecords(records, categories, date, transferRaw, deathR
     if (!category) return;
     const autoValue = markerCount(raw);
     const stored = map.get(category.code) || null;
+    if (!stored && autoValue === 0) return;
     if (stored) {
       map.set(category.code, {
         ...stored,
@@ -138,6 +139,7 @@ function mergeDerivedRangeRecords(records, categories, transferByDate, deathByDa
     const id = `${date}-${category.code}`;
     const autoValue = markerCount(raw);
     const stored = map.get(id) || null;
+    if (!stored && autoValue === 0) return;
     if (stored) {
       map.set(id, {
         ...stored,
@@ -212,6 +214,17 @@ async function readOptionalSnapshot(referenceOrQuery) {
   try { return snapshotObject(await get(referenceOrQuery)); }
   catch (error) { console.warn('Không đọc được thống kê tự động:', error); return {}; }
 }
+function formatPersonName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').split(' ').filter(Boolean).map((word) => {
+    const lower = word.toLocaleLowerCase('vi-VN');
+    return lower.charAt(0).toLocaleUpperCase('vi-VN') + lower.slice(1);
+  }).join(' ');
+}
+async function preferredDisplayNameForUid(uid, fallback) {
+  if (!uid) return String(fallback || '').trim();
+  const raw = await readOptionalSnapshot(ref(firebaseDatabase, `${YTE_APP_ROOT}/tenHienThi/${uid}`));
+  return String(raw.displayName || fallback || '').trim().slice(0, 150);
+}
 function ownerUser(user) {
   return !!(user && normalizeEmail(user.email) === OWNER_EMAIL);
 }
@@ -275,7 +288,7 @@ async function writeAuditLog(user, action, content, dataDate) {
     dataDate: dataDate || '',
     uid: user.uid,
     email: normalizeEmail(user.email),
-    displayName: String(user.displayName || user.email || '').slice(0, 150),
+    displayName: String((user.appPermission && user.appPermission.displayName) || user.displayName || user.email || '').slice(0, 150),
     role: user.appRole || '',
     createdAt: serverTimestamp()
   });
@@ -367,6 +380,9 @@ async function resolveApplicationAccess(user, profile) {
     getOwnReportPermission(user)
   ]);
 
+  const preferredName = await preferredDisplayNameForUid(user.uid, (permission && permission.displayName) || (reportPermission && reportPermission.displayName) || user.displayName || user.email || '');
+  if (permission) permission.displayName = preferredName;
+  if (reportPermission) reportPermission.displayName = preferredName;
   const reportActive = validModulePermission(reportPermission);
 
   if (permission && (permission.role === 'admin' || permission.role === 'nhaplieu')) {
@@ -382,7 +398,7 @@ async function resolveApplicationAccess(user, profile) {
         authUser: {
           uid: user.uid,
           email: normalizeEmail(user.email),
-          name: user.displayName || user.email || '',
+          name: preferredName || user.displayName || user.email || '',
           provider: providerId(user)
         },
         user: appUser,
@@ -402,7 +418,7 @@ async function resolveApplicationAccess(user, profile) {
         authUser: {
           uid: user.uid,
           email: normalizeEmail(user.email),
-          name: user.displayName || user.email || '',
+          name: preferredName || user.displayName || user.email || '',
           provider: providerId(user)
         },
         user: null,
@@ -421,7 +437,7 @@ async function resolveApplicationAccess(user, profile) {
       authUser: {
         uid: user.uid,
         email: normalizeEmail(user.email),
-        name: user.displayName || user.email || '',
+        name: preferredName || user.displayName || user.email || '',
         provider: providerId(user)
       },
       user: null,
@@ -441,7 +457,7 @@ async function resolveApplicationAccess(user, profile) {
       authUser: {
         uid: user.uid,
         email: normalizeEmail(user.email),
-        name: user.displayName || user.email || '',
+        name: preferredName || user.displayName || user.email || '',
         provider: providerId(user)
       },
       user: null,
@@ -465,7 +481,7 @@ async function resolveApplicationAccess(user, profile) {
     authUser: {
       uid: user.uid,
       email: normalizeEmail(user.email),
-      name: user.displayName || user.email || '',
+      name: preferredName || user.displayName || user.email || '',
       provider: providerId(user)
     },
     user: null,
@@ -489,7 +505,7 @@ async function requireAppUser(requiredRole) {
     throw new Error('Bạn không có quyền Quản trị Tổng hợp Y tế.');
   }
   user.appRole = permission.role;
-  user.appPermission = permission;
+  user.appPermission = { ...permission, displayName: await preferredDisplayNameForUid(user.uid, permission.displayName || user.displayName || user.email || '') };
   return user;
 }
 
@@ -714,8 +730,12 @@ async function getDailyDataHistoryFirebase(payload) {
   const code = normalizeCategoryCode(payload.code);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Ngày số liệu không hợp lệ.');
   if (!code) throw new Error('Mã chỉ tiêu không hợp lệ.');
-  const snap = await get(ref(firebaseDatabase, `${ROOT}/lichSu/${monthKey(date)}`));
+  const [snap, namesSnap] = await Promise.all([
+    get(ref(firebaseDatabase, `${ROOT}/lichSu/${monthKey(date)}`)),
+    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/tenHienThi`)).catch(() => null)
+  ]);
   const raw = snapshotObject(snap);
+  const displayNames = snapshotObject(namesSnap);
   const items = Object.keys(raw).map((id) => ({ id, ...(raw[id] || {}) }))
     .filter((item) => item.date === date && normalizeCategoryCode(item.code) === code)
     .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
@@ -725,7 +745,7 @@ async function getDailyDataHistoryFirebase(payload) {
       beforeValue: Number(item.beforeValue || 0),
       afterValue: Number(item.afterValue || 0),
       reason: String(item.reason || ''),
-      displayName: String(item.displayName || item.email || ''),
+      displayName: String((displayNames[item.uid] && displayNames[item.uid].displayName) || item.displayName || item.email || ''),
       email: normalizeEmail(item.email),
       role: String(item.role || ''),
       autoValue: item.autoValue == null ? null : Number(item.autoValue || 0),
@@ -881,11 +901,13 @@ async function adminSetCategoryStatusFirebase(codeValue, statusValue) {
 
 async function getAdminUsersFirebase() {
   await requireAppUser('admin');
-  const [permissionSnap, requestSnap, directorySnap] = await Promise.all([
+  const [permissionSnap, requestSnap, directorySnap, displayNameSnap] = await Promise.all([
     get(ref(firebaseDatabase, `${ROOT}/phanQuyen`)),
     get(ref(firebaseDatabase, `${ROOT}/yeuCauDangKy`)),
-    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/nguoiDung`))
+    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/nguoiDung`)),
+    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/tenHienThi`)).catch(() => null)
   ]);
+  const customNames = snapshotObject(displayNameSnap);
   const permissions = snapshotObject(permissionSnap);
   const requests = snapshotObject(requestSnap);
   const directory = snapshotObject(directorySnap);
@@ -904,7 +926,7 @@ async function getAdminUsersFirebase() {
     users.push({
       id: uid,
       uid,
-      name: item.displayName || request.displayName || profile.displayName || item.email || request.email || profile.email || '',
+      name: (customNames[uid] && customNames[uid].displayName) || item.displayName || request.displayName || profile.displayName || item.email || request.email || profile.email || '',
       username: item.username || request.username || '',
       email: item.email || request.email || profile.email || '',
       role: hasPermission ? uiRole(item.role) : '',
@@ -1039,12 +1061,14 @@ async function requireReportPermissionManager() {
 
 async function getAdminReportUsersFirebase() {
   await requireReportPermissionManager();
-  const [directorySnap, permissionSnap] = await Promise.all([
+  const [directorySnap, permissionSnap, displayNameSnap] = await Promise.all([
     get(ref(firebaseDatabase, `${YTE_APP_ROOT}/nguoiDung`)),
-    get(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen`))
+    get(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen`)),
+    get(ref(firebaseDatabase, `${YTE_APP_ROOT}/tenHienThi`)).catch(() => null)
   ]);
   const directory = snapshotObject(directorySnap);
   const permissions = snapshotObject(permissionSnap);
+  const customNames = snapshotObject(displayNameSnap);
   const uids = new Set([...Object.keys(directory), ...Object.keys(permissions)]);
   const users = Array.from(uids).map((uid) => {
     const profile = directory[uid] || {};
@@ -1052,7 +1076,7 @@ async function getAdminReportUsersFirebase() {
     return {
       id: uid,
       uid,
-      name: permission.displayName || profile.displayName || permission.email || profile.email || '',
+      name: (customNames[uid] && customNames[uid].displayName) || permission.displayName || profile.displayName || permission.email || profile.email || '',
       email: normalizeEmail(permission.email || profile.email || ''),
       role: permission.role || '',
       roleLabel: uiReportRole(permission.role),
@@ -1098,6 +1122,19 @@ async function adminSetReportPermissionFirebase(uid, roleValue, activeValue) {
   };
 }
 
+async function adminSetDisplayNameFirebase(uid, displayNameValue) {
+  const manager = await requireReportPermissionManager();
+  const displayName = formatPersonName(displayNameValue);
+  if (!uid) throw new Error('Không xác định được tài khoản.');
+  if (displayName.length < 2 || displayName.length > 150) throw new Error('Tên hiển thị phải từ 2 đến 150 ký tự.');
+  await set(ref(firebaseDatabase, `${YTE_APP_ROOT}/tenHienThi/${uid}`), {
+    displayName,
+    updatedAt: Date.now(),
+    updatedByUid: manager.user.uid
+  });
+  return { success: true, displayName, message: 'Đã lưu tên hiển thị dùng chung trong Ứng dụng Phòng Y tế.' };
+}
+
 async function firebaseCall(name, ...args) {
   await authPersistenceReady;
   await authReady;
@@ -1124,6 +1161,7 @@ async function firebaseCall(name, ...args) {
     case 'adminDeleteUser': return adminRevokeUserFirebase(args[1] || args[0]);
     case 'getAdminReportUsers': return getAdminReportUsersFirebase();
     case 'adminSetReportPermission': return adminSetReportPermissionFirebase(args[0], args[1], args[2]);
+    case 'adminSetDisplayName': return adminSetDisplayNameFirebase(args[0], args[1]);
     default: throw new Error(`Chức năng không hợp lệ: ${name}`);
   }
 }
@@ -1145,7 +1183,7 @@ var AUTO_SYNC_MS = 300000;
       adminReportUsers:[],adminReportLoadedAt:0,adminReportPromise:null,
       editingCategoryCode:'',categorySaving:false,
       adjustingCode:'',adjustSaving:false,quickEntrySaving:false,
-      historyCode:'',historyLoading:false,
+      historyCode:'',historyLoading:false,displayNameEditUid:'',
       dashboardLiveUnsubscribe:null,dashboardTransferStatsUnsubscribe:null,dashboardDeathStatsUnsubscribe:null,categoryLiveUnsubscribe:null,entryLiveUnsubscribe:null,entryTransferStatsUnsubscribe:null,entryDeathStatsUnsubscribe:null,
       dashboardBaseRecords:[],dashboardTransferStats:{},dashboardDeathStats:{},entryBaseRecords:[],entryTransferStats:{},entryDeathStats:{},
       liveRangeKey:'',entryLiveDate:''
@@ -1339,7 +1377,7 @@ var AUTO_SYNC_MS = 300000;
       if($('adminReportPermissionsTab'))$('adminReportPermissionsTab').hidden=!reportAdmin;
       $('userGreeting').hidden=!authenticated;
       $('userGreeting').textContent=authenticated
-        ? 'Xin chào, '+(loggedIn?state.user.name:(state.authUser.name||state.authUser.email))+(hasAnyAccess?'':' · Chờ cấp quyền')
+        ? 'Xin chào, '+(loggedIn?state.user.name:(state.authUser.name||'Người dùng Phòng Y tế'))+(hasAnyAccess?'':' · Chờ cấp quyền')
         : '';
       if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.updateModuleUi==='function'){
         window.YTE_REPORTS.updateModuleUi({
@@ -1361,7 +1399,7 @@ var AUTO_SYNC_MS = 300000;
       if(!isAdmin&&currentViewName()==='admin')showView(defaultPrivateView());
       if(currentViewName()==='home')showView('dashboard');
       $('entryUserName').textContent=state.user.name;
-      $('entryUserMeta').textContent=state.user.email+' · '+state.user.role;
+      $('entryUserMeta').textContent=uiRole(state.user.role);
       $('btnChangePassword').hidden=state.user.provider!=='password';
       $('changePasswordBox').hidden=true;
       startEntryRealtime($('entryDate').value);
@@ -1691,16 +1729,16 @@ var AUTO_SYNC_MS = 300000;
       var box=$('dataHistoryList');items=items||[];
       if(!items.length){box.innerHTML='<div class="data-history-empty"><strong>Chưa có lần điều chỉnh thủ công.</strong><span>Số liệu hiện tại đang được giữ theo nguồn tự động hoặc chưa phát sinh thay đổi.</span></div>';return}
       box.innerHTML=items.map(function(item){
-        var who=esc(item.displayName||item.email||'Tài khoản được cấp quyền'),email=esc(item.email||''),reason=esc(item.reason||'Không ghi lý do'),time=esc(item.createdAtText||'');
+        var who=esc(item.displayName||'Tài khoản được cấp quyền'),reason=esc(item.reason||'Không ghi lý do'),time=esc(item.createdAtText||'');
         var autoRef=item.autoValue==null?'':'<div class="data-history-auto">Tự động lúc điều chỉnh: '+Number(item.autoValue||0).toLocaleString('vi-VN')+' '+esc(category&&category.unit||'')+'</div>';
-        return'<article class="data-history-item"><div class="data-history-top"><strong>'+Number(item.beforeValue||0).toLocaleString('vi-VN')+' → '+Number(item.afterValue||0).toLocaleString('vi-VN')+' '+esc(category&&category.unit||'')+'</strong><span>'+time+'</span></div><div class="data-history-action">'+esc(item.action||'Điều chỉnh')+'</div>'+autoRef+'<div class="data-history-reason">'+reason+'</div><div class="data-history-user"><strong>'+who+'</strong>'+(email?'<span>'+email+'</span>':'')+'</div></article>'
+        return'<article class="data-history-item"><div class="data-history-top"><strong>'+Number(item.beforeValue||0).toLocaleString('vi-VN')+' → '+Number(item.afterValue||0).toLocaleString('vi-VN')+' '+esc(category&&category.unit||'')+'</strong><span>'+time+'</span></div><div class="data-history-action">'+esc(item.action||'Điều chỉnh')+'</div>'+autoRef+'<div class="data-history-reason">'+reason+'</div><div class="data-history-user"><strong>'+who+'</strong></div></article>'
       }).join('');
     }
     async function openDataHistoryDialog(code){
       var category=state.categories.find(function(item){return item.code===code});if(!category)return;
       state.historyCode=code;state.historyLoading=true;
       $('dataHistoryTitle').textContent='Lịch sử điều chỉnh · '+category.name;
-      $('dataHistoryContext').textContent='Ngày '+fmtDate($('entryDate').value)+' · Mọi thay đổi đều gắn với tài khoản Gmail đã được cấp quyền.';
+      $('dataHistoryContext').textContent='Ngày '+fmtDate($('entryDate').value)+' · Mọi thay đổi đều ghi nhận người thực hiện và thời điểm điều chỉnh.';
       $('dataHistoryList').innerHTML='<div class="data-history-loading"><span class="spinner"></span><span>Đang tải lịch sử...</span></div>';
       $('dataHistoryLayer').hidden=false;document.body.style.overflow='hidden';
       try{var result=await call('getDailyDataHistory',{date:$('entryDate').value,code:code,token:state.token});renderDataHistory(result.items||[],category)}
@@ -1722,7 +1760,7 @@ var AUTO_SYNC_MS = 300000;
       if(!rows.length){$('adminUsers').innerHTML='<div class="empty">Không có tài khoản phù hợp.</div>';return}
       $('adminUsers').innerHTML='<table class="admin-table admin-user-table"><thead><tr><th>Họ tên</th><th>Tài khoản</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th>Yêu cầu</th><th>Thao tác</th></tr></thead><tbody>'+rows.map(function(user){
         var isSelf=state.user&&user.id===state.user.id;
-        var actions='';
+        var actions='<button class="small-btn btn-soft admin-action" data-kind="display-name" data-id="'+esc(user.id)+'">Tên hiển thị</button>';
         if(user.isPending&&(user.requestStatus==='pending'||user.requestStatus==='unassigned')){
           actions+='<button class="small-btn btn-soft admin-action" data-kind="approve-entry" data-id="'+esc(user.id)+'">Duyệt Nhập liệu</button>';
           actions+='<button class="small-btn btn-primary admin-action" data-kind="approve-admin" data-id="'+esc(user.id)+'">Duyệt Quản trị</button>';
@@ -1768,7 +1806,7 @@ var AUTO_SYNC_MS = 300000;
       var currentUid=state.authUser&&state.authUser.uid?state.authUser.uid:'';
       var canChangeSelf=isTongHopAdmin()||isOwnerAdmin();
       $('adminReportUsers').innerHTML='<table class="admin-table admin-report-table"><thead><tr><th>Họ tên</th><th>Email</th><th>Quyền Báo cáo</th><th>Trạng thái</th><th>Đăng nhập gần nhất</th><th>Thao tác</th></tr></thead><tbody>'+rows.map(function(user){
-        var isSelf=user.id===currentUid,protectSelf=isSelf&&!canChangeSelf,actions='';
+        var isSelf=user.id===currentUid,protectSelf=isSelf&&!canChangeSelf,actions='<button class="small-btn btn-soft admin-report-action" data-kind="display-name" data-id="'+esc(user.id)+'">Tên hiển thị</button>';
         if(!user.active){
           actions+='<button class="small-btn btn-soft admin-report-action" data-kind="grant-entry" data-id="'+esc(user.id)+'">Cấp Nhập liệu</button>';
           actions+='<button class="small-btn btn-primary admin-report-action" data-kind="grant-admin" data-id="'+esc(user.id)+'">Cấp Quản trị</button>';
@@ -1793,6 +1831,13 @@ var AUTO_SYNC_MS = 300000;
       if(!confirmed)return;setBusy(true,active?'Đang cấp quyền Báo cáo...':'Đang thu hồi quyền Báo cáo...');
       try{var result=await call('adminSetReportPermission',id,role,active);message(result.message||'Đã cập nhật quyền Báo cáo.','ok');state.adminReportLoadedAt=0;await loadAdminReportUsers(true);if(state.authUser&&state.authUser.uid===id)await refreshCurrentSession()}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
+
+    function openDisplayNameDialog(id){
+      var user=state.adminUsers.find(function(x){return x.id===id})||state.adminReportUsers.find(function(x){return x.id===id});if(!user)return;
+      state.displayNameEditUid=id;$('displayNameEmail').textContent=user.email||'—';$('displayNameInput').value=user.name||'';$('displayNameError').textContent='';$('displayNameLayer').hidden=false;document.body.style.overflow='hidden';window.setTimeout(function(){$('displayNameInput').focus();$('displayNameInput').select()},0)
+    }
+    function closeDisplayNameDialog(){$('displayNameLayer').hidden=true;state.displayNameEditUid='';$('displayNameError').textContent='';if($('confirmLayer').hidden&&$('adjustLayer').hidden&&$('dataHistoryLayer').hidden)document.body.style.overflow=''}
+    async function saveDisplayName(){var id=state.displayNameEditUid,name=$('displayNameInput').value;if(!id)return;$('displayNameSave').disabled=true;$('displayNameError').textContent='';try{var result=await call('adminSetDisplayName',id,name);message(result.message||'Đã lưu tên hiển thị.','ok');closeDisplayNameDialog();state.adminLoadedAt=0;state.adminReportLoadedAt=0;await Promise.all([loadAdminUsers(true).catch(function(){}),loadAdminReportUsers(true).catch(function(){})]);await refreshCurrentSession()}catch(error){$('displayNameError').textContent=error.message||String(error)}finally{$('displayNameSave').disabled=false}}
 
     function renderAdminCategories(){
       var query=String($('categorySearch').value||'').trim().toLowerCase();
@@ -1882,8 +1927,9 @@ var AUTO_SYNC_MS = 300000;
       $('btnOpenEntryComposer').onclick=function(){toggleEntryComposer()};$('btnCloseEntryComposer').onclick=function(){toggleEntryComposer(false)};$('btnCancelQuickEntry').onclick=function(){toggleEntryComposer(false)};if($('entryComposerBackdrop'))$('entryComposerBackdrop').onclick=function(){toggleEntryComposer(false)};$('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
       $('indicatorGrid').addEventListener('click',function(event){var adjustButton=event.target.closest('.adjust-data');if(adjustButton){openAdjustDialog(adjustButton.getAttribute('data-adjust-code'));return}var historyButton=event.target.closest('.history-data');if(historyButton)openDataHistoryDialog(historyButton.getAttribute('data-history-code'))});
       $('btnChangePassword').onclick=function(){$('changePasswordBox').hidden=false};$('btnCloseChange').onclick=function(){$('changePasswordBox').hidden=true};$('btnSavePassword').onclick=saveNewPassword;
-      $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='delete')adminDelete(id)});
-      $('btnReloadAdminReportUsers').onclick=function(){loadAdminReportUsers(true)};$('adminReportSearch').oninput=renderAdminReportUsers;$('adminReportUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-report-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='grant-entry')adminReportPermission(id,'nhaplieu',true);if(kind==='grant-admin')adminReportPermission(id,'admin',true);if(kind==='role')adminReportPermission(id,value,true);if(kind==='revoke')adminReportPermission(id,'nhaplieu',false)});
+      $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='delete')adminDelete(id)});
+      $('btnReloadAdminReportUsers').onclick=function(){loadAdminReportUsers(true)};$('adminReportSearch').oninput=renderAdminReportUsers;$('adminReportUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-report-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='grant-entry')adminReportPermission(id,'nhaplieu',true);if(kind==='grant-admin')adminReportPermission(id,'admin',true);if(kind==='role')adminReportPermission(id,value,true);if(kind==='revoke')adminReportPermission(id,'nhaplieu',false)});
+      $('displayNameCancel').onclick=closeDisplayNameDialog;$('displayNameCloseX').onclick=closeDisplayNameDialog;$('displayNameSave').onclick=saveDisplayName;$('displayNameLayer').addEventListener('click',function(event){if(event.target===$('displayNameLayer'))closeDisplayNameDialog()});
       $('btnAddCategory').onclick=function(){openCategoryDialog('')};$('btnReloadCategories').onclick=function(){loadAdminCategories(true)};$('categorySearch').oninput=renderAdminCategories;$('adminCategories').addEventListener('click',function(event){var button=event.target.closest('.category-action');if(!button)return;var kind=button.getAttribute('data-kind'),code=button.getAttribute('data-code'),value=button.getAttribute('data-value');if(kind==='edit')openCategoryDialog(code);if(kind==='status')setCategoryStatus(code,value)});
       document.addEventListener('visibilitychange',function(){if(!document.hidden&&Date.now()-state.lastSyncAt>90000)syncData(true)});window.addEventListener('focus',function(){if(Date.now()-state.lastSyncAt>90000)syncData(true)});
       await Promise.all([restore(),syncData(false)]);startCategoryRealtime();startDashboardRealtime(false);updateAuthUi();onAuthStateChanged(firebaseAuth,function(user){if(!user&&state.authUser){state.authUser=null;state.user=null;updateAuthUi()}});

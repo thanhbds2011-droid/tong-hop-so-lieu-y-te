@@ -1,7 +1,7 @@
 {
-  "version": "8.5.1",
-  "releasedAt": "2026-08-14T09:50:00+07:00",
-  "title": "Đối soát số liệu tự động",
-  "message": "Giữ số liệu Chuyển viện/Tử vong tự động làm tham chiếu nhưng cho phép người nhập liệu sửa số chính thức; bổ sung lịch sử điều chỉnh với giá trị trước-sau, lý do, tên và Gmail tài khoản được cấp quyền.",
+  "version": "8.6.0",
+  "releasedAt": "2026-08-14T11:10:00+07:00",
+  "title": "Hợp nhất Chuyển viện & Tử vong",
+  "message": "Đồng bộ realtime lượt chuyển viện/tử vong sang Tổng hợp số liệu; hợp nhất tử vong tại Trung tâm vào Lịch sử; sửa chống trùng theo hồ sơ đầy đủ; chuẩn hóa họ tên, tên người thực hiện và giao diện tông hồng mới.",
   "required": false
 }

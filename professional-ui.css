@@ -1,37 +1,37 @@
 /* ================================================================
-   TAN HIEP HEALTHCARE OPERATIONS UI — v8.5.1
-   Visual design system only. Business logic, DOM ids and Firebase
-   data flows remain unchanged.
+   TAN HIEP HEALTHCARE OPERATIONS UI — v8.6.0
+   Unified visual design system for v8.6.0. Business logic remains in
+   app.js, reports.js and journeys.js; this file owns cross-module theme rules.
    ================================================================ */
 
 :root {
-  --rose-950: #4f1730;
-  --rose-900: #671d3d;
-  --rose-800: #7c2449;
-  --rose-700: #8f2b54;
-  --rose-600: #a63a63;
-  --rose-500: #bd5478;
-  --rose-200: #e8c5d2;
-  --rose-150: #f0d7e0;
-  --rose-100: #f7e9ee;
-  --rose-50: #fcf6f8;
+  --rose-950: #713737;
+  --rose-900: #b94d4d;
+  --rose-800: #c65555;
+  --rose-700: #d95b5b;
+  --rose-600: #d98484;
+  --rose-500: #df9696;
+  --rose-200: #f2b6b6;
+  --rose-150: #f7d5d5;
+  --rose-100: #fbe8e8;
+  --rose-50: #fff7f7;
 
-  --ink: #242126;
-  --muted: #706a6e;
-  --muted-2: #928a8f;
+  --ink: #3f3b2c;
+  --muted: #59522c;
+  --muted-2: #8c8468;
   --line: #e7e2e5;
   --line-strong: #d9d1d6;
   --surface: #ffffff;
   --surface-soft: #faf9fa;
   --surface-raised: #ffffff;
-  --canvas: #f5f4f5;
+  --canvas: #fbf7f5;
 
-  --success: #24744d;
-  --success-soft: #edf7f1;
+  --success: #5c7339;
+  --success-soft: #f0f5e9;
   --warning: #8a5a13;
   --warning-soft: #fff7e9;
-  --danger: #9e3544;
-  --danger-soft: #fff0f2;
+  --danger: #b84545;
+  --danger-soft: #fff0f0;
   --info: #3e6286;
   --info-soft: #eef5fb;
 
@@ -1790,4 +1790,30 @@ textarea::placeholder {
 }
 @media (max-width: 768px) {
   #transferJourneyPanel .journey-history-summary { grid-template-columns: 1fr; }
+}
+
+
+/* ===== v8.6.0 — Unified transfer/death polish ===== */
+.journey-kpi-label{display:inline-flex;align-items:center;gap:8px;font-weight:760;color:var(--muted)}
+.journey-kpi-label svg{width:18px;height:18px;fill:none;stroke:var(--rose-700);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.journey-subtab{display:inline-flex;align-items:center;gap:7px}
+.journey-subtab>svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.8}
+.journey-toolbar-actions .journey-center-death-btn{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.journey-center-death-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.journey-business-notice{display:flex;gap:12px;align-items:flex-start;margin:14px 0 0;padding:13px 14px;border:1px solid #efd2d2;border-radius:10px;background:#fff7f7;color:var(--ink)}
+.journey-business-notice-icon{display:grid;place-items:center;flex:0 0 24px;width:24px;height:24px;border-radius:50%;background:var(--rose-700);color:white;font-size:13px;font-weight:800;font-family:Georgia,serif}
+.journey-business-notice strong{display:block;margin-bottom:3px;font-size:14px;color:var(--rose-950)}
+.journey-business-notice p{margin:0;font-size:14px;line-height:1.5;color:#5f5742}
+.journey-center-death-cause{margin-top:8px;font-size:13px;color:var(--muted)}
+.journey-center-death-cause span{margin-right:8px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted-2)}
+.journey-center-death-cause strong{font-weight:650;color:var(--ink)}
+.display-name-card{width:min(520px,calc(100vw - 32px))}
+.display-name-email{margin:4px 0 0;color:var(--muted);font-size:13px}
+.display-name-card .field-help{margin:8px 0 0;font-size:13px;line-height:1.5;color:var(--muted)}
+.data-history-user>span{display:none!important}
+@media(max-width:768px){
+  .journey-toolbar-actions{width:100%;display:grid;grid-template-columns:1fr auto;gap:8px}
+  .journey-center-death-btn{grid-column:1/-1;justify-content:center}
+  .journey-toolbar-actions select{min-width:0;width:100%}
+  .journey-business-notice p{font-size:14px}
 }

@@ -2,15 +2,15 @@
   "id": "./",
   "name": "Ứng dụng Phòng Y tế",
   "short_name": "Phòng Y tế",
-  "description": "Tổng hợp số liệu và báo cáo chuyển viện - tử vong",
+  "description": "Tổng hợp số liệu, chuyển viện và tử vong - Trung tâm Bảo trợ xã hội Tân Hiệp",
   "lang": "vi",
   "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f5f4f5",
-  "theme_color": "#671d3d",
+  "background_color": "#FBF7F5",
+  "theme_color": "#D95B5B",
   "icons": [
     {
       "src": "./assets/icon-192.png",

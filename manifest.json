@@ -1,13 +1,13 @@
 {
-  "name": "Tổng hợp số liệu Phòng Y tế",
-  "short_name": "Y tế Tân Hiệp",
-  "description": "Ứng dụng tổng hợp số liệu Phòng Y tế - Trung tâm Bảo trợ xã hội Tân Hiệp",
+  "name": "Ứng dụng Phòng Y tế",
+  "short_name": "Phòng Y tế",
+  "description": "Tổng hợp số liệu, chuyển viện và tử vong - Trung tâm Bảo trợ xã hội Tân Hiệp",
   "lang": "vi",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5f4f5",
-  "theme_color": "#671d3d",
+  "background_color": "#FBF7F5",
+  "theme_color": "#D95B5B",
   "orientation": "any",
   "icons": [
     {

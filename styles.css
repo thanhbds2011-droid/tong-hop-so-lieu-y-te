@@ -1,22 +1,22 @@
 :root{
-      --rose-950:#58112f;
-      --rose-900:#721740;
-      --rose-800:#8e1e50;
-      --rose-700:#a9255e;
-      --rose-600:#be326b;
-      --rose-500:#d34f82;
-      --rose-200:#f4bfd3;
-      --rose-150:#f8d4e1;
-      --rose-100:#fbe5ed;
-      --rose-50:#fff5f8;
-      --ink:#35232b;
-      --muted:#675a60;
+      --rose-950:#713737;
+      --rose-900:#B94D4D;
+      --rose-800:#C65555;
+      --rose-700:#D95B5B;
+      --rose-600:#D98484;
+      --rose-500:#DF9696;
+      --rose-200:#F2B6B6;
+      --rose-150:#F7D5D5;
+      --rose-100:#FBE8E8;
+      --rose-50:#FFF7F7;
+      --ink:#3F3B2C;
+      --muted:#59522C;
       --line:#eadde2;
       --surface:#fff;
       --surface-soft:#fffdfd;
-      --canvas:#fdf7f9;
-      --success:#188255;
-      --success-soft:#e9f8f1;
+      --canvas:#FBF7F5;
+      --success:#5C7339;
+      --success-soft:#F0F5E9;
       --warning:#9a5b13;
       --warning-soft:#fff7e7;
       --danger:#b4233d;
@@ -392,7 +392,7 @@
   place-items: center;
   border-radius: 12px;
   background: #f8e7ee;
-  color: #a9255e;
+  color: #D95B5B;
   font-size: 22px;
   font-weight: 900;
 }
