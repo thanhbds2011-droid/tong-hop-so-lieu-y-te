@@ -1,7 +1,0 @@
-{
-  "version": "8.6.0",
-  "releasedAt": "2026-08-14T11:10:00+07:00",
-  "title": "Hợp nhất Chuyển viện & Tử vong",
-  "message": "Đồng bộ realtime lượt chuyển viện/tử vong sang Tổng hợp số liệu; hợp nhất tử vong tại Trung tâm vào Lịch sử; sửa chống trùng theo hồ sơ đầy đủ; chuẩn hóa họ tên, tên người thực hiện và giao diện tông hồng mới.",
-  "required": false
-}
