@@ -1,0 +1,97 @@
+VALIDATION REPORT
+System: TONG-HOP-Y-TE
+Business Stable baseline: v1.0
+Runtime/PWA: 9.3.0
+Date: 2026-08-14
+
+PASS - JavaScript syntax: app-config.js
+PASS - JavaScript syntax: app.js
+PASS - JavaScript syntax: reports.js
+PASS - JavaScript syntax: journeys.js
+PASS - JavaScript syntax: ui.js
+PASS - JavaScript syntax: update-manager.js
+PASS - JavaScript syntax: service-worker.js
+PASS - JavaScript syntax: sw.js
+PASS - No duplicate DOM IDs
+PASS - Static JS -> DOM ID references resolved (appUpdateBanner, appUpdateLater, appUpdateMessage, appUpdateNow, appUpdateTitle excluded: dynamic update-manager DOM)
+PASS - manifest.webmanifest parses as JSON
+PASS - version.json parses as JSON
+PASS - CSS parse: styles.css
+PASS - CSS parse: reports.css
+PASS - CSS parse: journeys.css
+PASS - CSS parse: desktop-v13.css
+PASS - Version sync: app-config.js
+PASS - Version sync: version.json
+PASS - Version sync: service-worker.js
+PASS - Version sync: sw.js
+PASS - Version sync: index.html assets
+PASS - Version sync: update-manager.js
+PASS - Version sync: offline.html
+PASS - Service Worker app-shell assets exist
+PASS - No Firestore imports/API in executable source
+PASS - Center Death create action is inside Lập chuyển viện workspace
+PASS - Center Death create action removed from History toolbar
+PASS - TAI_KHAM removed from create transfer type - ['', 'CAP_CUU', 'CHUYEN_VIEN', 'KHAC']
+PASS - Legacy TAI_KHAM status remains readable/update-compatible
+PASS - Delete daily UI button exists
+PASS - Delete daily confirmation dialog exists
+PASS - History close X hidden when footer Đóng exists
+PASS - Journey detail close X hidden when footer Đóng exists
+PASS - deleteDailyData business action routed
+PASS - Delete blocks derived Transfer/Death metrics
+PASS - Delete removes private daily record
+PASS - Delete removes public mirror
+PASS - Delete writes history
+PASS - Delete writes audit log
+PASS - Delete requires reason
+PASS - Delete checks optimistic version
+PASS - Create transfer validation excludes TAI_KHAM
+PASS - Legacy OPEN status still includes TAI_KHAM
+PASS - Three-dot popover uses viewport-fixed positioning
+PASS - Readonly Center Death popup hides duplicate X
+
+FILES CHANGED VS INPUT ZIP
+NEW       CHANGELOG_9.3.0.md
+CHANGED   README-GITHUB-UPLOAD.txt
+REMOVED   UI_REDESIGN_NOTES.md
+REMOVED   UI_VALIDATION.txt
+NEW       VALIDATION_9.3.0.txt
+CHANGED   app-config.js
+CHANGED   app.js
+REMOVED   desktop-v12.css
+NEW       desktop-v13.css
+REMOVED   download
+UNCHANGED icon-192.png
+UNCHANGED icon-512.png
+CHANGED   index.html
+UNCHANGED journeys.css
+CHANGED   journeys.js
+UNCHANGED manifest.webmanifest
+CHANGED   offline.html
+UNCHANGED reports.css
+CHANGED   reports.js
+UNCHANGED robots.txt
+CHANGED   service-worker.js
+UNCHANGED styles.css
+CHANGED   sw.js
+REMOVED   ui-redesign.css
+UNCHANGED ui.js
+CHANGED   update-manager.js
+CHANGED   version.json
+
+LIVE FIREBASE / END-TO-END
+CHUA KIEM TRA LIVE - Google Sign-In production
+CHUA KIEM TRA LIVE - Create manual daily record against production Rules
+CHUA KIEM TRA LIVE - Edit manual daily record against production Rules
+CHUA KIEM TRA LIVE - Delete manual daily record + public mirror + history/audit against production Rules
+CHUA KIEM TRA LIVE - Delete rejection for auto Transfer/Death metric against production data
+CHUA KIEM TRA LIVE - Realtime propagation after delete on two devices
+CHUA KIEM TRA LIVE - Create Journey with CAP_CUU/CHUYEN_VIEN/KHAC
+CHUA KIEM TRA LIVE - Legacy TAI_KHAM history rendering
+CHUA KIEM TRA LIVE - Center Death create from Lập chuyển viện workspace
+CHUA KIEM TRA LIVE - Journey three-dot popover near viewport bottom/right
+CHUA KIEM TRA LIVE - PWA safe update 9.2.1 -> 9.3.0
+CHUA KIEM TRA LIVE - Desktop Chrome functional smoke test
+CHUA KIEM TRA LIVE - Mobile/PWA regression smoke test
+
+OVERALL STATIC RESULT: PASS

@@ -19,7 +19,8 @@ const REPORT_ROOT = 'baoCaoYTe';
 const YTE_APP_ROOT = 'yTeApp';
 const CENTER_NAME = 'Trung tâm Bảo trợ xã hội Tân Hiệp';
 const OPEN_STATUSES = ['DANG_THEO_DOI', 'TAI_KHAM', 'DANG_DIEU_TRI', 'CHUYEN_TIEP_BENH_VIEN_KHAC'];
-const TRANSFER_TYPES = ['CAP_CUU', 'TAI_KHAM', 'CHUYEN_VIEN', 'KHAC'];
+// TAI_KHAM vẫn được giữ trong OPEN_STATUSES/label để đọc dữ liệu legacy, nhưng không còn là hình thức được phép tạo mới.
+const TRANSFER_TYPES = ['CAP_CUU', 'CHUYEN_VIEN', 'KHAC'];
 const OTHER_DESTINATION = '__OTHER__';
 const CLOSED_STATUSES = ['TU_VONG_TAI_BENH_VIEN', 'DA_VE_TRUNG_TAM'];
 const ALL_STATUSES = [...OPEN_STATUSES, ...CLOSED_STATUSES];
@@ -687,6 +688,47 @@ function renderHistory() {
   }).join('');
 }
 
+function positionActionPopover(details) {
+  if (!details || !details.open) return;
+  const summary = details.querySelector('summary');
+  const popover = details.querySelector('.journey-action-popover');
+  if (!summary || !popover) return;
+  popover.style.position = 'fixed';
+  popover.style.right = 'auto';
+  popover.style.bottom = 'auto';
+  popover.style.zIndex = '1400';
+  requestAnimationFrame(() => {
+    if (!details.open) return;
+    const rect = summary.getBoundingClientRect();
+    const margin = 8;
+    const width = Math.min(220, Math.max(180, window.innerWidth - margin * 2));
+    popover.style.width = `${width}px`;
+    popover.style.left = `${Math.max(margin, Math.min(window.innerWidth - width - margin, rect.right - width))}px`;
+    popover.style.top = `${rect.bottom + 6}px`;
+    const menuRect = popover.getBoundingClientRect();
+    if (menuRect.bottom > window.innerHeight - margin) {
+      popover.style.top = `${Math.max(margin, rect.top - menuRect.height - 6)}px`;
+    }
+  });
+}
+function refreshOpenActionPopovers() {
+  document.querySelectorAll('details.journey-action-menu[open]').forEach(positionActionPopover);
+}
+function initializeActionPopoverPositioning() {
+  document.addEventListener('toggle', (event) => {
+    const details = event.target && event.target.matches && event.target.matches('details.journey-action-menu') ? event.target : null;
+    if (!details || !details.open) return;
+    document.querySelectorAll('details.journey-action-menu[open]').forEach((other) => { if (other !== details) other.open = false; });
+    positionActionPopover(details);
+  }, true);
+  window.addEventListener('resize', refreshOpenActionPopovers);
+  window.addEventListener('scroll', refreshOpenActionPopovers, true);
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('details.journey-action-menu')) return;
+    document.querySelectorAll('details.journey-action-menu[open]').forEach((details) => { details.open = false; });
+  });
+}
+
 function requestSubView(name) {
   if (state.subView === 'create' && name !== 'create' && isCreateDirty()) {
     if (!confirmDiscard()) return;
@@ -1221,11 +1263,13 @@ function setVisible(visible) {
 function initEvents() {
   if (state.initialized) return;
   state.initialized = true;
+  initializeActionPopoverPositioning();
   document.querySelectorAll('.journey-subtab').forEach((button) => {
     button.addEventListener('click', () => requestSubView(button.getAttribute('data-journey-view')));
   });
   $('journeyCreateSave')?.addEventListener('click', createJourney);
   $('journeyCreateCancel')?.addEventListener('click', () => requestSubView('tracking'));
+  $('journeyCreateModeTransfer')?.addEventListener('click', () => { if (state.subView !== 'create') setSubView('create'); setTimeout(() => $('journeyPatient')?.focus(), 0); });
   $('journeyTransferType')?.addEventListener('change', updateCreateDynamicFields);
   $('journeyTo')?.addEventListener('change', updateCreateDynamicFields);
   $('journeyBHYT')?.addEventListener('input', () => { $('journeyBHYT').value = normalizeBHYT($('journeyBHYT').value); });
@@ -1242,6 +1286,7 @@ function initEvents() {
     if (!button) return;
     const id = button.getAttribute('data-id');
     const kind = button.getAttribute('data-kind');
+    const menu = button.closest('details.journey-action-menu'); if (menu) menu.open = false;
     if (kind === 'view') openDetail(id);
     if (kind === 'update') openUpdateDialog(id, '');
     if (kind === 'return') openUpdateDialog(id, 'DA_VE_TRUNG_TAM');
@@ -1250,6 +1295,7 @@ function initEvents() {
     const button = event.target.closest('.journey-history-action');
     if (!button) return;
     const kind = button.getAttribute('data-kind');
+    const menu = button.closest('details.journey-action-menu'); if (menu) menu.open = false;
     if (kind === 'view') openDetail(button.getAttribute('data-id'));
     if (kind === 'center-death-view' && window.YTE_REPORTS && typeof window.YTE_REPORTS.openReportById === 'function') window.YTE_REPORTS.openReportById(button.getAttribute('data-id'));
     if (kind === 'center-death-edit' && window.YTE_REPORTS && typeof window.YTE_REPORTS.editReportById === 'function') window.YTE_REPORTS.editReportById(button.getAttribute('data-id'));

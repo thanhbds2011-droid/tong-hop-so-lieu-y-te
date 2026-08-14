@@ -2,7 +2,7 @@
 
 // Compatibility service worker for very old installations.
 // Current application uses ./service-worker.js.
-const CACHE_NAME = 'tong-hop-so-lieu-y-te-compat-v9.2.1';
+const CACHE_NAME = 'tong-hop-so-lieu-y-te-compat-v9.3.0';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['./', './index.html', './offline.html'])));

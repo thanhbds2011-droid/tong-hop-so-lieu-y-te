@@ -505,6 +505,8 @@ function setReportFormReadonly(readonly) {
   const detail = $('reportReadonlyView'); if (detail) detail.hidden = !reportState.readonly;
   const fields = layer ? layer.querySelectorAll('input, select, textarea') : []; fields.forEach((field) => { field.disabled = !!readonly; });
   $('reportSave').hidden = !!readonly; $('reportCancel').textContent = readonly ? 'Đóng' : 'Quay lại';
+  // Readonly popup đã có nút Đóng ở footer: không hiển thị thêm dấu X.
+  if ($('reportCloseX')) $('reportCloseX').hidden = !!readonly;
 }
 function populateReadonlyReportDetails(item) {
   if (!$('reportReadonlyView')) return;

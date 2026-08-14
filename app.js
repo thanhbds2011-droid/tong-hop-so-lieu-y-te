@@ -717,6 +717,86 @@ async function adjustDailyDataFirebase(payload) {
   };
 }
 
+async function deleteDailyDataFirebase(payload) {
+  const user = await requireAppUser();
+  payload = payload || {};
+  const date = String(payload.date || '');
+  const code = normalizeCategoryCode(payload.code);
+  const expectedVersion = Number(payload.expectedVersion || 0);
+  const reason = String(payload.reason || '').trim().slice(0, 500);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Ngày số liệu không hợp lệ.');
+  if (!code) throw new Error('Mã chỉ tiêu không hợp lệ.');
+  if (reason.length < 3) throw new Error('Vui lòng nhập lý do xóa để lưu lịch sử truy vết.');
+
+  const categorySnap = await get(ref(firebaseDatabase, `${ROOT}/danhMucChiTieu/${code}`));
+  if (!categorySnap.exists()) throw new Error('Chỉ tiêu không tồn tại.');
+  const category = categorySnap.val() || {};
+  const derivedKind = metricKindFromCategory({ code, name: category.ten || code });
+  if (derivedKind) {
+    throw new Error('Không thể xóa số liệu Chuyển viện/Tử vong tự động tại màn hình Nhập liệu. Hãy xử lý tại nghiệp vụ nguồn hoặc dùng chức năng điều chỉnh có lý do.');
+  }
+
+  const recordRef = ref(firebaseDatabase, `${ROOT}/soLieuTheoNgay/${date}/${code}`);
+  const currentSnap = await get(recordRef);
+  if (!currentSnap.exists()) throw new Error('Số liệu này không còn tồn tại. Ứng dụng sẽ tải lại dữ liệu mới nhất.');
+  const current = currentSnap.val() || {};
+  const currentVersion = Number(current.version || 0);
+  if (currentVersion !== expectedVersion) {
+    throw new Error('Số liệu vừa được cập nhật từ thiết bị khác. Vui lòng tải lại và kiểm tra trước khi xóa.');
+  }
+
+  const beforeValue = Number(current.giaTri || 0);
+  const displayName = String(user.appPermission.displayName || user.displayName || user.email || '');
+  const historyRef = push(ref(firebaseDatabase, `${ROOT}/lichSu/${monthKey(date)}`));
+  const logRef = push(ref(firebaseDatabase, `${ROOT}/nhatKy/${monthKey(date)}`));
+  const updates = {};
+
+  // Xóa record hiện hành và public mirror, nhưng giữ lịch sử/audit bất biến.
+  updates[`${ROOT}/soLieuTheoNgay/${date}/${code}`] = null;
+  updates[`${ROOT}/congKhai/soLieuTheoNgay/${date}/${code}`] = null;
+  updates[`${ROOT}/lichSu/${monthKey(date)}/${historyRef.key}`] = {
+    dataId: `${date}-${code}`,
+    date,
+    code,
+    name: category.ten || code,
+    action: 'Xóa số liệu',
+    beforeValue,
+    afterValue: null,
+    beforeNote: current.ghiChu || '',
+    afterNote: '',
+    reason,
+    deletedVersion: currentVersion,
+    uid: user.uid,
+    email: normalizeEmail(user.email),
+    displayName,
+    role: user.appRole,
+    createdAt: serverTimestamp()
+  };
+  updates[`${ROOT}/nhatKy/${monthKey(date)}/${logRef.key}`] = {
+    action: 'Xóa số liệu',
+    content: `Ngày ${date} - ${category.ten || code}: đã xóa giá trị ${beforeValue}. Lý do: ${reason}`,
+    dataDate: date,
+    uid: user.uid,
+    email: normalizeEmail(user.email),
+    displayName,
+    role: user.appRole,
+    createdAt: serverTimestamp()
+  };
+
+  try {
+    await update(ref(firebaseDatabase), updates);
+  } catch (error) {
+    const latestSnap = await get(recordRef).catch(() => null);
+    const latestVersion = latestSnap && latestSnap.exists() ? Number(latestSnap.child('version').val() || 0) : 0;
+    if (latestVersion !== expectedVersion) {
+      throw new Error('Số liệu vừa được cập nhật từ thiết bị khác. Vui lòng tải lại và kiểm tra trước khi xóa.');
+    }
+    throw error;
+  }
+
+  return { success: true, deleted: true, date, code, beforeValue, message: 'Đã xóa số liệu và lưu đầy đủ lịch sử truy vết.' };
+}
+
 async function getDailyDataHistoryFirebase(payload) {
   await requireAppUser();
   payload = payload || {};
@@ -737,7 +817,7 @@ async function getDailyDataHistoryFirebase(payload) {
       id: item.id,
       action: String(item.action || ''),
       beforeValue: Number(item.beforeValue || 0),
-      afterValue: Number(item.afterValue || 0),
+      afterValue: item.afterValue == null ? null : Number(item.afterValue || 0),
       reason: String(item.reason || ''),
       displayName: String((displayNames[item.uid] && displayNames[item.uid].displayName) || item.displayName || item.email || ''),
       email: normalizeEmail(item.email),
@@ -1167,6 +1247,7 @@ async function firebaseCall(name, ...args) {
     case 'logoutSession': return logoutFirebase();
     case 'getDailyData': return getDailyDataFirebase(args[0]);
     case 'adjustDailyData': return adjustDailyDataFirebase(args[0]);
+    case 'deleteDailyData': return deleteDailyDataFirebase(args[0]);
     case 'getDailyDataHistory': return getDailyDataHistoryFirebase(args[0]);
     case 'getAdminUsers': return getAdminUsersFirebase();
     case 'getAdminCategories': return getAdminCategoriesFirebase();
@@ -1201,7 +1282,7 @@ var AUTO_SYNC_MS = 300000;
       adminCategories:[],categoryLoadedAt:0,categoryPromise:null,adminSection:'users',
       adminReportUsers:[],adminReportLoadedAt:0,adminReportPromise:null,
       editingCategoryCode:'',categorySaving:false,
-      adjustingCode:'',adjustSaving:false,quickEntrySaving:false,quickEntryBaseline:'',
+      adjustingCode:'',adjustSaving:false,quickEntrySaving:false,quickEntryBaseline:'',deleteDailyCode:'',deleteDailySaving:false,
       historyCode:'',historyLoading:false,displayNameEditUid:'',
       dashboardLiveUnsubscribe:null,dashboardTransferStatsUnsubscribe:null,dashboardDeathStatsUnsubscribe:null,categoryLiveUnsubscribe:null,entryLiveUnsubscribe:null,entryTransferStatsUnsubscribe:null,entryDeathStatsUnsubscribe:null,
       dashboardBaseRecords:[],dashboardTransferStats:{},dashboardDeathStats:{},entryBaseRecords:[],entryTransferStats:{},entryDeathStats:{},
@@ -1523,6 +1604,7 @@ var AUTO_SYNC_MS = 300000;
       if($('entryInlineActions'))$('entryInlineActions').hidden=true;
       if($('btnEntrySelectedHistory'))$('btnEntrySelectedHistory').hidden=true;
       if($('btnEntrySelectedAdjust'))$('btnEntrySelectedAdjust').hidden=true;
+      if($('btnEntrySelectedDelete'))$('btnEntrySelectedDelete').hidden=true;
       if($('btnSaveQuickEntry'))$('btnSaveQuickEntry').hidden=false;
       if($('entryQuickError'))$('entryQuickError').textContent='';
       setEntrySelectedStatus('','');
@@ -1530,7 +1612,7 @@ var AUTO_SYNC_MS = 300000;
     function updateQuickEntrySelection(focusValue){
       var select=$('entryCategorySelect');if(!select)return;
       var code=select.value,category=state.categories.find(function(item){return item.code===code});
-      var info=$('entrySelectedInfo'),valueField=$('entryQuickValueField'),actions=$('entryInlineActions'),save=$('btnSaveQuickEntry'),adjust=$('btnEntrySelectedAdjust'),history=$('btnEntrySelectedHistory');
+      var info=$('entrySelectedInfo'),valueField=$('entryQuickValueField'),actions=$('entryInlineActions'),save=$('btnSaveQuickEntry'),adjust=$('btnEntrySelectedAdjust'),history=$('btnEntrySelectedHistory'),del=$('btnEntrySelectedDelete');
       if(!category){resetEntrySelection();return}
       var record=state.dailyByCode[code]||null,auto=!!category.derivedKind,current=record?Number(record.value||0):(auto?0:null),manual=!!(record&&record.manualOverride),autoValue=auto?Number(record?(record.autoValue==null?current:record.autoValue):0):null;
       info.hidden=false;actions.hidden=false;
@@ -1540,20 +1622,25 @@ var AUTO_SYNC_MS = 300000;
       $('entrySelectedUpdaterRow').hidden=!(record&&record.updatedBy);$('entrySelectedUpdater').textContent=record&&record.updatedBy?record.updatedBy:'—';
       if(auto)setEntrySelectedStatus(manual?'Đã điều chỉnh':'Tự động',manual?'is-adjusted':'is-auto');
       else if(record)setEntrySelectedStatus('Đã ghi nhận','is-complete');else setEntrySelectedStatus('','');
+      if(adjust&&adjust.querySelector('span'))adjust.querySelector('span').textContent=auto?'Điều chỉnh số liệu':'Sửa số liệu';
       history.hidden=!record;
       if(auto){
-        valueField.hidden=true;save.hidden=true;adjust.hidden=false;state.quickEntryBaseline='';$('entryQuickValue').value='';
+        valueField.hidden=true;save.hidden=true;adjust.hidden=false;if(del)del.hidden=true;state.quickEntryBaseline='';$('entryQuickValue').value='';
+      }else if(record){
+        // Record thủ công đã tồn tại: thao tác rõ ràng Sửa / Xóa / Lịch sử.
+        valueField.hidden=true;save.hidden=true;adjust.hidden=false;if(del)del.hidden=false;
+        $('entryQuickValue').value=String(Number(record.value||0));state.quickEntryBaseline=code+'|'+$('entryQuickValue').value;
       }else{
-        valueField.hidden=false;save.hidden=false;adjust.hidden=true;
-        $('entryQuickValueLabel').childNodes[0].nodeValue=entryUnitInputLabel(category.unit);$('entryQuickValue').placeholder=entryUnitPlaceholder(category.unit);$('entryQuickValue').value=record?String(Number(record.value||0)):'';
-        save.textContent=record?'Cập nhật số liệu':'Lưu số liệu';save.disabled=false;state.quickEntryBaseline=code+'|'+$('entryQuickValue').value;
+        valueField.hidden=false;save.hidden=false;adjust.hidden=true;if(del)del.hidden=true;
+        $('entryQuickValueLabel').childNodes[0].nodeValue=entryUnitInputLabel(category.unit);$('entryQuickValue').placeholder=entryUnitPlaceholder(category.unit);$('entryQuickValue').value='';
+        save.textContent='Lưu số liệu';save.disabled=false;state.quickEntryBaseline=code+'|';
         if(focusValue)window.setTimeout(function(){$('entryQuickValue').focus();$('entryQuickValue').select()},0);
       }
       if($('entryQuickError'))$('entryQuickError').textContent='';
     }
     function setQuickEntrySaving(active){
       state.quickEntrySaving=active===true;
-      ['entryCategorySelect','entryQuickValue','btnEntrySelectedAdjust','btnEntrySelectedHistory'].forEach(function(id){var el=$(id);if(el)el.disabled=state.quickEntrySaving});
+      ['entryCategorySelect','entryQuickValue','btnEntrySelectedAdjust','btnEntrySelectedHistory','btnEntrySelectedDelete'].forEach(function(id){var el=$(id);if(el)el.disabled=state.quickEntrySaving});
       var save=$('btnSaveQuickEntry');if(save&&!save.hidden){save.disabled=state.quickEntrySaving||!$('entryCategorySelect').value;save.textContent=state.quickEntrySaving?'Đang lưu...':(state.dailyByCode[$('entryCategorySelect').value]?'Cập nhật số liệu':'Lưu số liệu')}
       if($('entryQuickProgress'))$('entryQuickProgress').hidden=!state.quickEntrySaving;
     }
@@ -1718,13 +1805,57 @@ var AUTO_SYNC_MS = 300000;
       }
     }
 
+    function setDeleteDailySaving(active){
+      state.deleteDailySaving=active===true;
+      var layer=$('deleteDailyLayer'),accept=$('deleteDailyAccept'),cancel=$('deleteDailyCancel'),reason=$('deleteDailyReason'),progress=$('deleteDailyProgress');
+      if(layer)layer.setAttribute('aria-busy',state.deleteDailySaving?'true':'false');
+      if(accept){accept.disabled=state.deleteDailySaving;accept.textContent=state.deleteDailySaving?'Đang xóa...':'Xóa số liệu'}
+      if(cancel)cancel.disabled=state.deleteDailySaving;
+      if(reason)reason.disabled=state.deleteDailySaving;
+      if(progress)progress.hidden=!state.deleteDailySaving;
+    }
+    function openDeleteDailyDialog(code){
+      if(state.deleteDailySaving)return;
+      var category=state.categories.find(function(item){return item.code===code}),record=state.dailyByCode[code]||null;
+      if(!category||!record){toast('Không tìm thấy số liệu cần xóa.','warn');return}
+      if(category.derivedKind||(record&&record.derivedKind)){toast('Số liệu tự động không thể xóa tại màn hình Nhập liệu.','warn');return}
+      state.deleteDailyCode=code;
+      $('deleteDailyDate').textContent=fmtDate($('entryDate').value);
+      $('deleteDailyCategory').textContent=category.name+' · '+category.unit;
+      $('deleteDailyValue').textContent=Number(record.value||0).toLocaleString('vi-VN')+' '+category.unit;
+      $('deleteDailyReason').value='';$('deleteDailyError').textContent='';setDeleteDailySaving(false);
+      $('deleteDailyLayer').hidden=false;document.body.style.overflow='hidden';
+      window.setTimeout(function(){$('deleteDailyReason').focus()},0);
+    }
+    function closeDeleteDailyDialog(){
+      if(state.deleteDailySaving)return;
+      $('deleteDailyLayer').hidden=true;state.deleteDailyCode='';$('deleteDailyReason').value='';$('deleteDailyError').textContent='';$('deleteDailyProgress').hidden=true;
+      if($('confirmLayer').hidden&&$('adjustLayer').hidden&&$('dataHistoryLayer').hidden)document.body.style.overflow='';
+    }
+    async function submitDeleteDaily(){
+      if(state.deleteDailySaving)return;
+      var code=state.deleteDailyCode,category=state.categories.find(function(item){return item.code===code}),record=state.dailyByCode[code]||null;
+      if(!category||!record){$('deleteDailyError').textContent='Số liệu không còn tồn tại. Vui lòng tải lại.';return}
+      var reason=String($('deleteDailyReason').value||'').trim();
+      if(reason.length<3){$('deleteDailyError').textContent='Vui lòng nhập lý do xóa ít nhất 3 ký tự.';$('deleteDailyReason').focus();return}
+      setDeleteDailySaving(true);$('deleteDailyError').textContent='';
+      try{
+        var payload={token:state.token,date:$('entryDate').value,code:code,expectedVersion:Number(record.version||0),reason:reason};
+        var result=await call('deleteDailyData',payload);
+        delete state.dailyByCode[code];state.entryCache[payload.date]={byCode:state.dailyByCode,loadedAt:Date.now()};
+        setDeleteDailySaving(false);closeDeleteDailyDialog();renderIndicators();clearMessage();toast(result.message||'Đã xóa số liệu.','ok');
+        $('rangeType').value='day';updateRangeFields();$('singleDate').value=payload.date;Promise.resolve(syncData(true,true)).catch(function(){});
+      }catch(error){$('deleteDailyError').textContent=error.message||String(error);setDeleteDailySaving(false)}
+    }
+
     function renderDataHistory(items,category){
       var box=$('dataHistoryList');items=items||[];
       if(!items.length){box.innerHTML='<div class="data-history-empty"><strong>Chưa có lần điều chỉnh thủ công.</strong><span>Số liệu hiện tại đang được giữ theo nguồn tự động hoặc chưa phát sinh thay đổi.</span></div>';return}
       box.innerHTML=items.map(function(item){
         var who=esc(item.displayName||'Tài khoản được cấp quyền'),reason=esc(item.reason||'Không ghi lý do'),time=esc(item.createdAtText||'');
         var autoRef=item.autoValue==null?'':'<div class="data-history-auto">Tự động lúc điều chỉnh: '+Number(item.autoValue||0).toLocaleString('vi-VN')+' '+esc(category&&category.unit||'')+'</div>';
-        return'<article class="data-history-item"><div class="data-history-top"><strong>'+Number(item.beforeValue||0).toLocaleString('vi-VN')+' → '+Number(item.afterValue||0).toLocaleString('vi-VN')+' '+esc(category&&category.unit||'')+'</strong><span>'+time+'</span></div><div class="data-history-action">'+esc(item.action||'Điều chỉnh')+'</div>'+autoRef+'<div class="data-history-reason">'+reason+'</div><div class="data-history-user"><strong>'+who+'</strong></div></article>'
+        var afterText=item.afterValue==null?'Đã xóa':Number(item.afterValue||0).toLocaleString('vi-VN')+' '+esc(category&&category.unit||'');
+        return'<article class="data-history-item"><div class="data-history-top"><strong>'+Number(item.beforeValue||0).toLocaleString('vi-VN')+' '+esc(category&&category.unit||'')+' → '+afterText+'</strong><span>'+time+'</span></div><div class="data-history-action">'+esc(item.action||'Điều chỉnh')+'</div>'+autoRef+'<div class="data-history-reason">'+reason+'</div><div class="data-history-user"><strong>'+who+'</strong></div></article>'
       }).join('');
     }
     async function openDataHistoryDialog(code){
@@ -1914,19 +2045,19 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.2.1'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.3.0'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
       $('btnGoogleLogin').onclick=loginGoogle;
       $('confirmAccept').onclick=function(){closeConfirm(true)};$('confirmCancel').onclick=function(){closeConfirm(false)};$('confirmLayer').addEventListener('click',function(event){if(event.target===$('confirmLayer'))closeConfirm(false)});
       $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});
-      $('dataHistoryClose').onclick=closeDataHistoryDialog;$('dataHistoryFooterClose').onclick=closeDataHistoryDialog;$('dataHistoryLayer').addEventListener('click',function(event){if(event.target===$('dataHistoryLayer'))closeDataHistoryDialog()});
+      $('dataHistoryClose').onclick=closeDataHistoryDialog;$('dataHistoryFooterClose').onclick=closeDataHistoryDialog;$('dataHistoryLayer').addEventListener('click',function(event){if(event.target===$('dataHistoryLayer'))closeDataHistoryDialog()});$('deleteDailyCancel').onclick=closeDeleteDailyDialog;$('deleteDailyAccept').onclick=submitDeleteDaily;$('deleteDailyLayer').addEventListener('click',function(event){if(event.target===$('deleteDailyLayer'))closeDeleteDailyDialog()});
       $('categoryCancel').onclick=closeCategoryDialog;$('categorySave').onclick=submitCategory;$('categoryLayer').addEventListener('click',function(event){if(event.target===$('categoryLayer'))closeCategoryDialog()});
-      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(!$('dataHistoryLayer').hidden)closeDataHistoryDialog();else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
+      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(!$('deleteDailyLayer').hidden)closeDeleteDailyDialog();else if(!$('dataHistoryLayer').hidden)closeDataHistoryDialog();else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
       window.addEventListener('beforeunload',function(event){if(!quickEntryDirty())return;event.preventDefault();event.returnValue=''});
       $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;
-      $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value;if(code)openAdjustDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value;if(code)openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
+      $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value;if(code)openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value;if(code)openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value;if(code)openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
       $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='revoke')adminRevoke(id);if(kind==='delete')adminDelete(id)});
       $('btnReloadAdminReportUsers').onclick=function(){loadAdminReportUsers(true)};$('adminReportSearch').oninput=renderAdminReportUsers;$('adminReportUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-report-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='grant-entry')adminReportPermission(id,'nhaplieu',true);if(kind==='grant-admin')adminReportPermission(id,'admin',true);if(kind==='role')adminReportPermission(id,value,true);if(kind==='revoke')adminReportPermission(id,'nhaplieu',false)});
       $('displayNameCancel').onclick=closeDisplayNameDialog;$('displayNameCloseX').onclick=closeDisplayNameDialog;$('displayNameSave').onclick=saveDisplayName;$('displayNameLayer').addEventListener('click',function(event){if(event.target===$('displayNameLayer'))closeDisplayNameDialog()});
