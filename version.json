@@ -1,0 +1,7 @@
+{
+  "version": "9.0.0",
+  "releasedAt": "2026-08-14T14:52:00+07:00",
+  "title": "Production UI/UX Refactor",
+  "message": "Thiết kế lại toàn diện Desktop/PWA, hợp nhất design system, tối ưu Chuyển viện - Lịch sử - Quản trị và giữ nguyên business core Firebase Realtime Database.",
+  "required": false
+}
