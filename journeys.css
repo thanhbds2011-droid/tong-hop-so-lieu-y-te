@@ -1,5 +1,5 @@
 /* ================================================================
-   JOURNEYS MODULE — production 9.4.0
+   JOURNEYS MODULE — production 9.4.1
    Transfer journey, unified history and related dialogs.
    ================================================================ */
 
@@ -528,7 +528,7 @@
 }
 
 /* ================================================================
-   PRODUCTION JOURNEY UX 9.4.0
+   PRODUCTION JOURNEY UX 9.4.1
    Compact tracking/history, clear status, readable journey details.
    ================================================================ */
 .journey-reload-btn { display: none !important; }
@@ -604,7 +604,7 @@
 
 
 /* =====================================================================
-   JOURNEY UI 9.4.0 — compact workflow, same business contract
+   JOURNEY UI 9.4.1 — compact workflow, same business contract
    ===================================================================== */
 .journey-dashboard { gap: 10px; margin-bottom: 12px; }
 .journey-dashboard-card { min-height: 90px; padding: 14px 15px; border-radius: 13px; background: #fff; }
@@ -713,4 +713,63 @@
   .journey-timeline-card { padding: 10px 11px; }
   .journey-timeline-head { display: grid; gap: 4px; }
   .journey-timeline-head span { white-space: normal; }
+}
+
+/* ---------- UI hotfix 9.4.1: compact nghiệp vụ selector ---------- */
+.journey-create-mode-actions {
+  align-items: stretch;
+}
+.journey-create-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  color: #4c5861;
+  font-size: 12.5px;
+  font-weight: 720;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.journey-create-mode-btn svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.journey-create-mode-btn span {
+  min-width: 0;
+}
+.journey-create-mode-btn.is-death {
+  color: #9f2f3b;
+}
+.journey-create-mode-btn.is-death:hover {
+  background: #fff7f7;
+}
+
+@media (max-width: 760px) {
+  .journey-create-mode-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .journey-create-mode-btn {
+    min-height: 46px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .journey-create-mode-btn svg {
+    width: 17px;
+    height: 17px;
+    flex-basis: 17px;
+  }
+}
+
+@media (max-width: 380px) {
+  .journey-create-mode-actions {
+    grid-template-columns: 1fr;
+  }
 }

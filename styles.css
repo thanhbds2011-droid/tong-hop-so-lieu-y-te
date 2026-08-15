@@ -1,5 +1,5 @@
 /* ================================================================
-   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.4.0
+   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.4.1
    Shared design system, application shell and cross-module components.
    Business logic lives in app.js / reports.js / journeys.js.
    ================================================================ */
@@ -715,7 +715,7 @@ body.is-busy .loading-layer { display: grid; }
 .offline-card p { margin: 0 0 18px; color: var(--color-text-2); }
 
 /* ================================================================
-   PRODUCTION UX 9.4.0
+   PRODUCTION UX 9.4.1
    General reporting dashboard + selector-first data entry.
    ================================================================ */
 .nav-item { position: relative; }
@@ -817,7 +817,7 @@ body.is-busy .loading-layer { display: grid; }
 
 
 /* =====================================================================
-   UI PRODUCTION 9.4.0 — unified application shell & task-focused UX
+   UI PRODUCTION 9.4.1 — unified application shell & task-focused UX
    Business Stable v1.0 contract is unchanged.
    ===================================================================== */
 :root {
@@ -1011,4 +1011,157 @@ input, select, textarea { max-width: 100%; }
   .entry-selected-facts { grid-template-columns: 1fr; }
   .entry-selected-facts > div, .entry-selected-facts > div:nth-child(odd) { padding: 7px 0; border-top: 1px solid #ece8e6; }
   .entry-selected-facts > div:first-child { border-top: 0; }
+}
+
+/* ---------- UI hotfix 9.4.1: delete-data dialog ---------- */
+.delete-daily-card {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: #fff;
+  box-shadow: var(--shadow-lg);
+}
+.delete-daily-head {
+  padding: 18px 18px 14px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  border-bottom: 1px solid var(--color-border);
+}
+.delete-daily-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+.delete-daily-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.delete-daily-head h3 {
+  margin: 1px 0 5px;
+  color: var(--color-text);
+  font-size: 19px;
+  line-height: 1.25;
+}
+.delete-daily-head p {
+  margin: 0;
+  color: var(--color-text-3);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.delete-daily-summary {
+  margin: 14px 18px 0;
+  padding: 11px 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+}
+.delete-daily-summary > div {
+  min-width: 0;
+}
+.delete-daily-summary span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--color-text-3);
+  font-size: 11px;
+  font-weight: 650;
+}
+.delete-daily-summary strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-2);
+  font-size: 13px;
+  font-weight: 720;
+}
+.delete-daily-card > .field {
+  margin: 14px 18px 0;
+}
+.delete-daily-card textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+.delete-daily-note {
+  margin: 8px 18px 0;
+  color: var(--color-text-3);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.delete-daily-card > .adjust-progress,
+.delete-daily-card > .adjust-error {
+  margin: 8px 18px 0;
+}
+.delete-daily-card .confirm-actions {
+  margin-top: 14px;
+  background: #fff;
+}
+
+/* Admin report permissions: destructive action remains visually separated. */
+.admin-row-popover .admin-report-action.btn-danger,
+.admin-row-popover .admin-action.btn-danger {
+  color: var(--color-danger);
+  border-color: #eccaca;
+  background: #fff7f7;
+}
+
+@media (max-width: 760px) {
+  .delete-daily-card {
+    width: 100%;
+    max-height: min(88dvh, 720px);
+    border-radius: 18px 18px 0 0;
+    border-bottom: 0;
+  }
+  .delete-daily-head {
+    padding: 16px 16px 13px;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .delete-daily-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+  }
+  .delete-daily-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  .delete-daily-head h3 {
+    font-size: 18px;
+  }
+  .delete-daily-summary {
+    margin-inline: 16px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .delete-daily-summary > div {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 10px;
+    align-items: baseline;
+  }
+  .delete-daily-summary span {
+    margin: 0;
+  }
+  .delete-daily-card > .field,
+  .delete-daily-note,
+  .delete-daily-card > .adjust-progress,
+  .delete-daily-card > .adjust-error {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  .delete-daily-card .confirm-actions {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
 }

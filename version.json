@@ -1,7 +1,7 @@
 {
-  "version": "9.4.0",
-  "releasedAt": "2026-08-15T13:52:00+07:00",
-  "title": "UI Production 9.4.0",
-  "message": "Refactor UI/UX Desktop + PWA trên Business Stable v1.0; giữ nguyên business logic, Firebase paths, schema, Authentication, permission model và reporting rules.",
+  "version": "9.4.1",
+  "releasedAt": "2026-08-15T14:14:00+07:00",
+  "title": "UI Production 9.4.1",
+  "message": "Hotfix UI/UX: chuẩn hóa nút chọn Chuyển viện/Tử vong, sửa dialog Xóa số liệu trên Desktop/PWA và bổ sung Xóa khỏi ứng dụng tại Quản trị quyền Báo cáo; giữ nguyên business core, Firebase paths, schema, Authentication và reporting rules.",
   "required": false
 }
