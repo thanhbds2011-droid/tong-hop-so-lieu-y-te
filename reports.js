@@ -110,7 +110,7 @@ function fmtDateTime(value) {
 }
 function monthKey(dateIso) { return String(dateIso || todayIso()).slice(0, 7); }
 function roleLabel(role) {
-  return role === 'admin' ? 'Quản trị' : role === 'nhaplieu' ? 'Nhập liệu' : role === 'viewer' ? 'Chỉ xem' : 'Chưa cấp';
+  return role === 'admin' ? 'Quản trị' : role === 'nhaplieu' ? 'Nhập liệu' : role === 'viewer' ? 'Xem' : 'Chưa cấp';
 }
 function typeLabel(type) { return type === 'TU_VONG' ? 'Tử vong' : 'Chuyển viện'; }
 function isOwner(user) { return !!(user && normalizeEmail(user.email) === OWNER_EMAIL); }
@@ -893,11 +893,13 @@ function renderReportUsers() {
       const isSelf = item.uid === currentUid;
       let actions = '';
       if (!item.role || !item.active) {
+        actions += `<button class="small-btn btn-soft report-user-action" data-kind="grant-viewer" data-id="${esc(item.uid)}">Cấp Xem</button>`;
         actions += `<button class="small-btn btn-soft report-user-action" data-kind="grant-entry" data-id="${esc(item.uid)}">Cấp Nhập liệu</button>`;
         actions += `<button class="small-btn btn-primary report-user-action" data-kind="grant-admin" data-id="${esc(item.uid)}">Cấp Quản trị</button>`;
       } else {
-        const nextRole = item.role === 'admin' ? 'nhaplieu' : 'admin';
-        actions += `<button class="small-btn btn-soft report-user-action" data-kind="role" data-value="${nextRole}" data-id="${esc(item.uid)}"${isSelf ? ' disabled' : ''}>${item.role === 'admin' ? 'Hạ quyền' : 'Cấp quản trị'}</button>`;
+        if (item.role !== 'viewer') actions += `<button class="small-btn btn-soft report-user-action" data-kind="role" data-value="viewer" data-id="${esc(item.uid)}"${isSelf ? ' disabled' : ''}>Cấp Xem</button>`;
+        if (item.role !== 'nhaplieu') actions += `<button class="small-btn btn-soft report-user-action" data-kind="role" data-value="nhaplieu" data-id="${esc(item.uid)}"${isSelf ? ' disabled' : ''}>Cấp Nhập liệu</button>`;
+        if (item.role !== 'admin') actions += `<button class="small-btn btn-soft report-user-action" data-kind="role" data-value="admin" data-id="${esc(item.uid)}"${isSelf ? ' disabled' : ''}>Cấp Quản trị</button>`;
         actions += `<button class="small-btn btn-danger report-user-action" data-kind="revoke" data-id="${esc(item.uid)}"${isSelf ? ' disabled' : ''}>Thu hồi</button>`;
       }
       return `<tr>
@@ -992,6 +994,7 @@ function initEvents() {
     const kind = button.getAttribute('data-kind');
     const value = button.getAttribute('data-value');
     try {
+      if (kind === 'grant-viewer') await setReportUserPermission(uid, 'viewer', true);
       if (kind === 'grant-entry') await setReportUserPermission(uid, 'nhaplieu', true);
       if (kind === 'grant-admin') await setReportUserPermission(uid, 'admin', true);
       if (kind === 'role') await setReportUserPermission(uid, value, true);

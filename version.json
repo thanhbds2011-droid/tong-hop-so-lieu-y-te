@@ -1,7 +1,7 @@
 {
-  "version": "9.4.2",
-  "releasedAt": "2026-08-15T14:33:00+07:00",
-  "title": "UI Production 9.4.2",
-  "message": "Ổn định xóa số liệu theo Firebase Rules hiện hành; đồng nhất menu thao tác Tài khoản Tổng hợp với Quyền Báo cáo; thiết kế Lịch sử nghiệp vụ dạng bảng compact trên Desktop và card gọn trên PWA. Giữ nguyên business core, Firebase paths, Authentication, permission model và reporting rules.",
+  "version": "9.5.0",
+  "releasedAt": "2026-08-15T16:18:00+07:00",
+  "title": "UI & Permission Production 9.5.0",
+  "message": "Nâng cấp typography Tổng quan/Nhập liệu, bổ sung icon và bố cục theo dõi, thu gọn Lịch sử, thêm quyền Xem chỉ đọc, phân tách quyền xóa chỉ dành cho Quản trị và tối ưu PWA. Giữ nguyên các luồng chuyển viện, tử vong, realtime, đếm tự động và nguyên tắc audit hiện có.",
   "required": false
 }

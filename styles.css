@@ -1,5 +1,5 @@
 /* ================================================================
-   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.4.2
+   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.5.0
    Shared design system, application shell and cross-module components.
    Business logic lives in app.js / reports.js / journeys.js.
    ================================================================ */
@@ -715,7 +715,7 @@ body.is-busy .loading-layer { display: grid; }
 .offline-card p { margin: 0 0 18px; color: var(--color-text-2); }
 
 /* ================================================================
-   PRODUCTION UX 9.4.2
+   PRODUCTION UX 9.5.0
    General reporting dashboard + selector-first data entry.
    ================================================================ */
 .nav-item { position: relative; }
@@ -817,7 +817,7 @@ body.is-busy .loading-layer { display: grid; }
 
 
 /* =====================================================================
-   UI PRODUCTION 9.4.2 — unified application shell & task-focused UX
+   UI PRODUCTION 9.5.0 — unified application shell & task-focused UX
    Business Stable v1.0 contract is unchanged.
    ===================================================================== */
 :root {
@@ -1013,7 +1013,7 @@ input, select, textarea { max-width: 100%; }
   .entry-selected-facts > div:first-child { border-top: 0; }
 }
 
-/* ---------- UI hotfix 9.4.2: delete-data dialog ---------- */
+/* ---------- UI hotfix 9.5.0: delete-data dialog ---------- */
 .delete-daily-card {
   width: min(560px, 100%);
   max-height: calc(100dvh - 40px);
@@ -1164,4 +1164,51 @@ input, select, textarea { max-width: 100%; }
     bottom: 0;
     padding-bottom: calc(14px + env(safe-area-inset-bottom));
   }
+}
+
+/* ======================================================================
+   UI PRODUCTION 9.5.0 — typography, read-only role and PWA refinement
+   ====================================================================== */
+#dashboardView #rangeLabel {
+  margin-top: 6px;
+  color: #5b6872;
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.entry-selected-kicker {
+  margin-bottom: 5px;
+  color: #8d394b;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 780;
+  letter-spacing: 0;
+}
+.entry-selected-head > div > strong {
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: 800;
+  color: #202a33;
+}
+
+/* Vai trò Xem dùng cùng layout ứng dụng nhưng không hiển thị thao tác nhập/xóa. */
+.admin-row-popover .small-btn[data-value="Xem"],
+.admin-row-popover .small-btn[data-value="viewer"],
+.admin-row-popover .small-btn[data-kind="approve-viewer"],
+.admin-row-popover .small-btn[data-kind="grant-viewer"] {
+  color: #355e7c;
+  border-color: #cfdeea;
+  background: #f4f9fd;
+}
+
+@media (max-width: 760px) {
+  #dashboardView #rangeLabel {
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 680;
+  }
+  .entry-selected-kicker { font-size: 13px; }
+  .entry-selected-head > div > strong { font-size: 18px; }
 }

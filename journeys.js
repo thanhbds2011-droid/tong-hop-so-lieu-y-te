@@ -120,7 +120,8 @@ function iconSvg(name, className = 'journey-btn-icon') {
     route: '<circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h4a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4H8"/><path d="m10 12-2 2 2 2"/>',
     dots: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
     activity: '<path d="M3 12h4l2-5 4 10 2-5h6"/>',
-    check: '<path d="m5 12 4 4L19 6"/>'
+    check: '<path d="m5 12 4 4L19 6"/>',
+    person: '<circle cx="12" cy="7" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/>'
   };
   const body = icons[name] || '';
   return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
@@ -242,6 +243,9 @@ function validPermission(permission) {
 }
 function canEdit() {
   return isOwner() || (validPermission(state.permission) && ['admin', 'nhaplieu'].includes(state.permission.role));
+}
+function canDelete() {
+  return isOwner() || (validPermission(state.permission) && state.permission.role === 'admin');
 }
 function roleForLog() {
   if (isOwner()) return 'admin';
@@ -564,7 +568,7 @@ function renderTracking() {
       <div class="journey-card-main">
         <div class="journey-card-title">
           <div class="journey-person-head">
-            <strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>
+            <div class="journey-person-name-line">${iconSvg('person','journey-person-icon')}<strong>${esc(item.doiTuong || 'Chưa có tên')}</strong></div>
             ${patientFactsHtml(item)}
           </div>
           <div class="journey-card-badges">
@@ -572,7 +576,7 @@ function renderTracking() {
             <span class="journey-type-pill">${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span>
           </div>
         </div>
-        <div class="journey-location journey-location-compact">
+        <div class="journey-location journey-location-compact journey-location-italic">
           <span class="journey-location-label">${iconSvg('pin','journey-inline-icon')}Nơi hiện tại</span>
           <strong>${esc(item.noiHienTai || '—')}</strong>
         </div>
@@ -590,7 +594,7 @@ function renderTracking() {
       </div>
       <div class="journey-card-actions">
         ${canWrite ? `<button class="small-btn btn-primary journey-action journey-primary-action" data-kind="update" data-id="${esc(item.id)}" type="button">${iconSvg('edit')}<span>Cập nhật</span></button>
-        <details class="journey-action-menu"><summary aria-label="Thao tác khác">${iconSvg('dots')}</summary><div class="journey-action-popover"><button class="journey-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem hành trình</span></button><button class="journey-action journey-menu-return" data-kind="return" data-id="${esc(item.id)}" type="button">${iconSvg('home')}<span>Đã về Trung tâm</span></button></div></details>` : `<button class="small-btn btn-soft journey-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem hành trình</span></button>`}
+        <details class="journey-action-menu"><summary aria-label="Thao tác khác">${iconSvg('dots')}</summary><div class="journey-action-popover"><button class="journey-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem</span></button><button class="journey-action journey-menu-return" data-kind="return" data-id="${esc(item.id)}" type="button">${iconSvg('home')}<span>Đã về Trung tâm</span></button>${canDelete() ? `<button class="journey-action journey-menu-delete" data-kind="delete" data-id="${esc(item.id)}" type="button"><span>Xóa</span></button>` : ''}</div></details>` : `<button class="small-btn btn-soft journey-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem</span></button>`}
       </div>
     </article>`;
   }).join('');
@@ -675,7 +679,8 @@ function historyActionHtml(item) {
     const menu = canManage ? `<details class="journey-action-menu"><summary aria-label="Thao tác khác">${iconSvg('dots')}</summary><div class="journey-action-popover">${canEdit() ? `<button class="journey-history-action" data-kind="center-death-edit" data-id="${esc(item.id)}" type="button">${iconSvg('edit')}<span>Sửa</span></button>` : ''}${(isOwner() || (state.permission && state.permission.role === 'admin')) ? `<button class="journey-history-action journey-menu-delete" data-kind="center-death-delete" data-id="${esc(item.id)}" type="button"><span>Xóa</span></button>` : ''}</div></details>` : '';
     return `<div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="center-death-view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem</span></button>${menu}</div>`;
   }
-  return `<div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('route')}<span>Xem hành trình</span></button></div>`;
+  const menu = canDelete() ? `<details class="journey-action-menu"><summary aria-label="Thao tác khác">${iconSvg('dots')}</summary><div class="journey-action-popover"><button class="journey-history-action journey-menu-delete" data-kind="journey-delete" data-id="${esc(item.id)}" type="button"><span>Xóa</span></button></div></details>` : '';
+  return `<div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem</span></button>${menu}</div>`;
 }
 function renderHistory() {
   const search = normalizeText($('journeyHistorySearch')?.value || '');
@@ -713,8 +718,8 @@ function renderHistory() {
     return `<tr class="${item.kind === 'CENTER_DEATH' ? 'is-center-death' : ''}">
       <td class="history-col-stt" data-label="STT">${index + 1}</td>
       <td class="history-col-name" data-label="Họ và tên"><strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>${bhyt ? `<span class="history-mobile-bhyt">BHYT: ${esc(bhyt)}</span>` : ''}</td>
-      <td data-label="Năm sinh">${validBirthYear(item.namSinh) ? esc(item.namSinh) : '—'}</td>
-      <td data-label="Giới tính">${validGender(item.gioiTinh) ? esc(item.gioiTinh) : '—'}</td>
+      <td class="history-col-birth" data-label="Năm sinh">${validBirthYear(item.namSinh) ? esc(item.namSinh) : '—'}</td>
+      <td class="history-col-gender" data-label="Giới tính">${validGender(item.gioiTinh) ? esc(item.gioiTinh) : '—'}</td>
       <td class="history-col-place" data-label="Nơi điều trị"><strong>${esc(place)}</strong></td>
       <td class="history-col-diagnosis" data-label="Tình trạng / chẩn đoán"><span>${esc(diagnosis)}</span><small>${esc(dateText)}</small></td>
       <td class="history-col-status" data-label="Trạng thái"><span class="journey-status ${statusClassName}">${esc(status)}</span></td>
@@ -1009,6 +1014,64 @@ async function createJourney() {
   } finally {
     $('journeyCreateSave').disabled = false;
     $('journeyCreateSave').textContent = 'Xác nhận chuyển viện';
+  }
+}
+
+async function deleteJourney(id) {
+  if (!canDelete()) {
+    showToast('Chỉ tài khoản Quản trị mới được xóa dữ liệu hành trình.', 'warn');
+    return;
+  }
+  const item = findCase(id);
+  if (!item) return;
+  if (!window.confirm(`Xóa hành trình chuyển viện của ${item.doiTuong || 'đối tượng'}? Dữ liệu nghiệp vụ sẽ được đưa vào kho lưu vết dành cho Quản trị.`)) return;
+  const user = auth.currentUser;
+  if (!user) return;
+  try {
+    const snap = await get(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${id}`));
+    if (!snap.exists()) throw new Error('Hành trình không còn tồn tại.');
+    const raw = snap.val() || {};
+    const info = raw.thongTin || {};
+    const displayName = await resolveCurrentDisplayName();
+    const email = normalizeEmail(user.email);
+    const deletedAt = Date.now();
+    const transferDate = isoDateFromTimestamp(info.createdAt || info.ngayGioDi || deletedAt);
+    const historyEvents = Object.values(raw.lichSu || {});
+    const deathEvent = historyEvents.filter((event) => event && event.loaiSuKien === 'TU_VONG_TAI_BENH_VIEN').sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))[0];
+    const deathDate = deathEvent ? isoDateFromTimestamp(deathEvent.createdAt) : (info.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN' ? isoDateFromTimestamp(info.updatedAt || deletedAt) : '');
+    const logMonth = (transferDate || todayIso()).slice(0, 7);
+    const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${logMonth}`)).key;
+    const updates = {};
+    updates[`${REPORT_ROOT}/hanhTrinhDaXoa/${id}`] = {
+      caseId: id,
+      deletedAt,
+      deletedByUid: user.uid,
+      deletedByEmail: email,
+      deletedByName: displayName,
+      data: raw
+    };
+    updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${id}`] = null;
+    if (info.doiTuongKey) updates[`${REPORT_ROOT}/hanhTrinhDangMo/${info.doiTuongKey}`] = null;
+    if (transferDate) updates[`${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${transferDate}/${id}`] = null;
+    if (deathDate) updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${deathDate}/HOSP_${id}`] = null;
+    updates[`${REPORT_ROOT}/nhatKy/${logMonth}/${logId}`] = {
+      action: 'Xóa hành trình chuyển viện',
+      content: `${info.doiTuong || item.doiTuong || 'Đối tượng'} · ${info.noiDiBanDau || CENTER_NAME} → ${info.noiHienTai || item.noiHienTai || '—'}`,
+      reportId: id,
+      loaiBaoCao: 'CHUYEN_VIEN',
+      dataDate: transferDate || todayIso(),
+      uid: user.uid,
+      email,
+      displayName,
+      role: 'admin',
+      createdAt: deletedAt
+    };
+    await update(ref(db), updates);
+    showToast('Đã xóa hành trình và lưu bản lưu vết dành cho Quản trị.', 'ok');
+    await loadJourneys(true);
+  } catch (error) {
+    console.error(error);
+    showToast(friendlyError(error, 'Không thể xóa hành trình. Vui lòng kiểm tra quyền Quản trị và Firebase Rules.'), 'err');
   }
 }
 
@@ -1338,6 +1401,7 @@ function initEvents() {
     if (kind === 'view') openDetail(id);
     if (kind === 'update') openUpdateDialog(id, '');
     if (kind === 'return') openUpdateDialog(id, 'DA_VE_TRUNG_TAM');
+    if (kind === 'delete') deleteJourney(id);
   });
   $('journeyHistoryList')?.addEventListener('click', (event) => {
     const button = event.target.closest('.journey-history-action');
@@ -1345,6 +1409,7 @@ function initEvents() {
     const kind = button.getAttribute('data-kind');
     const menu = button.closest('details.journey-action-menu'); if (menu) menu.open = false;
     if (kind === 'view') openDetail(button.getAttribute('data-id'));
+    if (kind === 'journey-delete') deleteJourney(button.getAttribute('data-id'));
     if (kind === 'center-death-view' && window.YTE_REPORTS && typeof window.YTE_REPORTS.openReportById === 'function') window.YTE_REPORTS.openReportById(button.getAttribute('data-id'));
     if (kind === 'center-death-edit' && window.YTE_REPORTS && typeof window.YTE_REPORTS.editReportById === 'function') window.YTE_REPORTS.editReportById(button.getAttribute('data-id'));
     if (kind === 'center-death-delete' && window.YTE_REPORTS && typeof window.YTE_REPORTS.deleteReportById === 'function') window.YTE_REPORTS.deleteReportById(button.getAttribute('data-id'));
