@@ -1622,7 +1622,7 @@ var AUTO_SYNC_MS = 300000;
       $('entrySelectedUpdaterRow').hidden=!(record&&record.updatedBy);$('entrySelectedUpdater').textContent=record&&record.updatedBy?record.updatedBy:'—';
       if(auto)setEntrySelectedStatus(manual?'Đã điều chỉnh':'Tự động',manual?'is-adjusted':'is-auto');
       else if(record)setEntrySelectedStatus('Đã ghi nhận','is-complete');else setEntrySelectedStatus('','');
-      if(adjust&&adjust.querySelector('span'))adjust.querySelector('span').textContent=auto?'Điều chỉnh số liệu':'Sửa số liệu';
+      if(adjust&&adjust.querySelector('span'))adjust.querySelector('span').textContent=auto?'Điều chỉnh số liệu':'Cập nhật số liệu';
       history.hidden=!record;
       if(auto){
         valueField.hidden=true;save.hidden=true;adjust.hidden=false;if(del)del.hidden=true;state.quickEntryBaseline='';$('entryQuickValue').value='';
@@ -1903,7 +1903,7 @@ var AUTO_SYNC_MS = 300000;
         var requestLabel=user.isPending
           ? '<span class="status-pill pending">'+requestText+'</span><div class="meta">'+esc(user.requestedAt||'')+'</div>'
           : '<span class="status-pill">'+esc(user.requestStatus==='approved'?'Đã duyệt':'Đang sử dụng')+'</span>';
-        return'<tr><td data-label="Họ tên">'+esc(user.name)+(isSelf?' <span class="meta">(Bạn)</span>':'')+'</td><td data-label="Tài khoản">'+esc(user.username||'—')+'</td><td data-label="Email">'+esc(user.email)+'</td><td data-label="Vai trò">'+esc(user.role||'Chưa cấp')+'</td><td data-label="Trạng thái">'+esc(user.status)+'</td><td data-label="Yêu cầu">'+requestLabel+'</td><td data-label="Thao tác">'+actions+'</td></tr>';
+        return'<tr><td data-label="Họ tên">'+esc(user.name)+(isSelf?' <span class="meta">(Bạn)</span>':'')+'</td><td data-label="Tài khoản">'+esc(user.username||'—')+'</td><td data-label="Email">'+esc(user.email)+'</td><td data-label="Vai trò">'+esc(user.role||'Chưa cấp')+'</td><td data-label="Trạng thái">'+esc(user.status)+'</td><td data-label="Yêu cầu">'+requestLabel+'</td><td data-label="Thao tác"><details class="admin-row-menu"><summary aria-label="Mở thao tác tài khoản">•••</summary><div class="admin-row-popover">'+actions+'</div></details></td></tr>';
       }).join('')+'</tbody></table>';
     }
     async function loadAdminUsers(force){
@@ -1942,7 +1942,7 @@ var AUTO_SYNC_MS = 300000;
           actions+='<button class="small-btn btn-soft admin-report-action" data-kind="role" data-value="'+esc(nextRole)+'" data-id="'+esc(user.id)+'"'+(protectSelf?' disabled':'')+'>'+(user.role==='admin'?'Hạ quyền':'Cấp quản trị')+'</button>';
           actions+='<button class="small-btn btn-danger admin-report-action" data-kind="revoke" data-id="'+esc(user.id)+'"'+(protectSelf?' disabled':'')+'>Thu hồi</button>';
         }
-        return'<tr><td data-label="Họ tên">'+esc(user.name||'—')+(isSelf?' <span class="meta">(Bạn)</span>':'')+'</td><td data-label="Email">'+esc(user.email||'—')+'</td><td data-label="Quyền Báo cáo">'+esc(user.roleLabel||'Chưa cấp')+'</td><td data-label="Trạng thái">'+esc(user.status||'Chưa cấp')+'</td><td data-label="Đăng nhập gần nhất">'+esc(user.lastLogin||'—')+'</td><td data-label="Thao tác">'+actions+'</td></tr>';
+        return'<tr><td data-label="Họ tên">'+esc(user.name||'—')+(isSelf?' <span class="meta">(Bạn)</span>':'')+'</td><td data-label="Email">'+esc(user.email||'—')+'</td><td data-label="Quyền Báo cáo">'+esc(user.roleLabel||'Chưa cấp')+'</td><td data-label="Trạng thái">'+esc(user.status||'Chưa cấp')+'</td><td data-label="Đăng nhập gần nhất">'+esc(user.lastLogin||'—')+'</td><td data-label="Thao tác"><details class="admin-row-menu"><summary aria-label="Mở thao tác quyền Báo cáo">•••</summary><div class="admin-row-popover">'+actions+'</div></details></td></tr>';
       }).join('')+'</tbody></table>';
     }
     async function loadAdminReportUsers(force){
@@ -2045,7 +2045,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.3.0'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.4.0'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;

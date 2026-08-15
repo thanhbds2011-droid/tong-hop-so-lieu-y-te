@@ -741,6 +741,8 @@ function setSubView(name) {
   name = ['tracking', 'create', 'history'].includes(name) ? name : 'tracking';
   if (name === 'create' && !canEdit()) name = 'tracking';
   state.subView = name;
+  const reportsView = $('reportsView');
+  if (reportsView) reportsView.setAttribute('data-journey-view', name);
   document.querySelectorAll('.journey-subtab').forEach((button) => {
     button.classList.toggle('active', button.getAttribute('data-journey-view') === name);
   });
@@ -1201,13 +1203,17 @@ function openDetail(id) {
   const hasDemographics = validGender(item.gioiTinh) || validBirthYear(item.namSinh);
   $('journeyDetailMeta').classList.toggle('has-demographics', hasDemographics);
   $('journeyDetailMeta').innerHTML = `
-    ${validGender(item.gioiTinh) ? `<div><span>Giới tính</span><strong>${esc(item.gioiTinh)}</strong></div>` : ''}
-    ${validBirthYear(item.namSinh) ? `<div><span>Sinh năm</span><strong>${esc(item.namSinh)}</strong></div>` : ''}
-    <div><span>Thẻ BHYT</span><strong>${esc(item.theBHYT || 'Chưa ghi nhận')}</strong></div>
-    <div><span>Hình thức chuyển ban đầu</span><strong>${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</strong></div>
-    <div><span>Rời Trung tâm</span><strong>${esc(fmtDateTime(item.ngayGioDi))}</strong></div>
-    <div><span>${closed ? 'Kết thúc' : 'Cập nhật gần nhất'}</span><strong>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</strong></div>
-    <div class="journey-detail-status ${statusClass(item.trangThaiHienTai)}"><span>Trạng thái</span><strong>${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓ ' : ''}${esc(statusLabel(item.trangThaiHienTai))}</strong></div>`;
+    <div class="journey-detail-summary-main">
+      <div class="journey-detail-summary-facts">
+        ${validGender(item.gioiTinh) ? `<span>${esc(item.gioiTinh)}</span>` : ''}
+        ${validBirthYear(item.namSinh) ? `<span>Sinh năm ${esc(item.namSinh)}</span>` : ''}
+        <span>BHYT ${esc(item.theBHYT || 'Chưa ghi nhận')}</span>
+        <span>${esc(transferTypeLabel(inferLegacyTransferType(item), item.hinhThucChuyenKhac))}</span>
+      </div>
+      <span class="journey-status ${statusClass(item.trangThaiHienTai)}">${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? '✓ ' : ''}${esc(statusLabel(item.trangThaiHienTai))}</span>
+    </div>
+    <div class="journey-detail-summary-time"><span>Rời Trung tâm</span><strong>${esc(fmtDateTime(item.ngayGioDi))}</strong></div>
+    ${closed ? `<div class="journey-detail-summary-time"><span>Kết thúc</span><strong>${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</strong></div>` : ''}`
   const events = Object.values(item.lichSu || {}).sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
   $('journeyTimeline').innerHTML = events.length ? events.map((event) => {
     const note = String(event.ghiChu || '').trim();
@@ -1235,7 +1241,7 @@ function openDetail(id) {
   }).join('') : '<div class="journey-empty">Chưa có lịch sử hành trình.</div>';
   $('journeyDetailLayer').hidden = false;
   setBodyModalState(true);
-  window.setTimeout(() => $('journeyDetailClose')?.focus(), 0);
+  window.setTimeout(() => $('journeyDetailCloseBottom')?.focus(), 0);
 }
 
 function closeDetail() {

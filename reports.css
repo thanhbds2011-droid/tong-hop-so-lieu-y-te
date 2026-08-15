@@ -1,5 +1,5 @@
 /* ================================================================
-   REPORTS MODULE — production 9.2.1
+   REPORTS MODULE — production 9.4.0
    Only report/death-specific presentation belongs here.
    ================================================================ */
 
@@ -117,7 +117,7 @@
   .report-search-field { grid-column: 1 / -1; }
 }
 
-/* ---------- Production detail view 9.2.1 ---------- */
+/* ---------- Production detail view 9.4.0 ---------- */
 .report-detail-view { padding: 18px; }
 .report-detail-person { padding: 13px; display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-subtle); }
 .report-detail-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: var(--color-primary); background: var(--color-primary-soft); }
@@ -137,3 +137,29 @@
 #reportLayer.is-readonly .center-death-dialog { width: min(720px,100%); }
 #reportLayer.is-readonly .confirm-actions { justify-content: flex-end; }
 @media (max-width: 760px) { .report-detail-view { padding: 14px 16px; } .report-detail-person { grid-template-columns: auto minmax(0,1fr); } .report-detail-person .journey-status { grid-column: 2; justify-self: start; } .report-detail-grid { grid-template-columns: 1fr; } .report-detail-grid > div.full { grid-column: 1; } }
+
+
+/* =====================================================================
+   REPORT UI 9.4.0 — clear detail/edit modes
+   ===================================================================== */
+.report-detail-view { padding: 16px 18px; }
+.report-detail-person { padding: 0 0 12px; grid-template-columns: auto minmax(0,1fr) auto; border: 0; border-bottom: 1px solid #eceff1; border-radius: 0; background: transparent; }
+.report-detail-avatar { width: 36px; height: 36px; border-radius: 10px; }
+.report-detail-person strong { color: #26313a; font-size: 17px; font-weight: 790; }
+.report-detail-person p { color: #77828b; }
+.report-detail-grid { margin-top: 8px; gap: 0 20px; }
+.report-detail-grid > div { padding: 9px 0; border: 0; border-bottom: 1px solid #f0edeb; border-radius: 0; background: transparent; }
+.report-detail-grid span { color: #818b93; font-size: 10.5px; }
+.report-detail-grid strong { color: #3d4851; font-size: 12.5px; }
+.report-detail-cause { border-color: #f0edeb !important; background: transparent !important; }
+.report-detail-cause strong { color: #963f3f; font-size: 13px; }
+.report-detail-audit { background: transparent !important; }
+.center-death-dialog textarea { min-height: 76px; }
+@media (max-width: 760px) {
+  .report-detail-view { padding: 14px 16px; }
+  .report-detail-person { grid-template-columns: minmax(0,1fr); gap: 7px; }
+  .report-detail-avatar { display: none; }
+  .report-detail-person .journey-status { grid-column: 1; justify-self: start; }
+  .report-detail-grid { grid-template-columns: 1fr; }
+  .report-detail-grid > div.full { grid-column: 1; }
+}

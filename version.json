@@ -1,7 +1,7 @@
 {
-  "version": "9.3.0",
-  "releasedAt": "2026-08-14T22:16:00+07:00",
-  "title": "UI/UX & Workflow 9.3.0",
-  "message": "Hoàn thiện nhận diện desktop, bố cục Nhập liệu/Báo cáo, bổ sung xóa số liệu thủ công có audit, bỏ Tái khám khỏi lựa chọn tạo chuyển viện mới, chuyển điểm khởi tạo Tử vong tại Trung tâm sang khu vực Lập chuyển viện và sửa popover/menu hành động.",
+  "version": "9.4.0",
+  "releasedAt": "2026-08-15T13:52:00+07:00",
+  "title": "UI Production 9.4.0",
+  "message": "Refactor UI/UX Desktop + PWA trên Business Stable v1.0; giữ nguyên business logic, Firebase paths, schema, Authentication, permission model và reporting rules.",
   "required": false
 }
