@@ -761,7 +761,10 @@ async function deleteDailyDataFirebase(payload) {
     name: category.ten || code,
     action: 'Xóa số liệu',
     beforeValue,
-    afterValue: null,
+    // Rules hiện hành của tongHopYTe/lichSu yêu cầu afterValue là number.
+    // Với thao tác xóa, action là nguồn sự thật; 0 chỉ là giá trị audit tương thích Rules.
+    // Khi đọc lịch sử, UI chuyển action 'Xóa số liệu' về trạng thái 'Đã xóa'.
+    afterValue: 0,
     beforeNote: current.ghiChu || '',
     afterNote: '',
     reason,
@@ -817,7 +820,7 @@ async function getDailyDataHistoryFirebase(payload) {
       id: item.id,
       action: String(item.action || ''),
       beforeValue: Number(item.beforeValue || 0),
-      afterValue: item.afterValue == null ? null : Number(item.afterValue || 0),
+      afterValue: String(item.action || '') === 'Xóa số liệu' ? null : (item.afterValue == null ? null : Number(item.afterValue || 0)),
       reason: String(item.reason || ''),
       displayName: String((displayNames[item.uid] && displayNames[item.uid].displayName) || item.displayName || item.email || ''),
       email: normalizeEmail(item.email),
@@ -1886,18 +1889,18 @@ var AUTO_SYNC_MS = 300000;
         var actions='<button class="small-btn btn-soft admin-action" data-kind="display-name" data-id="'+esc(user.id)+'">Tên hiển thị</button>';
         if(user.isPending&&(user.requestStatus==='pending'||user.requestStatus==='unassigned'||user.requestStatus==='rejected')){
           if(user.requestStatus!=='rejected'){
-            actions+='<button class="small-btn btn-soft admin-action" data-kind="approve-entry" data-id="'+esc(user.id)+'">Duyệt Nhập liệu</button>';
-            actions+='<button class="small-btn btn-primary admin-action" data-kind="approve-admin" data-id="'+esc(user.id)+'">Duyệt Quản trị</button>';
+            actions+='<button class="small-btn btn-soft admin-action" data-kind="approve-entry" data-id="'+esc(user.id)+'">Cấp Nhập liệu</button>';
+            actions+='<button class="small-btn btn-primary admin-action" data-kind="approve-admin" data-id="'+esc(user.id)+'">Cấp Quản trị</button>';
           }
           if(user.requestStatus==='pending')actions+='<button class="small-btn btn-soft admin-action" data-kind="reject-registration" data-id="'+esc(user.id)+'">Từ chối</button>';
-          actions+='<button class="small-btn btn-danger admin-action" data-kind="delete" data-id="'+esc(user.id)+'"'+(isSelf?' disabled':'')+'>Xóa</button>';
+          actions+='<button class="small-btn btn-danger admin-action" data-kind="delete" data-id="'+esc(user.id)+'"'+(isSelf?' disabled':'')+'>Xóa khỏi ứng dụng</button>';
         }else if(!user.isPending){
           var nextStatus=user.status==='Hoạt động'?'Khóa':'Hoạt động';
           var nextRole=user.role==='Quản trị'?'Nhập liệu':'Quản trị';
           actions+='<button class="small-btn btn-soft admin-action" data-kind="status" data-id="'+esc(user.id)+'" data-value="'+esc(nextStatus)+'"'+(isSelf?' disabled':'')+'>'+(user.status==='Hoạt động'?'Khóa':'Mở khóa')+'</button>';
           actions+='<button class="small-btn btn-soft admin-action" data-kind="role" data-id="'+esc(user.id)+'" data-value="'+esc(nextRole)+'"'+(isSelf?' disabled':'')+'>'+(user.role==='Quản trị'?'Hạ quyền':'Cấp quản trị')+'</button>';
-          actions+='<button class="small-btn btn-soft admin-action" data-kind="revoke" data-id="'+esc(user.id)+'"'+(isSelf?' disabled':'')+'>Thu hồi quyền</button>';
-          actions+='<button class="small-btn btn-danger admin-action" data-kind="delete" data-id="'+esc(user.id)+'"'+(isSelf?' disabled':'')+'>Xóa</button>';
+          actions+='<button class="small-btn btn-soft admin-action" data-kind="revoke" data-id="'+esc(user.id)+'"'+(isSelf?' disabled':'')+'>Thu hồi</button>';
+          actions+='<button class="small-btn btn-danger admin-action" data-kind="delete" data-id="'+esc(user.id)+'"'+(isSelf?' disabled':'')+'>Xóa khỏi ứng dụng</button>';
         }
         var requestText=user.requestStatus==='rejected'?'Đã từ chối':(user.requestStatus==='unassigned'?'Chưa cấp':'Chờ duyệt');
         var requestLabel=user.isPending
@@ -2054,7 +2057,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.4.1'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.4.2'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;

@@ -643,6 +643,40 @@ function renderDashboardStats() {
   if ($('journeyTodayDeathCount')) $('journeyTodayDeathCount').textContent = String(markerCount(state.deathStatsToday));
 }
 
+function latestJourneyStage(item) {
+  const stages = Object.values(item && item.chang || {}).sort((a, b) => Number(a.thuTu || 0) - Number(b.thuTu || 0));
+  return stages.length ? stages[stages.length - 1] : null;
+}
+function historyTreatmentPlace(item) {
+  if (!item) return '—';
+  if (item.kind === 'CENTER_DEATH') return CENTER_NAME;
+  const stages = Object.values(item.chang || {}).sort((a, b) => Number(a.thuTu || 0) - Number(b.thuTu || 0));
+  for (let i = stages.length - 1; i >= 0; i -= 1) {
+    const place = String(stages[i] && stages[i].noiDen || '').trim();
+    if (place && normalizeText(place) !== normalizeText(CENTER_NAME)) return place;
+  }
+  return String(item.noiHienTai || CENTER_NAME || '—');
+}
+function historyDiagnosis(item) {
+  if (!item) return '—';
+  if (item.kind === 'CENTER_DEATH') return String(item.nguyenNhan || '—');
+  const latest = latestJourneyStage(item);
+  return String(
+    latest && latest.tinhTrangChanDoan ||
+    item.tinhTrangChanDoanHienTai ||
+    item.tinhTrangKhiVe ||
+    item.ghiChu ||
+    '—'
+  );
+}
+function historyActionHtml(item) {
+  if (item.kind === 'CENTER_DEATH') {
+    const canManage = canEdit() || isOwner() || (state.permission && state.permission.role === 'admin');
+    const menu = canManage ? `<details class="journey-action-menu"><summary aria-label="Thao tác khác">${iconSvg('dots')}</summary><div class="journey-action-popover">${canEdit() ? `<button class="journey-history-action" data-kind="center-death-edit" data-id="${esc(item.id)}" type="button">${iconSvg('edit')}<span>Sửa</span></button>` : ''}${(isOwner() || (state.permission && state.permission.role === 'admin')) ? `<button class="journey-history-action journey-menu-delete" data-kind="center-death-delete" data-id="${esc(item.id)}" type="button"><span>Xóa</span></button>` : ''}</div></details>` : '';
+    return `<div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="center-death-view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem</span></button>${menu}</div>`;
+  }
+  return `<div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('route')}<span>Xem hành trình</span></button></div>`;
+}
 function renderHistory() {
   const search = normalizeText($('journeyHistorySearch')?.value || '');
   const filter = $('journeyHistoryStatus')?.value || 'all';
@@ -656,7 +690,7 @@ function renderHistory() {
     }
     return normalizeText([
       item.doiTuong, item.gioiTinh, item.namSinh, item.theBHYT, statusLabel(item.trangThaiHienTai),
-      item.tinhTrangKhiVe, item.ghiChu, routeSearchText(item)
+      item.tinhTrangKhiVe, item.ghiChu, historyTreatmentPlace(item), historyDiagnosis(item), routeSearchText(item)
     ].join(' ')).includes(search);
   });
 
@@ -666,26 +700,34 @@ function renderHistory() {
     box.innerHTML = '<div class="journey-empty"><strong>Không có lịch sử phù hợp.</strong></div>';
     return;
   }
-  box.innerHTML = rows.map((item) => {
-    if (item.kind === 'CENTER_DEATH') {
-      return `<article class="journey-history-card journey-history-compact is-center-death">
-        <div class="journey-history-main">
-          <div class="journey-history-title-row"><div class="journey-person-head"><strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>${patientFactsHtml(item)}</div><span class="journey-status is-death">Tử vong tại Trung tâm</span></div>
-          <div class="journey-history-route"><strong>${esc(CENTER_NAME)}</strong></div>
-          <div class="journey-history-summary"><span><b>Tử vong:</b> ${esc(item.ngayBaoCao ? item.ngayBaoCao.split('-').reverse().join('/') : '—')}</span>${item.nguyenNhan ? `<span><b>Nguyên nhân:</b> ${esc(item.nguyenNhan)}</span>` : ''}<span><b>Người nhập:</b> ${esc(preferredName(item.createdByUid, item.createdByName))}</span></div>
-        </div>
-        <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="center-death-view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem</span></button>${(canEdit() || isOwner() || (state.permission && state.permission.role === 'admin')) ? `<details class="journey-action-menu"><summary aria-label="Thao tác khác">${iconSvg('dots')}</summary><div class="journey-action-popover">${canEdit() ? `<button class="journey-history-action" data-kind="center-death-edit" data-id="${esc(item.id)}" type="button">${iconSvg('edit')}<span>Sửa</span></button>` : ''}${(isOwner() || (state.permission && state.permission.role === 'admin')) ? `<button class="journey-history-action journey-menu-delete" data-kind="center-death-delete" data-id="${esc(item.id)}" type="button"><span>Xóa</span></button>` : ''}</div></details>` : ''}</div>
-      </article>`;
-    }
-    return `<article class="journey-history-card journey-history-compact">
-      <div class="journey-history-main">
-        <div class="journey-history-title-row"><div class="journey-person-head"><strong>${esc(item.doiTuong)}</strong>${patientFactsHtml(item)}</div><span class="journey-status ${statusClass(item.trangThaiHienTai)}">${esc(statusLabel(item.trangThaiHienTai))}</span></div>
-        <div class="journey-history-route">${journeyRouteHtml(item)}</div>
-        <div class="journey-history-summary"><span><b>Rời Trung tâm:</b> ${esc(fmtDateTime(item.ngayGioDi))}</span><span><b>${item.trangThaiHienTai === 'DA_VE_TRUNG_TAM' ? 'Đã về' : 'Kết thúc'}:</b> ${esc(fmtDateTime(item.ngayGioVe || item.updatedAt))}</span></div>
-      </div>
-      <div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('route')}<span>Xem hành trình</span><b aria-hidden="true">→</b></button></div>
-    </article>`;
+
+  const body = rows.map((item, index) => {
+    const status = item.kind === 'CENTER_DEATH' ? 'Tử vong tại Trung tâm' : statusLabel(item.trangThaiHienTai);
+    const statusClassName = item.kind === 'CENTER_DEATH' ? 'is-death' : statusClass(item.trangThaiHienTai);
+    const place = historyTreatmentPlace(item);
+    const diagnosis = historyDiagnosis(item);
+    const bhyt = String(item.theBHYT || '').trim();
+    const dateText = item.kind === 'CENTER_DEATH'
+      ? (item.ngayBaoCao ? item.ngayBaoCao.split('-').reverse().join('/') : '—')
+      : fmtDateTime(item.ngayGioVe || item.updatedAt);
+    return `<tr class="${item.kind === 'CENTER_DEATH' ? 'is-center-death' : ''}">
+      <td class="history-col-stt" data-label="STT">${index + 1}</td>
+      <td class="history-col-name" data-label="Họ và tên"><strong>${esc(item.doiTuong || 'Chưa có tên')}</strong>${bhyt ? `<span class="history-mobile-bhyt">BHYT: ${esc(bhyt)}</span>` : ''}</td>
+      <td data-label="Năm sinh">${validBirthYear(item.namSinh) ? esc(item.namSinh) : '—'}</td>
+      <td data-label="Giới tính">${validGender(item.gioiTinh) ? esc(item.gioiTinh) : '—'}</td>
+      <td class="history-col-place" data-label="Nơi điều trị"><strong>${esc(place)}</strong></td>
+      <td class="history-col-diagnosis" data-label="Tình trạng / chẩn đoán"><span>${esc(diagnosis)}</span><small>${esc(dateText)}</small></td>
+      <td class="history-col-status" data-label="Trạng thái"><span class="journey-status ${statusClassName}">${esc(status)}</span></td>
+      <td class="history-col-actions" data-label="Thao tác">${historyActionHtml(item)}</td>
+    </tr>`;
   }).join('');
+
+  box.innerHTML = `<div class="journey-history-table-wrap"><table class="journey-history-table">
+    <thead><tr>
+      <th>STT</th><th>Họ và tên</th><th>Năm sinh</th><th>Giới tính</th><th>Nơi điều trị</th><th>Tình trạng / chẩn đoán</th><th>Trạng thái</th><th>Thao tác</th>
+    </tr></thead>
+    <tbody>${body}</tbody>
+  </table></div>`;
 }
 
 function positionActionPopover(details) {

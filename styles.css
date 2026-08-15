@@ -1,5 +1,5 @@
 /* ================================================================
-   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.4.1
+   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.4.2
    Shared design system, application shell and cross-module components.
    Business logic lives in app.js / reports.js / journeys.js.
    ================================================================ */
@@ -715,7 +715,7 @@ body.is-busy .loading-layer { display: grid; }
 .offline-card p { margin: 0 0 18px; color: var(--color-text-2); }
 
 /* ================================================================
-   PRODUCTION UX 9.4.1
+   PRODUCTION UX 9.4.2
    General reporting dashboard + selector-first data entry.
    ================================================================ */
 .nav-item { position: relative; }
@@ -817,7 +817,7 @@ body.is-busy .loading-layer { display: grid; }
 
 
 /* =====================================================================
-   UI PRODUCTION 9.4.1 — unified application shell & task-focused UX
+   UI PRODUCTION 9.4.2 — unified application shell & task-focused UX
    Business Stable v1.0 contract is unchanged.
    ===================================================================== */
 :root {
@@ -1013,7 +1013,7 @@ input, select, textarea { max-width: 100%; }
   .entry-selected-facts > div:first-child { border-top: 0; }
 }
 
-/* ---------- UI hotfix 9.4.1: delete-data dialog ---------- */
+/* ---------- UI hotfix 9.4.2: delete-data dialog ---------- */
 .delete-daily-card {
   width: min(560px, 100%);
   max-height: calc(100dvh - 40px);

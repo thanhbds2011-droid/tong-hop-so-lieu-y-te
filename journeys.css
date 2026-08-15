@@ -1,5 +1,5 @@
 /* ================================================================
-   JOURNEYS MODULE — production 9.4.1
+   JOURNEYS MODULE — production 9.4.2
    Transfer journey, unified history and related dialogs.
    ================================================================ */
 
@@ -528,7 +528,7 @@
 }
 
 /* ================================================================
-   PRODUCTION JOURNEY UX 9.4.1
+   PRODUCTION JOURNEY UX 9.4.2
    Compact tracking/history, clear status, readable journey details.
    ================================================================ */
 .journey-reload-btn { display: none !important; }
@@ -604,7 +604,7 @@
 
 
 /* =====================================================================
-   JOURNEY UI 9.4.1 — compact workflow, same business contract
+   JOURNEY UI 9.4.2 — compact workflow, same business contract
    ===================================================================== */
 .journey-dashboard { gap: 10px; margin-bottom: 12px; }
 .journey-dashboard-card { min-height: 90px; padding: 14px 15px; border-radius: 13px; background: #fff; }
@@ -715,7 +715,7 @@
   .journey-timeline-head span { white-space: normal; }
 }
 
-/* ---------- UI hotfix 9.4.1: compact nghiệp vụ selector ---------- */
+/* ---------- UI hotfix 9.4.2: compact nghiệp vụ selector ---------- */
 .journey-create-mode-actions {
   align-items: stretch;
 }
@@ -772,4 +772,119 @@
   .journey-create-mode-actions {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- UI refinement 9.4.2: Lịch sử nghiệp vụ compact ---------- */
+.journey-history-table-wrap {
+  width: 100%;
+  border: 1px solid #dde3e7;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(25, 33, 40, .03);
+}
+.journey-history-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 12.5px;
+  color: #37434d;
+}
+.journey-history-table thead th {
+  padding: 11px 10px;
+  border-bottom: 1px solid #dfe4e7;
+  background: #f5f7f8;
+  color: #56636d;
+  font-size: 11px;
+  font-weight: 780;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .025em;
+  white-space: nowrap;
+}
+.journey-history-table thead th:first-child { border-radius: 11px 0 0 0; }
+.journey-history-table thead th:last-child { border-radius: 0 11px 0 0; }
+.journey-history-table tbody td {
+  padding: 11px 10px;
+  border-bottom: 1px solid #e7ebed;
+  background: #fff;
+  vertical-align: middle;
+  text-align: center;
+  line-height: 1.35;
+}
+.journey-history-table tbody tr:nth-child(odd) td { background: #fffdf8; }
+.journey-history-table tbody tr.is-center-death td { background: #fffafa; }
+.journey-history-table tbody tr:last-child td { border-bottom: 0; }
+.journey-history-table tbody tr:hover td { background: #fafcfd; }
+.journey-history-table .history-col-stt { width: 54px; color: #70808b; font-weight: 750; }
+.journey-history-table .history-col-name { width: 19%; text-align: left; }
+.journey-history-table .history-col-name strong { display: block; color: #202b34; font-size: 13.5px; font-weight: 800; }
+.journey-history-table .history-mobile-bhyt { display: block; margin-top: 3px; color: #7a8790; font-size: 10.5px; font-weight: 550; }
+.journey-history-table .history-col-place { width: 18%; text-align: left; }
+.journey-history-table .history-col-place strong { color: #386b66; font-weight: 760; }
+.journey-history-table .history-col-diagnosis { width: 19%; text-align: left; }
+.journey-history-table .history-col-diagnosis span { display: block; color: #3f4a53; }
+.journey-history-table .history-col-diagnosis small { display: block; margin-top: 3px; color: #87929a; font-size: 10px; }
+.journey-history-table .history-col-status { width: 14%; }
+.journey-history-table .history-col-actions { width: 150px; }
+.journey-history-table .journey-status { max-width: 100%; white-space: normal; line-height: 1.15; text-align: center; }
+.journey-history-table .journey-history-actions { display: inline-flex; justify-content: center; gap: 6px; }
+.journey-history-table .journey-history-actions .small-btn { min-height: 34px; padding: 6px 10px; font-size: 11.5px; white-space: nowrap; }
+.journey-history-table .journey-action-menu > summary { width: 34px; height: 34px; }
+
+/* Modal hành trình: ưu tiên timeline, giảm cảm giác dashboard mini. */
+.journey-detail-dialog { width: min(700px, 100%); }
+.journey-detail-meta { padding-top: 12px; }
+.journey-timeline { padding-top: 10px; }
+.journey-timeline-card { border-radius: 12px; box-shadow: 0 1px 3px rgba(31, 40, 48, .04); }
+.journey-timeline-item + .journey-timeline-item { margin-top: 10px; }
+
+@media (max-width: 760px) {
+  .journey-history-table-wrap { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .journey-history-table,
+  .journey-history-table tbody,
+  .journey-history-table tr,
+  .journey-history-table td { display: block; width: 100%; }
+  .journey-history-table thead { display: none; }
+  .journey-history-table tbody { display: grid; gap: 9px; }
+  .journey-history-table tbody tr {
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #dfe4e7;
+    border-radius: 12px;
+    background: #fff;
+  }
+  .journey-history-table tbody tr:nth-child(odd),
+  .journey-history-table tbody tr.is-center-death { background: #fff; }
+  .journey-history-table tbody td,
+  .journey-history-table tbody tr:nth-child(odd) td,
+  .journey-history-table tbody tr.is-center-death td {
+    padding: 5px 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+  }
+  .journey-history-table tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: #859099;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  .journey-history-table .history-col-stt { display: none; }
+  .journey-history-table .history-col-name { width: 100%; padding-top: 0; }
+  .journey-history-table .history-col-name::before { display: none; }
+  .journey-history-table .history-col-name strong { font-size: 15px; }
+  .journey-history-table .history-mobile-bhyt { font-size: 11px; }
+  .journey-history-table .history-col-place,
+  .journey-history-table .history-col-diagnosis,
+  .journey-history-table .history-col-status,
+  .journey-history-table .history-col-actions { width: 100%; }
+  .journey-history-table .history-col-actions { padding-top: 8px; }
+  .journey-history-table .history-col-actions::before { display: none; }
+  .journey-history-table .journey-history-actions { width: 100%; justify-content: flex-end; }
+  .journey-history-table .journey-history-actions .small-btn { min-height: 40px; }
+  .journey-detail-dialog { width: 100%; }
 }

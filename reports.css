@@ -1,5 +1,5 @@
 /* ================================================================
-   REPORTS MODULE — production 9.4.1
+   REPORTS MODULE — production 9.4.2
    Only report/death-specific presentation belongs here.
    ================================================================ */
 
@@ -117,7 +117,7 @@
   .report-search-field { grid-column: 1 / -1; }
 }
 
-/* ---------- Production detail view 9.4.1 ---------- */
+/* ---------- Production detail view 9.4.2 ---------- */
 .report-detail-view { padding: 18px; }
 .report-detail-person { padding: 13px; display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-subtle); }
 .report-detail-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: var(--color-primary); background: var(--color-primary-soft); }
@@ -140,7 +140,7 @@
 
 
 /* =====================================================================
-   REPORT UI 9.4.1 — clear detail/edit modes
+   REPORT UI 9.4.2 — clear detail/edit modes
    ===================================================================== */
 .report-detail-view { padding: 16px 18px; }
 .report-detail-person { padding: 0 0 12px; grid-template-columns: auto minmax(0,1fr) auto; border: 0; border-bottom: 1px solid #eceff1; border-radius: 0; background: transparent; }

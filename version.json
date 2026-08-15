@@ -1,7 +1,7 @@
 {
-  "version": "9.4.1",
-  "releasedAt": "2026-08-15T14:14:00+07:00",
-  "title": "UI Production 9.4.1",
-  "message": "Hotfix UI/UX: chuẩn hóa nút chọn Chuyển viện/Tử vong, sửa dialog Xóa số liệu trên Desktop/PWA và bổ sung Xóa khỏi ứng dụng tại Quản trị quyền Báo cáo; giữ nguyên business core, Firebase paths, schema, Authentication và reporting rules.",
+  "version": "9.4.2",
+  "releasedAt": "2026-08-15T14:33:00+07:00",
+  "title": "UI Production 9.4.2",
+  "message": "Ổn định xóa số liệu theo Firebase Rules hiện hành; đồng nhất menu thao tác Tài khoản Tổng hợp với Quyền Báo cáo; thiết kế Lịch sử nghiệp vụ dạng bảng compact trên Desktop và card gọn trên PWA. Giữ nguyên business core, Firebase paths, Authentication, permission model và reporting rules.",
   "required": false
 }
