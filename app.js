@@ -1546,8 +1546,8 @@ var AUTO_SYNC_MS = 300000;
       $('btnAccount').hidden=authenticated;$('btnTopLogout').hidden=!authenticated;if(authenticated){$('btnTopLogout').title='Đăng xuất '+String((loggedIn&&state.user&&state.user.name)||(state.authUser&&state.authUser.name)||'tài khoản');}
       var fullGreetingName=authenticated?String((loggedIn&&state.user&&state.user.name)||(state.authUser&&state.authUser.name)||'Người dùng Phòng Y tế'):'';
       var shortGreetingName=friendlyGivenName(fullGreetingName);
-      if($('headerGreeting')){$('headerGreeting').hidden=!authenticated;$('headerGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName:'';$('headerGreeting').title=fullGreetingName;}
-      if($('mobileGreeting')){$('mobileGreeting').hidden=!authenticated;$('mobileGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName:'';$('mobileGreeting').title=fullGreetingName;}
+      if($('headerGreeting')){$('headerGreeting').hidden=!authenticated;$('headerGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('headerGreeting').title=fullGreetingName;}
+      if($('mobileGreeting')){$('mobileGreeting').hidden=!authenticated;$('mobileGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('mobileGreeting').title=fullGreetingName;}
       if($('btnSync'))$('btnSync').hidden=authenticated&&!loggedIn;
       if($('navDashboard'))$('navDashboard').hidden=authenticated&&!loggedIn&&!hasReport;
       $('navEntry').hidden=!canInput;$('navAdmin').hidden=!isAdmin;
@@ -1557,7 +1557,7 @@ var AUTO_SYNC_MS = 300000;
       if($('adminReportPermissionsTab'))$('adminReportPermissionsTab').hidden=!reportAdmin;
       $('userGreeting').hidden=!authenticated;
       $('userGreeting').textContent=authenticated
-        ? 'Xin chào, '+shortGreetingName+(hasAnyAccess?'':' · Chờ cấp quyền')
+        ? 'Xin chào, '+shortGreetingName+' 👋'+(hasAnyAccess?'':' · Chờ cấp quyền')
         : '';
       if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.updateModuleUi==='function'){
         window.YTE_REPORTS.updateModuleUi({
@@ -1966,7 +1966,9 @@ var AUTO_SYNC_MS = 300000;
         var selectDisabled=user.requestStatus==='rejected'?' disabled':'';
         var controls='<div class="admin-account-controls"><select class="admin-role-select" aria-label="Chọn quyền cấp cho '+esc(user.name||user.email||'tài khoản')+'"'+selectDisabled+'>'+roleOptions('Xem')+'</select>';
         if(user.requestStatus!=='rejected')controls+='<button class="btn btn-primary admin-action" data-kind="approve-selected" data-id="'+esc(user.id)+'" type="button">Cấp quyền</button>';
-        controls+='<details class="admin-account-more"><summary aria-label="Thao tác khác">•••</summary><div class="admin-row-popover"><button class="small-btn btn-soft admin-action" data-kind="display-name" data-id="'+esc(user.id)+'" type="button">Tên hiển thị</button>'+(user.requestStatus==='pending'?'<button class="small-btn btn-soft admin-action" data-kind="reject-registration" data-id="'+esc(user.id)+'" type="button">Từ chối</button>':'')+(!isSelf?'<button class="small-btn btn-danger admin-action" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>':'')+'</div></details></div>';
+        if(user.requestStatus==='pending')controls+='<button class="btn btn-soft admin-action admin-inline-secondary" data-kind="reject-registration" data-id="'+esc(user.id)+'" type="button">Từ chối</button>';
+        if(!isSelf)controls+='<button class="btn btn-danger admin-action admin-inline-danger" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>';
+        controls+='<details class="admin-account-more"><summary aria-label="Thao tác khác">•••</summary><div class="admin-row-popover"><button class="small-btn btn-soft admin-action" data-kind="display-name" data-id="'+esc(user.id)+'" type="button">Tên hiển thị</button>'+(user.requestStatus==='pending'?'<button class="small-btn btn-soft admin-action admin-mobile-only" data-kind="reject-registration" data-id="'+esc(user.id)+'" type="button">Từ chối</button>':'')+(!isSelf?'<button class="small-btn btn-danger admin-action admin-mobile-only" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>':'')+'</div></details></div>';
         return'<article class="admin-account-card is-pending">'+accountIdentity(user,isSelf)+'<div class="admin-request-meta"><span class="status-pill pending">'+requestText+'</span>'+(user.requestedAt?'<span>'+esc(user.requestedAt)+'</span>':'')+'</div>'+controls+'</article>';
       }
       function grantedCard(user){
@@ -1975,9 +1977,8 @@ var AUTO_SYNC_MS = 300000;
         var nextStatus=user.status==='Hoạt động'?'Khóa':'Hoạt động';
         var controls='<div class="admin-account-controls"><select class="admin-role-select" aria-label="Vai trò của '+esc(user.name||user.email||'tài khoản')+'"'+disabled+'>'+roleOptions(user.role||'Xem')+'</select>'+
           '<button class="btn btn-primary admin-action" data-kind="save-role" data-id="'+esc(user.id)+'" type="button"'+disabled+'>Lưu quyền</button>'+
-          '<details class="admin-account-more"><summary aria-label="Thao tác khác">•••</summary><div class="admin-row-popover"><button class="small-btn btn-soft admin-action" data-kind="display-name" data-id="'+esc(user.id)+'" type="button">Tên hiển thị</button>'+
-          (!isSelf?'<button class="small-btn btn-soft admin-action" data-kind="status" data-id="'+esc(user.id)+'" data-value="'+esc(nextStatus)+'" type="button">'+(user.status==='Hoạt động'?'Khóa tài khoản':'Mở khóa tài khoản')+'</button><button class="small-btn btn-danger admin-action" data-kind="revoke" data-id="'+esc(user.id)+'" type="button">Thu hồi quyền</button><button class="small-btn btn-danger admin-action" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>':'')+
-          '</div></details></div>';
+          (!isSelf?'<button class="btn btn-soft admin-action admin-inline-secondary" data-kind="status" data-id="'+esc(user.id)+'" data-value="'+esc(nextStatus)+'" type="button">'+(user.status==='Hoạt động'?'Khóa':'Mở khóa')+'</button><button class="btn btn-danger admin-action admin-inline-danger" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>':'')+
+          '<details class="admin-account-more"><summary aria-label="Thao tác khác">•••</summary><div class="admin-row-popover"><button class="small-btn btn-soft admin-action" data-kind="display-name" data-id="'+esc(user.id)+'" type="button">Tên hiển thị</button>'+(!isSelf?'<button class="small-btn btn-soft admin-action admin-mobile-only" data-kind="status" data-id="'+esc(user.id)+'" data-value="'+esc(nextStatus)+'" type="button">'+(user.status==='Hoạt động'?'Khóa tài khoản':'Mở khóa tài khoản')+'</button><button class="small-btn btn-danger admin-action" data-kind="revoke" data-id="'+esc(user.id)+'" type="button">Thu hồi quyền</button><button class="small-btn btn-danger admin-action admin-mobile-only" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>':'')+'</div></details></div>';
         return'<article class="admin-account-card">'+accountIdentity(user,isSelf)+controls+'</article>';
       }
       function section(title,desc,list,kind){
@@ -2023,14 +2024,17 @@ var AUTO_SYNC_MS = 300000;
       function pendingCard(user){
         var isSelf=user.id===currentUid;
         var controls='<div class="admin-account-controls"><select class="admin-report-role-select" aria-label="Chọn quyền Báo cáo cho '+esc(user.name||user.email||'tài khoản')+'">'+roleOptions('viewer')+'</select><button class="btn btn-primary admin-report-action" data-kind="grant-selected" data-id="'+esc(user.id)+'" type="button">Cấp quyền</button>';
-        controls+='<details class="admin-account-more"><summary aria-label="Thao tác khác">•••</summary><div class="admin-row-popover"><button class="small-btn btn-soft admin-report-action" data-kind="display-name" data-id="'+esc(user.id)+'" type="button">Tên hiển thị</button>'+(canDeleteAppUser&&!isSelf?'<button class="small-btn btn-danger admin-report-action" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>':'')+'</div></details></div>';
+        if(canDeleteAppUser&&!isSelf)controls+='<button class="btn btn-danger admin-report-action admin-inline-danger" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>';
+        controls+='<details class="admin-account-more"><summary aria-label="Thao tác khác">•••</summary><div class="admin-row-popover"><button class="small-btn btn-soft admin-report-action" data-kind="display-name" data-id="'+esc(user.id)+'" type="button">Tên hiển thị</button>'+(canDeleteAppUser&&!isSelf?'<button class="small-btn btn-danger admin-report-action admin-mobile-only" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>':'')+'</div></details></div>';
         return'<article class="admin-account-card is-pending">'+identity(user,isSelf)+'<div class="admin-request-meta"><span class="status-pill pending">Chưa được cấp quyền</span><span>'+esc(user.lastLogin||'Chưa có lần đăng nhập')+'</span></div>'+controls+'</article>';
       }
       function grantedCard(user){
         var isSelf=user.id===currentUid,protectSelf=isSelf&&!canChangeSelf;
         var disabled=protectSelf?' disabled':'';
         var controls='<div class="admin-account-controls"><select class="admin-report-role-select" aria-label="Quyền Báo cáo của '+esc(user.name||user.email||'tài khoản')+'"'+disabled+'>'+roleOptions(user.role||'viewer')+'</select><button class="btn btn-primary admin-report-action" data-kind="save-role" data-id="'+esc(user.id)+'" type="button"'+disabled+'>Lưu quyền</button>';
-        controls+='<details class="admin-account-more"><summary aria-label="Thao tác khác">•••</summary><div class="admin-row-popover"><button class="small-btn btn-soft admin-report-action" data-kind="display-name" data-id="'+esc(user.id)+'" type="button">Tên hiển thị</button>'+(!protectSelf?'<button class="small-btn btn-danger admin-report-action" data-kind="revoke" data-id="'+esc(user.id)+'" type="button">Thu hồi quyền</button>':'')+(canDeleteAppUser&&!isSelf?'<button class="small-btn btn-danger admin-report-action" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>':'')+'</div></details></div>';
+        if(!protectSelf)controls+='<button class="btn btn-soft admin-report-action admin-inline-secondary" data-kind="revoke" data-id="'+esc(user.id)+'" type="button">Thu hồi</button>';
+        if(canDeleteAppUser&&!isSelf)controls+='<button class="btn btn-danger admin-report-action admin-inline-danger" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>';
+        controls+='<details class="admin-account-more"><summary aria-label="Thao tác khác">•••</summary><div class="admin-row-popover"><button class="small-btn btn-soft admin-report-action" data-kind="display-name" data-id="'+esc(user.id)+'" type="button">Tên hiển thị</button>'+(!protectSelf?'<button class="small-btn btn-danger admin-report-action admin-mobile-only" data-kind="revoke" data-id="'+esc(user.id)+'" type="button">Thu hồi quyền</button>':'')+(canDeleteAppUser&&!isSelf?'<button class="small-btn btn-danger admin-report-action admin-mobile-only" data-kind="delete" data-id="'+esc(user.id)+'" type="button">Xóa tài khoản</button>':'')+'</div></details></div>';
         return'<article class="admin-account-card">'+identity(user,isSelf)+controls+'</article>';
       }
       function section(title,desc,list,kind){
@@ -2149,7 +2153,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.5.6'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.5.7'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;

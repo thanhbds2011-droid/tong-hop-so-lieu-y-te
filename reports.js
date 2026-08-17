@@ -235,7 +235,7 @@ function updateModuleUi(external) {
   const user = reportState.user || auth.currentUser;
   if ($('homeWelcome')) {
     $('homeWelcome').textContent = user
-      ? 'Xin chào, ' + friendlyGivenName(user.displayName || user.email || '')
+      ? 'Xin chào, ' + friendlyGivenName(user.displayName || user.email || '') + ' 👋'
       : 'Chọn chức năng';
   }
 

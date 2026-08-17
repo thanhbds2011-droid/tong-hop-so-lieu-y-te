@@ -715,10 +715,10 @@ function renderHistory() {
       <td class="history-col-stt" data-label="STT">${index + 1}</td>
       <td class="history-col-name" data-label="Họ và tên">
         <div class="history-name-row"><span class="history-mobile-field-label">Họ và tên:</span><strong>${esc(item.doiTuong || 'Chưa có tên')}</strong></div>
-        ${bhxh ? `<div class="history-mobile-bhyt"><span class="history-mobile-field-label">BHXH:</span><b>${esc(bhxh)}</b></div>` : ''}
       </td>
       <td class="history-col-birth" data-label="Năm sinh">${validBirthYear(item.namSinh) ? esc(item.namSinh) : '—'}</td>
       <td class="history-col-gender" data-label="Giới tính">${validGender(item.gioiTinh) ? esc(item.gioiTinh) : '—'}</td>
+      <td class="history-col-insurance" data-label="BHXH"><span class="history-insurance-value">${bhxh ? esc(bhxh) : '—'}</span></td>
       <td class="history-col-status" data-label="Trạng thái"><span class="journey-status ${statusClassName}">${esc(status)}</span></td>
       <td class="history-col-actions" data-label="Thao tác">${historyActionHtml(item)}</td>
     </tr>`;
@@ -726,7 +726,7 @@ function renderHistory() {
 
   box.innerHTML = `<div class="journey-history-table-wrap"><table class="journey-history-table journey-history-table-compact">
     <thead><tr>
-      <th>STT</th><th>Họ và tên</th><th>Năm sinh</th><th>Giới tính</th><th>Trạng thái</th><th>Thao tác</th>
+      <th>STT</th><th>Họ và tên</th><th>Năm sinh</th><th>Giới tính</th><th>BHXH</th><th>Trạng thái</th><th>Thao tác</th>
     </tr></thead>
     <tbody>${body}</tbody>
   </table></div>`;
