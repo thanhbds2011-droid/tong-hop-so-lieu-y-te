@@ -12,17 +12,17 @@
 <link href="./manifest.webmanifest" rel="manifest"/>
 <link href="./assets/favicon-32.png" rel="icon" sizes="32x32" type="image/png"/>
 <link href="./assets/apple-touch-icon.png" rel="apple-touch-icon"/>
-<link href="./styles.css?v=9.5.8" rel="stylesheet"/>
+<link href="./styles.css?v=9.5.9" rel="stylesheet"/>
 
-<link href="./reports.css?v=9.5.8" rel="stylesheet"/>
-<link href="./journeys.css?v=9.5.8" rel="stylesheet"/>
+<link href="./reports.css?v=9.5.9" rel="stylesheet"/>
+<link href="./journeys.css?v=9.5.9" rel="stylesheet"/>
 
-<script src="./app-config.js?v=9.5.8"></script>
-<script defer src="./ui.js?v=9.5.8"></script>
-<script defer src="./update-manager.js?v=9.5.8"></script>
-<script src="./app.js?v=9.5.8" type="module"></script>
-<script src="./reports.js?v=9.5.8" type="module"></script>
-<script src="./journeys.js?v=9.5.8" type="module"></script>
+<script src="./app-config.js?v=9.5.9"></script>
+<script defer src="./ui.js?v=9.5.9"></script>
+<script defer src="./update-manager.js?v=9.5.9"></script>
+<script src="./app.js?v=9.5.9" type="module"></script>
+<script src="./reports.js?v=9.5.9" type="module"></script>
+<script src="./journeys.js?v=9.5.9" type="module"></script>
 
 </head>
 <body>
@@ -30,7 +30,7 @@
 <div class="header-inner">
 <div class="brand">
 <div aria-hidden="true" class="brand-mark brand-mark-logo">
-<img alt="" src="./assets/icon-192.png?v=9.5.8"/>
+<img alt="" src="./assets/icon-192.png?v=9.5.9"/>
 </div>
 <div class="brand-copy">
 <strong class="brand-org brand-desktop">Trung tâm Bảo trợ xã hội Tân Hiệp</strong>
@@ -96,7 +96,7 @@
 <section class="workspace-panel dashboard-results-panel">
 <div class="section-head">
 <div class="section-title-with-icon"><span class="section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"></path></svg></span><div><h3>Số liệu</h3></div></div>
-
+<div class="section-actions"><button class="btn btn-soft report-preview-trigger" id="btnPreviewSummary" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"></path><path d="M14 3v4h4"></path><path d="M9 12h6M9 16h6"></path></svg><span>Xem báo cáo</span></button></div>
 </div>
 <div aria-live="polite" class="summary-grid" id="summaryCards"></div>
 </section>
@@ -105,7 +105,7 @@
 <div class="access-state">
 <div aria-hidden="true" class="access-state-icon"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg></div>
 <h2 id="homeWelcome">Tài khoản đang chờ cấp quyền</h2>
-<p>Đăng nhập đã thành công nhưng tài khoản chưa có quyền sử dụng phân hệ nghiệp vụ.</p>
+<p>Tài khoản của bạn chưa được cấp quyền sử dụng ứng dụng.</p>
 <div class="access-note" id="noModuleAccess"><strong>Liên hệ Quản trị viên để được cấp quyền phù hợp.</strong></div>
 <div aria-hidden="true" class="compat-module-links" hidden="" id="moduleCards">
 <button hidden="" id="moduleTongHopCard" type="button">Tổng hợp số liệu</button>
@@ -116,25 +116,20 @@
 <section class="view" id="authView">
 <div class="login-stage">
 <div class="login-shell">
-<div class="login-brand-panel">
-<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=9.5.8"/></div>
-</div>
-<div class="login-action-panel">
+<button aria-label="Đóng đăng nhập" class="login-close" id="btnLoginClose" type="button">×</button>
+<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=9.5.9"/></div>
 <div class="auth-panel active" id="loginPanel">
 <div class="login-action-copy">
 <h2>Ứng dụng Phòng Y tế</h2>
-<p>Đăng nhập bằng tài khoản Google đã được cấp quyền.</p>
+<p>Đăng nhập bằng Gmail để sử dụng ứng dụng.</p>
 </div>
 <div class="auth-provider-actions auth-provider-google-only">
 <button class="btn btn-login-primary" id="btnGoogleLogin" type="button">
-<svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"></path><path d="M20 4v8h-8"></path></svg>
+<svg aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M21.35 12.2c0-.64-.06-1.26-.17-1.86H12v3.52h5.25a4.49 4.49 0 0 1-1.95 2.95v2.45h3.15c1.84-1.69 2.9-4.18 2.9-7.06Z"></path><path fill="currentColor" d="M12 21.7c2.63 0 4.84-.87 6.45-2.44l-3.15-2.45c-.87.58-1.99.93-3.3.93-2.54 0-4.69-1.72-5.46-4.03H3.29v2.52A9.75 9.75 0 0 0 12 21.7Z"></path><path fill="currentColor" d="M6.54 13.71A5.85 5.85 0 0 1 6.23 12c0-.59.1-1.17.31-1.71V7.77H3.29A9.7 9.7 0 0 0 2.25 12c0 1.56.37 3.03 1.04 4.23l3.25-2.52Z"></path><path fill="currentColor" d="M12 6.26c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.83 3.35 14.63 2.3 12 2.3a9.75 9.75 0 0 0-8.71 5.47l3.25 2.52C7.31 7.98 9.46 6.26 12 6.26Z"></path></svg>
 <span>Đăng nhập bằng Google</span>
 </button>
 </div>
-<p class="login-security-note"><svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-4"></path></svg><span>Quyền sử dụng được kiểm soát riêng cho từng phân hệ.</span></p>
 </div>
-</div>
-<div class="login-org">Trung tâm Bảo trợ xã hội Tân Hiệp</div>
 </div>
 </div>
 </section>
@@ -176,7 +171,7 @@
 </div>
 </section>
 <section class="view" id="reportsView">
-<div class="card report-head unified-care-head"><div class="page-title-row"><span class="page-title-icon is-report report-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h4l3 3v4h-7z"></path><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg></span><div><h2 id="reportPageTitle">Chuyển viện &amp; tử vong</h2><p class="report-page-subtitle" id="reportPageSubtitle">Theo dõi hành trình, lượt chuyển viện và tử vong.</p></div></div><button class="compat-control" hidden id="btnNewReport" type="button">+ Tử vong tại Trung tâm</button></div>
+<div class="card report-head unified-care-head"><div class="page-title-row"><span class="page-title-icon is-report report-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3z"></path><path d="M14 10h4l3 3v4h-7z"></path><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg></span><div><h2 id="reportPageTitle">Chuyển viện &amp; tử vong</h2><p class="report-page-subtitle" id="reportPageSubtitle">Theo dõi hành trình, lượt chuyển viện và tử vong.</p></div></div><div class="report-head-actions"><button class="btn btn-soft report-preview-trigger" id="btnPreviewClinicalReport" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"></path><path d="M14 3v4h4"></path><path d="M9 12h6M9 16h6"></path></svg><span>Xem báo cáo</span></button><button class="compat-control" hidden id="btnNewReport" type="button">+ Tử vong tại Trung tâm</button></div></div>
 <div class="card report-workspace unified-care-workspace">
 <div id="transferJourneyPanel">
 <div aria-label="Tổng quan chuyển viện và tử vong" class="journey-dashboard">
@@ -248,7 +243,7 @@
 </div>
 </div>
 <div class="journey-panel" hidden="" id="journeyHistoryPanel">
-<div class="desktop-history-heading"><div><h3>Lịch sử nghiệp vụ</h3><p>Tra cứu hành trình đã kết thúc và các trường hợp tử vong.</p></div></div>
+<div class="desktop-history-heading"><div><h3>Lịch sử</h3><p>Tra cứu các trường hợp đã kết thúc theo dõi.</p></div></div>
 <div class="journey-toolbar">
 <div class="journey-search search-wrap">
 <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
@@ -377,7 +372,7 @@
 <div class="delete-daily-card">
 <div class="delete-daily-head">
 <div class="delete-daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg></div>
-<div><h3 id="deleteDailyTitle">Xóa số liệu đã nhập</h3><p>Số liệu hiện tại sẽ được xóa, nhưng lịch sử và nhật ký vẫn được giữ để truy vết.</p></div>
+<div><h3 id="deleteDailyTitle">Xóa số liệu đã nhập</h3><p>Số liệu hiện tại sẽ được xóa. Bạn vẫn có thể xem lại thay đổi trong Lịch sử.</p></div>
 </div>
 <div class="delete-daily-summary">
 <div><span>Ngày</span><strong id="deleteDailyDate">—</strong></div>
@@ -385,7 +380,7 @@
 <div><span>Giá trị hiện tại</span><strong id="deleteDailyValue">—</strong></div>
 </div>
 <div class="field"><label>Lý do xóa *<textarea id="deleteDailyReason" maxlength="500" rows="3" placeholder="Ví dụ: Nhập nhầm số liệu, cần ghi nhận lại từ đầu"></textarea></label></div>
-<p class="delete-daily-note">Không áp dụng cho số liệu Chuyển viện/Tử vong tự động từ nghiệp vụ.</p>
+<p class="delete-daily-note">Không thể xóa tại đây đối với số liệu Chuyển viện/Tử vong được cập nhật tự động.</p>
 <div aria-live="polite" class="adjust-progress" hidden id="deleteDailyProgress" role="status"><span class="spinner"></span><span>Đang xóa số liệu...</span></div>
 <div aria-live="polite" class="adjust-error" id="deleteDailyError"></div>
 <div class="confirm-actions"><button class="btn btn-ghost" id="deleteDailyCancel" type="button">Quay lại</button><button class="btn btn-danger" id="deleteDailyAccept" type="button">Xóa số liệu</button></div>
@@ -485,6 +480,17 @@
 <p class="field-help">Tên này được dùng trong số liệu, chuyển viện, tử vong và lịch sử thao tác.</p>
 <div aria-live="polite" class="category-error" id="displayNameError"></div>
 <div class="confirm-actions"><button class="btn btn-ghost" id="displayNameCancel" type="button">Quay lại</button><button class="btn btn-primary" id="displayNameSave" type="button">Lưu tên</button></div>
+</div>
+</div>
+<div aria-labelledby="reportPreviewTitle" aria-modal="true" class="confirm-layer report-preview-layer" hidden id="reportPreviewLayer" role="dialog">
+<div class="report-preview-card">
+<div class="report-preview-head">
+<div class="report-preview-heading"><span class="report-preview-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"></path><path d="M14 3v4h4"></path><path d="M9 12h6M9 16h6"></path></svg></span><div><h3 id="reportPreviewTitle">Báo cáo</h3><p id="reportPreviewSubtitle"></p></div></div>
+<div class="report-preview-actions"><span class="report-preview-count" id="reportPreviewCount">0 dòng</span><button class="btn btn-primary" id="reportPreviewExport" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg><span>Xuất Excel</span></button><button aria-label="Đóng báo cáo" class="dialog-close" id="reportPreviewClose" type="button">×</button></div>
+</div>
+<div aria-live="polite" class="inline-state err report-preview-status" hidden id="reportPreviewStatus"></div>
+<div class="report-preview-body" id="reportPreviewTable"></div>
+<div class="report-preview-footer"><button class="btn btn-ghost" id="reportPreviewCloseBottom" type="button">Đóng</button></div>
 </div>
 </div>
 <div aria-hidden="true" class="loading-layer"><div class="loading-box"><span class="spinner"></span><span id="loadingText">Đang xử lý...</span></div></div>

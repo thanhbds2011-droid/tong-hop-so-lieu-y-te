@@ -25,6 +25,8 @@ import {
   update
 } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
 
+import { openReportPreview } from './report-preview.js';
+
 const APP_CONFIG = window.YTE_APP_CONFIG || {};
 const OWNER_EMAIL = String(APP_CONFIG.OWNER_EMAIL || '').trim().toLowerCase();
 const ROOT = 'tongHopYTe';
@@ -729,14 +731,14 @@ async function deleteDailyDataFirebase(payload) {
   const reason = String(payload.reason || '').trim().slice(0, 500);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Ngày số liệu không hợp lệ.');
   if (!code) throw new Error('Mã chỉ tiêu không hợp lệ.');
-  if (reason.length < 3) throw new Error('Vui lòng nhập lý do xóa để lưu lịch sử truy vết.');
+  if (reason.length < 3) throw new Error('Vui lòng nhập lý do xóa.');
 
   const categorySnap = await get(ref(firebaseDatabase, `${ROOT}/danhMucChiTieu/${code}`));
   if (!categorySnap.exists()) throw new Error('Chỉ tiêu không tồn tại.');
   const category = categorySnap.val() || {};
   const derivedKind = metricKindFromCategory({ code, name: category.ten || code });
   if (derivedKind) {
-    throw new Error('Không thể xóa số liệu Chuyển viện/Tử vong tự động tại màn hình Nhập liệu. Hãy xử lý tại nghiệp vụ nguồn hoặc dùng chức năng điều chỉnh có lý do.');
+    throw new Error('Không thể xóa số liệu Chuyển viện/Tử vong được cập nhật tự động tại màn hình Nhập liệu. Bạn có thể dùng chức năng điều chỉnh khi cần.');
   }
 
   const recordRef = ref(firebaseDatabase, `${ROOT}/soLieuTheoNgay/${date}/${code}`);
@@ -800,7 +802,7 @@ async function deleteDailyDataFirebase(payload) {
     throw error;
   }
 
-  return { success: true, deleted: true, date, code, beforeValue, message: 'Đã xóa số liệu và lưu đầy đủ lịch sử truy vết.' };
+  return { success: true, deleted: true, date, code, beforeValue, message: 'Đã xóa số liệu. Thay đổi đã được lưu trong Lịch sử.' };
 }
 
 async function getDailyDataHistoryFirebase(payload) {
@@ -1124,7 +1126,7 @@ async function adminRevokeUserFirebase(uid) {
     updatedAt: Date.now()
   });
   await writeAuditLog(admin, 'Thu hồi quyền Tổng hợp số liệu', item.email || uid, '');
-  return { success: true, message: 'Đã thu hồi quyền Tổng hợp Y tế. Tài khoản đăng nhập và quyền HSBA (nếu có) được giữ nguyên.' };
+  return { success: true, message: 'Đã thu hồi quyền Tổng hợp số liệu.' };
 }
 
 async function adminDeleteUserFromAppFirebase(uid) {
@@ -1182,7 +1184,7 @@ async function adminDeleteUserFromAppFirebase(uid) {
 
   return {
     success: true,
-    message: 'Đã xóa tài khoản khỏi Ứng dụng Phòng Y tế. Firebase Authentication và lịch sử nghiệp vụ được giữ nguyên.'
+    message: 'Đã xóa tài khoản khỏi Ứng dụng Phòng Y tế.'
   };
 }
 
@@ -1436,7 +1438,7 @@ var AUTO_SYNC_MS = 300000;
     function clearMessage(){$('message').innerHTML=''}
     var confirmResolver=null;
     function closeConfirm(result){var layer=$('confirmLayer');if(layer.hidden)return;layer.hidden=true;document.body.style.overflow='';var resolver=confirmResolver;confirmResolver=null;if(resolver)resolver(!!result)}
-    function confirmAction(options){options=options||{};if(confirmResolver)closeConfirm(false);$('confirmTitle').textContent=options.title||'Xác nhận thao tác';$('confirmMessage').textContent=options.message||'';$('confirmAccept').textContent=options.confirmText||'Xác nhận';$('confirmCancel').textContent=options.cancelText||'Quay lại';$('confirmAccept').className='btn '+(options.danger?'btn-danger':'btn-primary');$('confirmLayer').hidden=false;document.body.style.overflow='hidden';window.setTimeout(function(){$('confirmAccept').focus()},0);return new Promise(function(resolve){confirmResolver=resolve})}
+    function confirmAction(options){options=options||{};if(confirmResolver)closeConfirm(false);$('confirmTitle').textContent=options.title||'Xác nhận thao tác';$('confirmMessage').textContent=options.message||'';$('confirmAccept').textContent=options.confirmText||'Xác nhận';$('confirmCancel').textContent=options.cancelText||'Quay lại';$('confirmAccept').className='btn '+(options.danger?'btn-danger':'btn-primary');$('confirmLayer').classList.toggle('is-danger',!!options.danger);$('confirmLayer').hidden=false;document.body.style.overflow='hidden';window.setTimeout(function(){$('confirmAccept').focus()},0);return new Promise(function(resolve){confirmResolver=resolve})}
     function setBusy(active,text){state.busyCount=Math.max(0,state.busyCount+(active?1:-1));if(active&&text)$('loadingText').textContent=text;document.body.classList.toggle('is-busy',state.busyCount>0);if(state.busyCount===0)$('loadingText').textContent='Đang xử lý...'}
     function currentViewName(){var view=document.querySelector('.view.active');return view?view.id.replace(/View$/,''):''}
     function friendlyGivenName(value){
@@ -1530,6 +1532,27 @@ var AUTO_SYNC_MS = 300000;
         var chip=c.derivedKind?'<span class="status-chip '+(manual?'is-adjusted':'is-auto')+'" title="Số liệu được đồng bộ từ Chuyển viện & tử vong">'+(manual?'Đã điều chỉnh':'Tự động')+'</span>':'';
         return'<article class="summary-item summary-recorded-item'+(c.derivedKind?' is-auto-derived':'')+'">'+uiMetricIcon(c)+'<div class="summary-copy"><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+'</p></div><div class="summary-value"><span class="summary-number">'+value.toLocaleString('vi-VN')+'</span><span class="summary-unit">'+esc(c.unit)+'</span>'+chip+'</div></article>';
       }).join('');
+    }
+
+    function previewSummaryReport(){
+      var totals=aggregate(),recorded=recordedCodeMap();
+      var categories=selectedCategories().filter(function(c){return !!recorded[c.code]||!!c.derivedKind});
+      var reportFrom=state.from||'',reportTo=state.to||reportFrom,reportLabel=String($('rangeLabel').textContent||'Phạm vi đang xem');
+      var rows=categories.map(function(c,index){return{stt:index+1,chiTieu:c.name,nhom:c.group,giaTri:Number(totals[c.code]||0),donVi:c.unit}});
+      openReportPreview({
+        title:'Báo cáo tổng hợp số liệu y tế',
+        subtitle:reportLabel,
+        filename:'Bao-cao-tong-hop-y-te_'+(reportFrom||'du-lieu')+(reportTo&&reportTo!==reportFrom?'_'+reportTo:'')+'.xlsx',
+        sheetName:'Tổng hợp số liệu',
+        columns:[
+          {key:'stt',label:'STT',width:8},
+          {key:'chiTieu',label:'Chỉ tiêu',width:34},
+          {key:'nhom',label:'Nhóm',width:24},
+          {key:'giaTri',label:'Giá trị',width:14},
+          {key:'donVi',label:'Đơn vị',width:14}
+        ],
+        rows:rows
+      });
     }
 
     function cacheDaily(date,records){var byCode={};(records||[]).forEach(function(record){byCode[record.code]=record});state.entryCache[date]={byCode:byCode,loadedAt:Date.now()};return byCode}
@@ -2051,7 +2074,7 @@ var AUTO_SYNC_MS = 300000;
     }
     async function adminReportPermission(id,role,active){
       var label=active?(role==='admin'?'Quản trị':'Nhập liệu'):'Thu hồi';
-      var confirmed=await confirmAction({title:active?'Cấp quyền Báo cáo '+label+'?':'Thu hồi quyền Báo cáo?',message:active?'Quyền này dùng chung cho cả Báo cáo chuyển viện và Báo cáo tử vong.':'Tài khoản sẽ không còn truy cập phân hệ Báo cáo. Quyền Tổng hợp số liệu và HSBA không thay đổi.',confirmText:active?'Cấp quyền':'Thu hồi quyền',danger:!active});
+      var confirmed=await confirmAction({title:active?'Cấp quyền Báo cáo '+label+'?':'Thu hồi quyền Báo cáo?',message:active?'Quyền này dùng chung cho cả Báo cáo chuyển viện và Báo cáo tử vong.':'Tài khoản sẽ không còn sử dụng phần Báo cáo.',confirmText:active?'Cấp quyền':'Thu hồi quyền',danger:!active});
       if(!confirmed)return;setBusy(true,active?'Đang cấp quyền Báo cáo...':'Đang thu hồi quyền Báo cáo...');
       try{var result=await call('adminSetReportPermission',id,role,active);message(result.message||'Đã cập nhật quyền Báo cáo.','ok');state.adminReportLoadedAt=0;await loadAdminReportUsers(true);if(state.authUser&&state.authUser.uid===id)await refreshCurrentSession()}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
@@ -2115,34 +2138,34 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function adminStatus(id,status){
-      var confirmed=await confirmAction({title:(status==='Khóa'?'Khóa':'Mở khóa')+' quyền Tổng hợp Y tế?',message:status==='Khóa'?'Tài khoản sẽ không dùng được Tổng hợp số liệu cho đến khi được mở quyền lại.':'Tài khoản sẽ được dùng lại Tổng hợp số liệu.',confirmText:status==='Khóa'?'Khóa quyền':'Mở quyền',danger:status==='Khóa'});
+      var confirmed=await confirmAction({title:status==='Khóa'?'Khóa tài khoản?':'Mở khóa tài khoản?',message:status==='Khóa'?'Tài khoản này sẽ tạm thời không sử dụng được phần Tổng hợp số liệu.':'Tài khoản này sẽ sử dụng lại phần Tổng hợp số liệu.',confirmText:status==='Khóa'?'Khóa':'Mở khóa',danger:status==='Khóa'});
       if(!confirmed)return;setBusy(true,'Đang cập nhật quyền...');
       try{var result=await call('adminSetUserStatus',state.token,id,status);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function adminRole(id,role){
-      var confirmed=await confirmAction({title:'Thay đổi vai trò Tổng hợp Y tế?',message:'Vai trò chỉ thay đổi trong phân hệ Tổng hợp số liệu.',confirmText:'Cập nhật vai trò',danger:role!=='Quản trị'});
+      var confirmed=await confirmAction({title:'Đổi quyền của tài khoản?',message:'Quyền sử dụng sẽ được cập nhật theo lựa chọn mới.',confirmText:'Lưu quyền',danger:false});
       if(!confirmed)return;setBusy(true,'Đang cập nhật vai trò...');
       try{var result=await call('adminSetUserRole',state.token,id,role);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function approveRegistration(id,role){
-      var confirmed=await confirmAction({title:'Cấp quyền '+role+'?',message:'Tài khoản sẽ được phép sử dụng Tổng hợp số liệu với vai trò '+role+'. Quyền HSBA không thay đổi.',confirmText:'Cấp quyền'});
+      var confirmed=await confirmAction({title:'Cấp quyền '+role+'?',message:'Tài khoản sẽ được sử dụng ứng dụng với quyền đã chọn.',confirmText:'Cấp quyền'});
       if(!confirmed)return;setBusy(true,'Đang cấp quyền...');
       try{var result=await call('adminApproveRegistration',id,role);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function rejectRegistration(id){
-      var confirmed=await confirmAction({title:'Từ chối yêu cầu cấp quyền?',message:'Tài khoản vẫn tồn tại nhưng chưa được sử dụng Tổng hợp số liệu.',confirmText:'Từ chối',danger:true});
+      var confirmed=await confirmAction({title:'Từ chối yêu cầu?',message:'Tài khoản này sẽ chưa được sử dụng ứng dụng.',confirmText:'Từ chối',danger:true});
       if(!confirmed)return;setBusy(true,'Đang từ chối yêu cầu...');
       try{var result=await call('adminRejectRegistration',id);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function adminRevoke(id){
-      var confirmed=await confirmAction({title:'Thu hồi quyền Tổng hợp số liệu?',message:'Tài khoản sẽ không còn sử dụng Tổng hợp số liệu cho đến khi được cấp lại. Firebase Authentication, quyền HSBA và lịch sử nghiệp vụ không bị xóa.',confirmText:'Thu hồi quyền',danger:true});
+      var confirmed=await confirmAction({title:'Thu hồi quyền Tổng hợp số liệu?',message:'Tài khoản sẽ không còn sử dụng phần Tổng hợp số liệu cho đến khi được cấp lại.',confirmText:'Thu hồi quyền',danger:true});
       if(!confirmed)return;setBusy(true,'Đang thu hồi quyền...');
       try{var result=await call('adminRevokeUser',state.token,id);message(result.message,'ok');state.adminLoadedAt=0;await loadAdminUsers(true)}catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function adminDelete(id){
       var user=state.adminUsers.find(function(item){return item.id===id})||state.adminReportUsers.find(function(item){return item.id===id})||{};
       var name=user.name||user.email||'tài khoản này';
-      var confirmed=await confirmAction({title:'Xóa '+name+' khỏi ứng dụng?',message:'Người này sẽ mất quyền truy cập các phân hệ Phòng Y tế đã được cấp. Firebase Authentication và toàn bộ lịch sử dữ liệu đã tạo vẫn được giữ lại.',confirmText:'Xóa khỏi ứng dụng',danger:true});
+      var confirmed=await confirmAction({title:'Xóa '+name+' khỏi ứng dụng?',message:'Tài khoản này sẽ không còn sử dụng Ứng dụng Phòng Y tế. Bạn có chắc muốn xóa?',confirmText:'Xóa tài khoản',danger:true});
       if(!confirmed)return;setBusy(true,'Đang xóa tài khoản khỏi ứng dụng...');
       try{
         var result=await call('adminDeleteUser',state.token,id);
@@ -2153,11 +2176,13 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.5.7'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.5.9'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
       $('btnGoogleLogin').onclick=loginGoogle;
+      if($('btnLoginClose'))$('btnLoginClose').onclick=function(){showView('dashboard')};
+      if($('btnPreviewSummary'))$('btnPreviewSummary').onclick=previewSummaryReport;
       $('confirmAccept').onclick=function(){closeConfirm(true)};$('confirmCancel').onclick=function(){closeConfirm(false)};$('confirmLayer').addEventListener('click',function(event){if(event.target===$('confirmLayer'))closeConfirm(false)});
       $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});
       $('dataHistoryClose').onclick=closeDataHistoryDialog;$('dataHistoryFooterClose').onclick=closeDataHistoryDialog;$('dataHistoryLayer').addEventListener('click',function(event){if(event.target===$('dataHistoryLayer'))closeDataHistoryDialog()});$('deleteDailyCancel').onclick=closeDeleteDailyDialog;$('deleteDailyAccept').onclick=submitDeleteDaily;$('deleteDailyLayer').addEventListener('click',function(event){if(event.target===$('deleteDailyLayer'))closeDeleteDailyDialog()});

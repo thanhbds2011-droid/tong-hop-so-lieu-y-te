@@ -13,6 +13,8 @@ import {
   update
 } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
 
+import { openReportPreview } from './report-preview.js';
+
 const CFG = window.YTE_APP_CONFIG || {};
 const OWNER_EMAIL = String(CFG.OWNER_EMAIL || '').trim().toLowerCase();
 const REPORT_ROOT = 'baoCaoYTe';
@@ -683,12 +685,12 @@ function historyActionHtml(item) {
   const menu = canDelete() ? `<details class="journey-action-menu"><summary aria-label="Thao tác khác">${iconSvg('dots')}</summary><div class="journey-action-popover"><button class="journey-history-action journey-menu-delete" data-kind="journey-delete" data-id="${esc(item.id)}" type="button"><span>Xóa</span></button></div></details>` : '';
   return `<div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem</span></button>${menu}</div>`;
 }
-function renderHistory() {
+function filteredHistoryRows() {
   const search = normalizeText($('journeyHistorySearch')?.value || '');
   const filter = $('journeyHistoryStatus')?.value || 'all';
   const allRows = combinedHistoryRows();
   updateHistoryFilterLabels(allRows);
-  const rows = allRows.filter((item) => {
+  return allRows.filter((item) => {
     if (filter !== 'all' && item.trangThaiHienTai !== filter) return false;
     if (!search) return true;
     if (item.kind === 'CENTER_DEATH') {
@@ -699,6 +701,62 @@ function renderHistory() {
       item.tinhTrangKhiVe, item.ghiChu, historyTreatmentPlace(item), historyDiagnosis(item), routeSearchText(item)
     ].join(' ')).includes(search);
   });
+}
+
+function previewClinicalReport() {
+  const allCases = [
+    ...state.openCases.map((item) => ({ ...item, kind: 'JOURNEY' })),
+    ...state.closedCases.map((item) => ({ ...item, kind: 'JOURNEY' })),
+    ...state.centerDeaths
+  ].sort((a, b) => {
+    const ta = a.kind === 'CENTER_DEATH'
+      ? Number(a.updatedAt || a.createdAt || 0)
+      : Number(a.ngayGioVe || a.updatedAt || a.ngayGioDi || a.createdAt || 0);
+    const tb = b.kind === 'CENTER_DEATH'
+      ? Number(b.updatedAt || b.createdAt || 0)
+      : Number(b.ngayGioVe || b.updatedAt || b.ngayGioDi || b.createdAt || 0);
+    return tb - ta;
+  });
+  const rows = allCases.map((item, index) => {
+    const bhxh = String(item.soBHXH || item.theBHXH || item.bhxh || item.theBHYT || '').trim();
+    const status = item.kind === 'CENTER_DEATH' ? 'Tử vong tại Trung tâm' : statusLabel(item.trangThaiHienTai);
+    const time = item.kind === 'CENTER_DEATH'
+      ? (item.ngayBaoCao ? String(item.ngayBaoCao).split('-').reverse().join('/') : fmtDateTime(item.updatedAt || item.createdAt))
+      : fmtDateTime(item.ngayGioVe || item.ngayGioDi || item.updatedAt || item.createdAt);
+    return {
+      stt: index + 1,
+      hoTen: item.doiTuong || '',
+      namSinh: validBirthYear(item.namSinh) ? Number(item.namSinh) : '',
+      gioiTinh: validGender(item.gioiTinh) ? item.gioiTinh : '',
+      bhxh,
+      noiDieuTri: historyTreatmentPlace(item),
+      tinhTrang: historyDiagnosis(item),
+      trangThai: status,
+      thoiGian: time
+    };
+  });
+  openReportPreview({
+    title: 'Báo cáo chuyển viện & tử vong',
+    subtitle: 'Tất cả dữ liệu hiện có',
+    filename: 'Bao-cao-chuyen-vien-tu-vong_' + todayIso() + '.xlsx',
+    sheetName: 'Chuyển viện tử vong',
+    columns: [
+      {key:'stt',label:'STT',width:8},
+      {key:'hoTen',label:'Họ và tên',width:28},
+      {key:'namSinh',label:'Năm sinh',width:12},
+      {key:'gioiTinh',label:'Giới tính',width:12},
+      {key:'bhxh',label:'BHXH',width:18},
+      {key:'noiDieuTri',label:'Nơi điều trị',width:30},
+      {key:'tinhTrang',label:'Tình trạng / chẩn đoán',width:38},
+      {key:'trangThai',label:'Trạng thái',width:24},
+      {key:'thoiGian',label:'Thời gian',width:22}
+    ],
+    rows
+  });
+}
+
+function renderHistory() {
+  const rows = filteredHistoryRows();
 
   const box = $('journeyHistoryList');
   if (!box) return;
@@ -1021,7 +1079,7 @@ async function deleteJourney(id) {
   }
   const item = findCase(id);
   if (!item) return;
-  if (!window.confirm(`Xóa hành trình chuyển viện của ${item.doiTuong || 'đối tượng'}? Dữ liệu nghiệp vụ sẽ được đưa vào kho lưu vết dành cho Quản trị.`)) return;
+  if (!window.confirm(`Xóa hành trình chuyển viện của ${item.doiTuong || 'đối tượng'}? Bạn có chắc muốn tiếp tục?`)) return;
   const user = auth.currentUser;
   if (!user) return;
   try {
@@ -1404,6 +1462,7 @@ function initEvents() {
     if (kind === 'return') openUpdateDialog(id, 'DA_VE_TRUNG_TAM');
     if (kind === 'delete') deleteJourney(id);
   });
+  $('btnPreviewClinicalReport')?.addEventListener('click', previewClinicalReport);
   $('journeyHistoryList')?.addEventListener('click', (event) => {
     const button = event.target.closest('.journey-history-action');
     if (!button) return;
@@ -1444,6 +1503,7 @@ window.YTE_JOURNEYS = {
   setSubView,
   loadJourneys,
   renderHistory,
+  openReportPreview: previewClinicalReport,
   hasUnsavedChanges: () => isCreateDirty() || (!($('journeyUpdateLayer')?.hidden) && isUpdateDirty())
 };
 

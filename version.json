@@ -1,6 +1,7 @@
 {
-  "version": "9.5.8",
+  "version": "9.5.9",
   "releasedAt": "2026-08-17",
-  "title": "Admin Revoke UI Removed 9.5.8",
-  "businessBaseline": "Business Stable v1.0"
+  "title": "Sign-in & Report Preview 9.5.9",
+  "businessBaseline": "Business Stable v1.0",
+  "message": "Cập nhật giao diện đăng nhập, xem báo cáo trước khi xuất Excel và đơn giản hóa thông báo quản trị."
 }
