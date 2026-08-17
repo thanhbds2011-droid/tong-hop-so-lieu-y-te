@@ -1,5 +1,5 @@
 /* ================================================================
-   JOURNEYS MODULE — production 9.5.0
+   JOURNEYS MODULE — production 9.5.1
    Transfer journey, unified history and related dialogs.
    ================================================================ */
 
@@ -528,7 +528,7 @@
 }
 
 /* ================================================================
-   PRODUCTION JOURNEY UX 9.5.0
+   PRODUCTION JOURNEY UX 9.5.1
    Compact tracking/history, clear status, readable journey details.
    ================================================================ */
 .journey-reload-btn { display: none !important; }
@@ -604,7 +604,7 @@
 
 
 /* =====================================================================
-   JOURNEY UI 9.5.0 — compact workflow, same business contract
+   JOURNEY UI 9.5.1 — compact workflow, same business contract
    ===================================================================== */
 .journey-dashboard { gap: 10px; margin-bottom: 12px; }
 .journey-dashboard-card { min-height: 90px; padding: 14px 15px; border-radius: 13px; background: #fff; }
@@ -715,7 +715,7 @@
   .journey-timeline-head span { white-space: normal; }
 }
 
-/* ---------- UI hotfix 9.5.0: compact nghiệp vụ selector ---------- */
+/* ---------- UI hotfix 9.5.1: compact nghiệp vụ selector ---------- */
 .journey-create-mode-actions {
   align-items: stretch;
 }
@@ -774,7 +774,7 @@
   }
 }
 
-/* ---------- UI refinement 9.5.0: Lịch sử nghiệp vụ compact ---------- */
+/* ---------- UI refinement 9.5.1: Lịch sử nghiệp vụ compact ---------- */
 .journey-history-table-wrap {
   width: 100%;
   border: 1px solid #dde3e7;
@@ -890,7 +890,7 @@
 }
 
 /* ======================================================================
-   JOURNEY UI 9.5.0 — clearer people, compact history and PWA cards
+   JOURNEY UI 9.5.1 — clearer people, compact history and PWA cards
    ====================================================================== */
 .journey-person-name-line {
   display: flex;
@@ -988,4 +988,91 @@
     justify-content: flex-end;
   }
   .journey-history-table .journey-history-actions .small-btn { min-width: 76px; }
+}
+
+
+/* ======================================================================
+   JOURNEY PROFESSIONAL PINK UI 9.5.1
+   Tracking/location styling only; no journey business logic changes.
+   ====================================================================== */
+.journey-dashboard-card { border-color: #E7DFE6; box-shadow: 0 5px 18px rgba(18,14,28,.03); }
+.journey-dashboard-open { border-top-color: #386B66 !important; }
+.journey-dashboard-transfer { border-top-color: #FF66B7 !important; }
+.journey-dashboard-death { border-top-color: #D34D6A !important; }
+.journey-kpi-label { color: #554C5B; font-weight: 780; }
+.journey-dashboard-card strong { color: #120E1C; font-weight: 860; }
+.journey-dashboard-card small { color: #817787; }
+
+.journey-subtabs { border-color: #E6DEE5; background: #F3F0F3; }
+.journey-subtab { color: #5C535F; font-weight: 740; }
+.journey-subtab.active {
+  color: #A22767;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(18,14,28,.05), inset 0 -2px 0 #FF66B7;
+}
+.journey-tab-badge { color: #A22767; background: #FFF0F8; }
+
+.journey-card {
+  border-color: #E8E0E7;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(18,14,28,.025);
+}
+.journey-person-name-line strong,
+.journey-person-head > strong { color: #120E1C; font-weight: 850; }
+.journey-person-icon { color: #D63D8D; }
+.journey-person-facts { color: #766D7B; font-weight: 590; }
+.journey-person-facts strong { color: #514857; font-weight: 720; }
+
+/* User-requested colour: the complete current-location phrase uses #386B66. */
+.journey-location-italic .journey-location-label,
+.journey-location-italic > strong {
+  color: #386B66 !important;
+  font-style: italic;
+}
+.journey-location-italic .journey-location-label { font-weight: 620; }
+.journey-location-italic > strong { font-weight: 820; }
+.journey-location .journey-inline-icon { color: #386B66; }
+
+.journey-status.is-tracking { color: #386B66; border-color: #C9DFDB; background: #EDF7F5; }
+.journey-status.is-treatment { color: #4B6A38; border-color: #D4E2C9; background: #F1F7ED; }
+.journey-status.is-followup { color: #8A6508; border-color: #F0D993; background: #FFF8DD; }
+.journey-status.is-transfer { color: #7544A7; border-color: #DECCF2; background: #F7F0FF; }
+.journey-status.is-returned { color: #386B66; border-color: #C9DFDB; background: #EDF7F5; }
+.journey-status.is-death { color: #B6405C; border-color: #F0CCD5; background: #FFF0F3; }
+.journey-type-pill { color: #5A515F; border-color: #E4DDE3; background: #fff; }
+
+.journey-card-details { border-top-color: #F0EAEF; }
+.journey-card-details > summary { color: #A22767; font-weight: 780; }
+.journey-card-details > summary::after { color: #8D7E89; }
+.journey-detail-grid-inline > div { border-bottom-color: #F1EBF0; }
+.journey-detail-grid-inline span { color: #817787; font-weight: 600; }
+.journey-detail-grid-inline strong { color: #342D3A; font-weight: 760; }
+
+.journey-primary-action,
+.journey-create-mode-btn.active { border-color: #FF66B7; }
+.journey-create-mode-actions { border-color: #E6DDE5; background: #F5F2F5; }
+.journey-create-mode-btn.active {
+  color: #A22767;
+  box-shadow: 0 1px 3px rgba(18,14,28,.05), inset 0 -2px 0 #FF66B7;
+}
+.journey-section-icon { color: #C7367F; background: #FFF0F8; }
+.journey-form-section-title strong { color: #2A2230; font-weight: 820; }
+.journey-readonly-place { color: #386B66; background: #F2F8F7; border-color: #D6E7E4; }
+
+.desktop-history-heading h3 { color: #120E1C; font-weight: 850; }
+.journey-history-table thead th { color: #655C6B; background: #F8F5F8; font-weight: 820; }
+.journey-history-table tbody td { color: #433B49; border-bottom-color: #F0EAEF; }
+.journey-history-table tbody tr:nth-child(odd) { background: #FFFCFE; }
+.journey-history-table .history-col-name strong { color: #120E1C; font-weight: 840; }
+.journey-history-table .history-col-place { color: #386B66; font-weight: 760; }
+.journey-history-actions .small-btn { color: #A22767; border-color: #F0C9DE; background: #FFF0F8; font-weight: 780; }
+.journey-history-actions .small-btn:hover { border-color: #FF66B7; background: #FFE5F2; }
+
+@media (max-width: 760px) {
+  .journey-dashboard-card { border-radius: 14px; }
+  .journey-card { border-radius: 15px; }
+  .journey-person-name-line strong { font-size: 16px; }
+  .journey-location-italic { line-height: 1.45; }
+  .journey-history-table tbody tr { border-color: #E7DFE6; background: #fff; box-shadow: 0 5px 18px rgba(18,14,28,.03); }
+  .journey-history-table tbody tr:nth-child(odd) { background: #fff; }
 }

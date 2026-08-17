@@ -1,5 +1,5 @@
 /* ================================================================
-   REPORTS MODULE — production 9.5.0
+   REPORTS MODULE — production 9.5.1
    Only report/death-specific presentation belongs here.
    ================================================================ */
 
@@ -117,7 +117,7 @@
   .report-search-field { grid-column: 1 / -1; }
 }
 
-/* ---------- Production detail view 9.5.0 ---------- */
+/* ---------- Production detail view 9.5.1 ---------- */
 .report-detail-view { padding: 18px; }
 .report-detail-person { padding: 13px; display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 11px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-subtle); }
 .report-detail-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: var(--color-primary); background: var(--color-primary-soft); }
@@ -140,7 +140,7 @@
 
 
 /* =====================================================================
-   REPORT UI 9.5.0 — clear detail/edit modes
+   REPORT UI 9.5.1 — clear detail/edit modes
    ===================================================================== */
 .report-detail-view { padding: 16px 18px; }
 .report-detail-person { padding: 0 0 12px; grid-template-columns: auto minmax(0,1fr) auto; border: 0; border-bottom: 1px solid #eceff1; border-radius: 0; background: transparent; }
@@ -163,3 +163,18 @@
   .report-detail-grid { grid-template-columns: 1fr; }
   .report-detail-grid > div.full { grid-column: 1; }
 }
+
+
+/* ======================================================================
+   REPORT PROFESSIONAL PINK UI 9.5.1 — presentation only
+   ====================================================================== */
+.report-head h2 { color: #120E1C; font-weight: 850; }
+.report-workspace { border-color: #E7DFE6; background: #fff; box-shadow: 0 5px 18px rgba(18,14,28,.03); }
+.report-dialog-head { border-bottom-color: #ECE4EB; }
+.report-dialog-head h3 { color: #120E1C; font-weight: 850; }
+.report-reporter-line { background: #F8F5F8; }
+.report-reporter-line span { color: #7C7282; font-weight: 600; }
+.report-reporter-line strong { color: #342C3A; font-weight: 780; }
+.report-detail-person strong { color: #120E1C; font-weight: 850; }
+.report-detail-grid span { color: #817787; font-weight: 620; }
+.report-detail-grid strong { color: #332B39; font-weight: 760; }

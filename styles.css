@@ -1,5 +1,5 @@
 /* ================================================================
-   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.5.0
+   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.5.1
    Shared design system, application shell and cross-module components.
    Business logic lives in app.js / reports.js / journeys.js.
    ================================================================ */
@@ -715,7 +715,7 @@ body.is-busy .loading-layer { display: grid; }
 .offline-card p { margin: 0 0 18px; color: var(--color-text-2); }
 
 /* ================================================================
-   PRODUCTION UX 9.5.0
+   PRODUCTION UX 9.5.1
    General reporting dashboard + selector-first data entry.
    ================================================================ */
 .nav-item { position: relative; }
@@ -817,7 +817,7 @@ body.is-busy .loading-layer { display: grid; }
 
 
 /* =====================================================================
-   UI PRODUCTION 9.5.0 — unified application shell & task-focused UX
+   UI PRODUCTION 9.5.1 — unified application shell & task-focused UX
    Business Stable v1.0 contract is unchanged.
    ===================================================================== */
 :root {
@@ -1013,7 +1013,7 @@ input, select, textarea { max-width: 100%; }
   .entry-selected-facts > div:first-child { border-top: 0; }
 }
 
-/* ---------- UI hotfix 9.5.0: delete-data dialog ---------- */
+/* ---------- UI hotfix 9.5.1: delete-data dialog ---------- */
 .delete-daily-card {
   width: min(560px, 100%);
   max-height: calc(100dvh - 40px);
@@ -1167,7 +1167,7 @@ input, select, textarea { max-width: 100%; }
 }
 
 /* ======================================================================
-   UI PRODUCTION 9.5.0 — typography, read-only role and PWA refinement
+   UI PRODUCTION 9.5.1 — typography, read-only role and PWA refinement
    ====================================================================== */
 #dashboardView #rangeLabel {
   margin-top: 6px;
@@ -1211,4 +1211,233 @@ input, select, textarea { max-width: 100%; }
   }
   .entry-selected-kicker { font-size: 13px; }
   .entry-selected-head > div > strong { font-size: 18px; }
+}
+
+
+/* ======================================================================
+   PROFESSIONAL PINK UI 9.5.1
+   Visual-only refinement. Business Stable v1.0 contract is unchanged.
+   Palette: #FF66B7 primary · #FEC84C warm · #AA69FA accent · #120E1C ink.
+   ====================================================================== */
+:root {
+  --color-primary: #FF66B7;
+  --color-primary-hover: #F252A8;
+  --color-primary-strong: #B92F77;
+  --color-primary-soft: #FFF0F8;
+  --color-primary-soft-2: #FFE1F0;
+  --color-accent: #AA69FA;
+
+  --color-bg: #FBF9FC;
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #FDFBFD;
+  --color-surface-muted: #F6F2F6;
+  --color-text: #120E1C;
+  --color-text-2: #4F4757;
+  --color-text-3: #7B7182;
+  --color-border: #E9E1E8;
+  --color-border-strong: #DCD0DA;
+
+  --color-success: #386B66;
+  --color-success-soft: #EDF7F5;
+  --color-warning: #9B6900;
+  --color-warning-soft: #FFF7DB;
+  --color-danger: #B6405C;
+  --color-danger-soft: #FFF0F3;
+  --color-info: #5B4C91;
+  --color-info-soft: #F3EEFF;
+
+  --shadow-sm: 0 1px 2px rgba(18,14,28,.035), 0 7px 20px rgba(18,14,28,.035);
+  --shadow-md: 0 14px 36px rgba(18,14,28,.09);
+  --shadow-lg: 0 26px 64px rgba(18,14,28,.16);
+
+  --ui-bg: #F8F6F9;
+  --ui-line: #E7DFE6;
+  --ui-line-soft: #F0EBEF;
+  --ui-ink: #120E1C;
+  --ui-muted: #786E80;
+}
+
+html, body { background: var(--ui-bg); color: var(--ui-ink); }
+::selection { background: #FFD0E8; color: #120E1C; }
+:focus-visible { outline-color: rgba(255,102,183,.40); }
+
+/* Typography hierarchy: headings strong, labels medium, helper text quiet. */
+h1, h2, h3, h4 { color: #120E1C; }
+.page-heading h2,
+.report-head h2,
+.admin-head h2 {
+  color: #120E1C;
+  font-weight: 850;
+  letter-spacing: -.042em;
+}
+.page-subtitle,
+.page-heading p,
+.report-page-subtitle,
+.report-head p { color: #786E80; font-weight: 520; }
+.field > label,
+.field label,
+.dashboard-primary-filters label,
+.entry-date-field label { color: #4E4655; font-weight: 720; }
+.meta { color: #817787; }
+
+/* Header / navigation: calm neutral desktop, richer branded PWA. */
+@media (min-width: 1024px) {
+  .app-header { border-top: 3px solid #FF66B7; background: rgba(255,255,255,.985); }
+  .brand-org.brand-desktop { color: #120E1C; }
+  .brand-app.brand-desktop { color: #7B7182; }
+  .nav-item:hover { color: #A82D6C; background: #FFF7FB; }
+  .nav-item.active {
+    color: #A22767;
+    background: #FFF0F8;
+    box-shadow: inset 3px 0 0 #FF66B7;
+  }
+  .nav-item.active svg { color: #D63D8D; }
+}
+@media (max-width: 1023px) {
+  .app-header {
+    color: #fff;
+    background: linear-gradient(135deg, #C53680 0%, #A9286B 100%);
+    border-bottom-color: rgba(255,255,255,.14);
+  }
+  .brand h1 { color: #fff; font-weight: 800; }
+  .header-actions .btn-light { color: #fff; border-color: rgba(255,255,255,.26); background: rgba(255,255,255,.08); }
+  .nav {
+    border-color: #E7DCE5;
+    background: rgba(255,255,255,.97);
+    box-shadow: 0 16px 42px rgba(18,14,28,.14);
+  }
+  .nav-item.active {
+    color: #A22767;
+    background: #FFF0F8;
+    box-shadow: inset 0 -3px 0 #FF66B7;
+  }
+  .nav-item.active svg { color: #D63D8D; }
+}
+
+/* Primary interaction colour. Exact #FF66B7 is intentionally the hero accent. */
+.btn-primary,
+.filter-apply-btn {
+  color: #120E1C;
+  border-color: #FF66B7;
+  background: #FF66B7;
+  font-weight: 790;
+  box-shadow: 0 6px 16px rgba(255,102,183,.18);
+}
+.btn-primary:hover,
+.filter-apply-btn:hover {
+  color: #120E1C;
+  border-color: #F252A8;
+  background: #F252A8;
+  box-shadow: 0 8px 20px rgba(255,102,183,.24);
+}
+.btn-soft:hover { border-color: #E8C7DA; background: #FFF6FB; }
+.status-chip.is-auto { color: #6B4C89; border-color: #DCCAF1; background: #F6F0FF; }
+.status-chip.is-complete { color: #386B66; border-color: #CDE0DC; background: #EDF7F5; }
+
+/* Page icons use the palette without turning every surface pink. */
+.page-title-icon,
+.section-icon { color: #C7367F; background: #FFF0F8; }
+.page-title-icon.is-home { color: #7D47C6; background: #F4EDFF; }
+.page-title-icon.is-entry { color: #9B6900; background: #FFF5D6; }
+.page-title-icon.is-report { color: #C7367F; background: #FFF0F8; }
+.section-icon { box-shadow: inset 0 0 0 1px rgba(255,102,183,.08); }
+
+/* Dashboard: make date and reporting hierarchy deliberately visible. */
+#dashboardView #rangeLabel {
+  color: #51485A;
+  font-size: 16px;
+  font-weight: 740;
+}
+.dashboard-filter-panel,
+.entry-simple-panel,
+.report-workspace,
+.page-card,
+.admin-card {
+  border-color: #E7DFE6;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.summary-item {
+  border-color: #E8E0E7;
+  background: linear-gradient(180deg,#FFFFFF 0%,#FFFCFE 100%);
+  box-shadow: 0 5px 18px rgba(18,14,28,.028);
+}
+.summary-copy h3 { color: #241E2A; font-weight: 800; }
+.summary-copy p { color: #817787; }
+.summary-number { color: #B92F77; font-weight: 850; }
+.summary-icon { color: #C7367F; background: #FFF0F8; }
+
+/* Entry: group/category reads like a business data label, not helper copy. */
+.entry-selected-card {
+  border-color: #E8DDE5;
+  background: linear-gradient(180deg,#FFFFFF 0%,#FFFBFD 100%);
+  box-shadow: inset 4px 0 0 #FF66B7;
+}
+.entry-selected-kicker {
+  color: #B12D70;
+  font-size: 14px;
+  font-weight: 830;
+  letter-spacing: -.01em;
+}
+.entry-selected-head > div > strong {
+  color: #120E1C;
+  font-size: 20px;
+  font-weight: 850;
+}
+.entry-selected-facts span { color: #807685; font-weight: 600; }
+.entry-selected-facts strong { color: #302938; font-weight: 780; }
+.entry-quick-category select:focus,
+.entry-quick-value input:focus { border-color: #FF66B7; box-shadow: 0 0 0 3px rgba(255,102,183,.13); }
+
+/* Admin: clearer tabs/table, professional but not over-coloured. */
+.admin-tabs { border-color: #E5DDE4; background: #F5F2F5; }
+.admin-tab { color: #5B5261; font-weight: 720; }
+.admin-tab.active {
+  color: #A22767;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(18,14,28,.06), inset 0 -2px 0 #FF66B7;
+}
+.admin-table th,
+.category-table th,
+.admin-user-table th,
+.admin-report-table th {
+  color: #665D6D;
+  background: #FBF8FA;
+  font-weight: 800;
+}
+.admin-table td,
+.category-table td,
+.admin-user-table td,
+.admin-report-table td { color: #2D2633; border-bottom-color: #F0EAEF; }
+.admin-row-menu > summary { border-color: #E4DCE3; color: #655B6B; }
+.admin-row-popover { border-color: #E3D8E1; box-shadow: 0 18px 46px rgba(18,14,28,.14); }
+.admin-note { border-left-color: #FEC84C; background: #FFF8E5; color: #5D5140; }
+
+/* Dialogs, forms and inputs: slightly stronger control chrome. */
+input, select, textarea { color: #211A27; border-color: #DCD2DA; background: #fff; }
+input:hover, select:hover, textarea:hover { border-color: #CFC1CC; }
+input:focus, select:focus, textarea:focus { border-color: #FF66B7; box-shadow: 0 0 0 3px rgba(255,102,183,.13); }
+.confirm-card, .adjust-card, .category-card, .data-history-card, .report-dialog-card, .journey-dialog-card {
+  border-color: #E5DCE4;
+  box-shadow: 0 24px 70px rgba(18,14,28,.18);
+}
+
+/* PWA: keep touch targets large and visual hierarchy clean. */
+@media (max-width: 760px) {
+  body { background: #FAF7FA; }
+  .page-heading h2, .report-head h2 { font-size: 26px; line-height: 1.12; }
+  #dashboardView #rangeLabel { font-size: 15px; font-weight: 760; }
+  .workspace-panel, .card, .page-card, .entry-simple-panel, .report-workspace { border-radius: 16px; }
+  .summary-item { border-radius: 14px; }
+  .entry-selected-kicker { font-size: 13.5px; }
+  .entry-selected-head > div > strong { font-size: 19px; }
+  .admin-table tr, .category-table tr, .admin-user-table tr, .admin-report-table tr {
+    border-color: #E7DFE6;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(18,14,28,.025);
+  }
+  .admin-table td[data-label]::before,
+  .category-table td[data-label]::before,
+  .admin-user-table td[data-label]::before,
+  .admin-report-table td[data-label]::before { color: #7E7484; font-weight: 760; }
 }

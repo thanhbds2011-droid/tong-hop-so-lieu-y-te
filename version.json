@@ -1,7 +1,7 @@
 {
-  "version": "9.5.0",
-  "releasedAt": "2026-08-15T16:18:00+07:00",
-  "title": "UI & Permission Production 9.5.0",
-  "message": "Nâng cấp typography Tổng quan/Nhập liệu, bổ sung icon và bố cục theo dõi, thu gọn Lịch sử, thêm quyền Xem chỉ đọc, phân tách quyền xóa chỉ dành cho Quản trị và tối ưu PWA. Giữ nguyên các luồng chuyển viện, tử vong, realtime, đếm tự động và nguyên tắc audit hiện có.",
+  "version": "9.5.1",
+  "releasedAt": "2026-08-17T08:34:00+07:00",
+  "title": "Professional Pink UI 9.5.1",
+  "message": "Tinh chỉnh UI/UX theo bảng màu #FF66B7: hệ chữ rõ cấp bậc, bố cục card/surface chuyên nghiệp, Nơi hiện tại màu #386B66, tăng độ nổi bật Tổng quan/Nhập liệu/Báo cáo/Quản trị và tối ưu PWA. Không thay đổi luồng nghiệp vụ, phân quyền hay dữ liệu.",
   "required": false
 }
