@@ -1082,3 +1082,274 @@
   .journey-history-table tbody tr { border-color: #E7DFE6; background: #fff; box-shadow: 0 5px 18px rgba(18,14,28,.03); }
   .journey-history-table tbody tr:nth-child(odd) { background: #fff; }
 }
+
+/* ======================================================================
+   JOURNEY COMPACT IDENTITY + HISTORY DETAIL UI 9.5.3
+   Presentation only. Business logic, Firebase paths and permissions unchanged.
+   ====================================================================== */
+
+/* Tracking: one-line identity on desktop, with clear labelled facts. */
+.journey-card { display: block; }
+.journey-person-name-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  row-gap: 4px;
+}
+.journey-person-name-line > strong {
+  flex: 0 1 auto;
+  font-size: 16.5px;
+  line-height: 1.3;
+}
+.journey-person-facts {
+  margin-top: 0;
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #625966;
+  font-size: 12px;
+  font-weight: 620;
+}
+.journey-person-facts span { white-space: nowrap; }
+.journey-person-facts b { color: #332B37; font-weight: 820; }
+.journey-person-facts i {
+  color: #B7ACB5;
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* Compact bottom row: Details + Update + More share one horizontal line. */
+.journey-card-bottom-row {
+  margin-top: 9px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: start;
+  gap: 10px;
+  border-top: 1px solid #F0EAEF;
+}
+.journey-card-bottom-row .journey-card-details {
+  min-width: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+.journey-card-bottom-row .journey-card-actions {
+  align-self: start;
+  padding-top: 5px;
+}
+
+/* History: list only identity + demographics + status + action.
+   Clinical/place details are intentionally shown in the View popup instead. */
+.journey-history-table-compact { table-layout: fixed; }
+.journey-history-table-compact .history-col-stt,
+.journey-history-table-compact thead th:first-child {
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+}
+.journey-history-table-compact .history-col-name { width: 36%; }
+.journey-history-table-compact .history-col-birth { width: 13%; }
+.journey-history-table-compact .history-col-gender { width: 13%; }
+.journey-history-table-compact .history-col-status { width: 24%; }
+.journey-history-table-compact .history-col-actions { width: 112px; }
+.history-name-row { min-width: 0; }
+.history-mobile-field-label { display: none; }
+.journey-history-table .history-mobile-bhyt {
+  display: block;
+  margin-top: 3px;
+  color: #7A7080;
+  font-size: 10.75px;
+  font-weight: 600;
+}
+.journey-history-table .history-mobile-bhyt b { font-weight: 720; }
+.history-status-date {
+  display: block;
+  margin-top: 5px;
+  color: #8C8390;
+  font-size: 10px;
+  line-height: 1.25;
+  font-weight: 560;
+}
+
+/* The popup is now the place for the detailed treatment location/diagnosis. */
+.journey-detail-extra {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.journey-detail-extra > div {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #EEE7ED;
+  border-radius: 10px;
+  background: #FBF9FB;
+}
+.journey-detail-extra span {
+  display: block;
+  margin-bottom: 3px;
+  color: #827987;
+  font-size: 10.5px;
+  font-weight: 650;
+}
+.journey-detail-extra strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #312A36;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 780;
+}
+
+@media (max-width: 760px) {
+  /* Tracking card: compact identity and one-row actions. */
+  .journey-person-name-line {
+    align-items: flex-start;
+    column-gap: 7px;
+    row-gap: 5px;
+  }
+  .journey-person-name-line > strong { font-size: 16px; }
+  .journey-person-facts {
+    flex-basis: 100%;
+    padding-left: 24px;
+    gap: 5px;
+    font-size: 11px;
+  }
+  .journey-person-facts i { color: #C7BEC6; }
+
+  .journey-card-bottom-row {
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items: start;
+    gap: 7px;
+  }
+  .journey-card-bottom-row .journey-card-details > summary {
+    min-height: 36px;
+    padding-top: 7px;
+    font-size: 11.5px;
+  }
+  .journey-card-bottom-row .journey-card-actions {
+    width: auto;
+    padding-top: 4px;
+    gap: 5px;
+    justify-content: flex-end;
+  }
+  .journey-card-bottom-row .journey-primary-action {
+    min-width: 0;
+    min-height: 36px;
+    padding: 7px 11px;
+    font-size: 12.5px;
+  }
+  .journey-card-bottom-row .journey-primary-action .journey-btn-icon {
+    width: 15px;
+    height: 15px;
+  }
+  .journey-card-bottom-row .journey-action-menu > summary {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+  .journey-card-bottom-row .journey-action-menu > summary svg {
+    width: 16px;
+    height: 16px;
+  }
+  /* When details are expanded, give the content full width; actions move below. */
+  .journey-card-bottom-row:has(.journey-card-details[open]) {
+    grid-template-columns: 1fr;
+  }
+  .journey-card-bottom-row:has(.journey-card-details[open]) .journey-card-actions {
+    justify-self: end;
+    padding-top: 2px;
+  }
+
+  /* History mobile: labels and values stay on the same line where requested. */
+  .journey-history-table tbody tr {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    padding: 13px 14px;
+  }
+  .journey-history-table .history-col-name {
+    grid-column: 1 / -1;
+    padding: 0 0 8px;
+    border-bottom: 1px solid #EEE8ED;
+  }
+  .journey-history-table .history-col-name::before { display: none; }
+  .history-name-row,
+  .journey-history-table .history-mobile-bhyt {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    margin: 0;
+  }
+  .history-name-row + .history-mobile-bhyt { margin-top: 5px; }
+  .history-mobile-field-label {
+    display: inline;
+    flex: 0 0 auto;
+    color: #665D6B;
+    font-size: 11.5px;
+    font-weight: 800;
+  }
+  .history-name-row strong {
+    color: #120E1C;
+    font-size: 15.5px;
+    font-weight: 850;
+  }
+  .journey-history-table .history-mobile-bhyt {
+    color: #514857;
+    font-size: 11.5px;
+  }
+  .journey-history-table .history-mobile-bhyt b {
+    color: #514857;
+    font-weight: 780;
+  }
+  .journey-history-table .history-col-birth,
+  .journey-history-table .history-col-gender {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding-top: 9px;
+    color: #2F2834;
+    font-size: 12.5px;
+    font-weight: 760;
+  }
+  .journey-history-table .history-col-birth::before,
+  .journey-history-table .history-col-gender::before {
+    display: inline;
+    margin: 0;
+    color: #665D6B;
+    font-size: 11.5px;
+    font-weight: 800;
+  }
+  .journey-history-table .history-col-status,
+  .journey-history-table .history-col-actions {
+    grid-column: 1 / -1;
+  }
+  .journey-history-table .history-col-status {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 8px;
+    padding-top: 9px;
+  }
+  .journey-history-table .history-col-status::before {
+    display: inline;
+    margin: 0;
+    color: #665D6B;
+    font-size: 11.5px;
+    font-weight: 800;
+  }
+  .journey-history-table .history-col-status .journey-status { justify-self: end; }
+  .journey-history-table .history-status-date {
+    grid-column: 2;
+    justify-self: end;
+    margin-top: 0;
+  }
+  .journey-history-table .history-col-actions {
+    padding-top: 9px;
+    border-top: 1px solid #EEE8ED;
+  }
+  .journey-history-table .journey-history-actions {
+    justify-content: flex-end;
+  }
+  .journey-detail-extra { grid-template-columns: 1fr; }
+}

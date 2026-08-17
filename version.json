@@ -1,7 +1,7 @@
 {
-  "version": "9.5.2",
+  "version": "9.5.3",
   "releasedAt": "2026-08-17T09:26:00+07:00",
-  "title": "Soft Surface UI 9.5.2",
+  "title": "Compact Journey UI 9.5.3",
   "message": "Loại bỏ các thanh màu nhấn dạng border/underline dễ tạo cảm giác lỗi; thay bằng nền dịu, viền trung tính và độ nổi khối nhẹ trên Header, menu đang chọn, card Nhập liệu và KPI Chuyển viện/Tử vong. Không thay đổi nghiệp vụ, phân quyền, dữ liệu hay Firebase Rules.",
   "required": false
 }
