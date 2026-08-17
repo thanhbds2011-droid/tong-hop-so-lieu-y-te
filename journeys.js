@@ -711,9 +711,6 @@ function renderHistory() {
     const status = item.kind === 'CENTER_DEATH' ? 'Tử vong tại Trung tâm' : statusLabel(item.trangThaiHienTai);
     const statusClassName = item.kind === 'CENTER_DEATH' ? 'is-death' : statusClass(item.trangThaiHienTai);
     const bhyt = String(item.theBHYT || '').trim();
-    const dateText = item.kind === 'CENTER_DEATH'
-      ? (item.ngayBaoCao ? item.ngayBaoCao.split('-').reverse().join('/') : '—')
-      : fmtDateTime(item.ngayGioVe || item.updatedAt);
     return `<tr class="${item.kind === 'CENTER_DEATH' ? 'is-center-death' : ''}">
       <td class="history-col-stt" data-label="STT">${index + 1}</td>
       <td class="history-col-name" data-label="Họ và tên">
@@ -722,7 +719,7 @@ function renderHistory() {
       </td>
       <td class="history-col-birth" data-label="Năm sinh">${validBirthYear(item.namSinh) ? esc(item.namSinh) : '—'}</td>
       <td class="history-col-gender" data-label="Giới tính">${validGender(item.gioiTinh) ? esc(item.gioiTinh) : '—'}</td>
-      <td class="history-col-status" data-label="Trạng thái"><span class="journey-status ${statusClassName}">${esc(status)}</span><small class="history-status-date">${esc(dateText)}</small></td>
+      <td class="history-col-status" data-label="Trạng thái"><span class="journey-status ${statusClassName}">${esc(status)}</span></td>
       <td class="history-col-actions" data-label="Thao tác">${historyActionHtml(item)}</td>
     </tr>`;
   }).join('');

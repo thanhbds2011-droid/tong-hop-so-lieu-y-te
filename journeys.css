@@ -1084,7 +1084,7 @@
 }
 
 /* ======================================================================
-   JOURNEY COMPACT IDENTITY + HISTORY DETAIL UI 9.5.3
+   JOURNEY COMPACT IDENTITY + HISTORY DETAIL UI 9.5.4
    Presentation only. Business logic, Firebase paths and permissions unchanged.
    ====================================================================== */
 
@@ -1352,4 +1352,121 @@
     justify-content: flex-end;
   }
   .journey-detail-extra { grid-template-columns: 1fr; }
+}
+
+
+/* ======================================================================
+   JOURNEY HISTORY DENSITY REFINEMENT 9.5.4
+   - Desktop history is fully centered and does not repeat date/time.
+   - Mobile identity/status are one-line, compact, popup keeps details.
+   ====================================================================== */
+@media (min-width: 761px) {
+  .journey-history-table-compact thead th,
+  .journey-history-table-compact tbody td {
+    text-align: center !important;
+  }
+  .journey-history-table-compact .history-col-name {
+    text-align: center !important;
+  }
+  .journey-history-table-compact .history-name-row,
+  .journey-history-table-compact .history-mobile-bhyt {
+    justify-content: center;
+    text-align: center;
+  }
+  .journey-history-table-compact .journey-history-actions {
+    justify-content: center;
+  }
+}
+
+/* Date/time belongs to the detail popup, not to the compact history list. */
+.journey-history-table .history-status-date { display: none !important; }
+
+@media (max-width: 760px) {
+  .journey-history-table .history-col-name::before { display: none !important; content: none !important; }
+  .journey-history-table .history-col-name {
+    grid-column: 1 / -1;
+    padding-bottom: 9px;
+  }
+  .journey-history-table .history-name-row,
+  .journey-history-table .history-mobile-bhyt {
+    display: grid;
+    grid-template-columns: max-content minmax(0,1fr);
+    align-items: baseline;
+    column-gap: 7px;
+    width: 100%;
+  }
+  .journey-history-table .history-mobile-field-label {
+    display: inline !important;
+    white-space: nowrap;
+    color: #706676;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .journey-history-table .history-name-row strong {
+    min-width: 0;
+    font-size: 16px;
+    line-height: 1.3;
+    font-weight: 860;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+  .journey-history-table .history-mobile-bhyt {
+    margin-top: 6px;
+    color: #342C3A;
+    font-size: 13.5px;
+    line-height: 1.3;
+  }
+  .journey-history-table .history-mobile-bhyt b {
+    font-size: 14.5px;
+    font-weight: 850;
+    color: #2B2430;
+  }
+  .journey-history-table .history-col-birth,
+  .journey-history-table .history-col-gender {
+    display: grid;
+    grid-template-columns: max-content minmax(0,1fr);
+    align-items: baseline;
+    column-gap: 7px;
+    min-width: 0;
+    padding-top: 10px;
+    font-size: 13.5px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .journey-history-table .history-col-birth::before,
+  .journey-history-table .history-col-gender::before {
+    display: inline !important;
+    margin: 0;
+    white-space: nowrap;
+    color: #706676;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .journey-history-table .history-col-status {
+    display: grid;
+    grid-template-columns: max-content minmax(0,1fr);
+    align-items: center;
+    gap: 8px;
+    padding-top: 11px;
+    white-space: nowrap;
+  }
+  .journey-history-table .history-col-status::before {
+    display: inline !important;
+    margin: 0;
+    color: #706676;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .journey-history-table .history-col-status .journey-status {
+    justify-self: start;
+    margin: 0;
+  }
+  .journey-history-table .history-col-actions {
+    padding-top: 9px;
+  }
+  .journey-history-table .journey-history-actions {
+    justify-content: flex-start;
+  }
 }

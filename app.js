@@ -2043,7 +2043,13 @@ var AUTO_SYNC_MS = 300000;
         var active=item.status==='Hoạt động';
         var actions='<button class="small-btn btn-soft category-action" data-kind="edit" data-code="'+esc(item.code)+'">Sửa</button>'+
           '<button class="small-btn '+(active?'btn-danger':'btn-soft')+' category-action" data-kind="status" data-code="'+esc(item.code)+'" data-value="'+(active?'Ngừng hoạt động':'Hoạt động')+'">'+(active?'Xóa':'Khôi phục')+'</button>';
-        return'<tr class="'+(active?'':'is-inactive')+'"><td data-label="Mã"><span class="category-code">'+esc(item.code)+'</span></td><td data-label="Tên chỉ tiêu"><b>'+esc(item.name)+'</b></td><td data-label="Nhóm">'+esc(item.group)+'</td><td data-label="Đơn vị">'+esc(item.unit)+'</td><td data-label="Thứ tự">'+Number(item.order||0)+'</td><td data-label="Trạng thái"><span class="status-pill'+(active?'':' pending')+'">'+(active?'Hoạt động':'Ngừng sử dụng')+'</span></td><td data-label="Thao tác">'+actions+'</td></tr>';
+        var mobileMore='<details class="category-mobile-more"><summary><span>Chi tiết</span><span aria-hidden="true">•••</span></summary><div class="category-mobile-detail-grid">'+
+          '<div><span>Nhóm</span><strong>'+esc(item.group)+'</strong></div>'+
+          '<div><span>Đơn vị</span><strong>'+esc(item.unit)+'</strong></div>'+
+          '<div><span>Thứ tự</span><strong>'+Number(item.order||0)+'</strong></div>'+
+          '<div><span>Trạng thái</span><strong>'+(active?'Hoạt động':'Ngừng sử dụng')+'</strong></div>'+
+          '</div><div class="category-mobile-actions">'+actions+'</div></details>';
+        return'<tr class="'+(active?'':'is-inactive')+'"><td data-label="Mã"><span class="category-code">'+esc(item.code)+'</span></td><td data-label="Tên chỉ tiêu"><b>'+esc(item.name)+'</b>'+mobileMore+'</td><td data-label="Nhóm">'+esc(item.group)+'</td><td data-label="Đơn vị">'+esc(item.unit)+'</td><td data-label="Thứ tự">'+Number(item.order||0)+'</td><td data-label="Trạng thái"><span class="status-pill'+(active?'':' pending')+'">'+(active?'Hoạt động':'Ngừng sử dụng')+'</span></td><td data-label="Thao tác">'+actions+'</td></tr>';
       }).join('')+'</tbody></table>';
     }
     async function loadAdminCategories(force){
@@ -2117,7 +2123,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.5.3'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.5.4'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
