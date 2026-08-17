@@ -204,6 +204,14 @@ async function refreshAccess() {
   updateModuleUi();
 }
 
+function friendlyGivenName(value) {
+  let text = String(value || '').trim().replace(/\s+/g, ' ');
+  if (!text) return 'bạn';
+  if (text.includes('@')) text = text.split('@')[0].replace(/[._-]+/g, ' ').trim();
+  const parts = text.split(' ').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : 'bạn';
+}
+
 function updateModuleUi(external) {
   if (external && external.authUser && !reportState.user) {
     reportState.user = auth.currentUser || null;
@@ -227,7 +235,7 @@ function updateModuleUi(external) {
   const user = reportState.user || auth.currentUser;
   if ($('homeWelcome')) {
     $('homeWelcome').textContent = user
-      ? 'Xin chào, ' + String(user.displayName || user.email || '')
+      ? 'Xin chào, ' + friendlyGivenName(user.displayName || user.email || '')
       : 'Chọn chức năng';
   }
 

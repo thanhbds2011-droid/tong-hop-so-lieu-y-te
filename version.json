@@ -1,7 +1,6 @@
 {
-  "version": "9.5.5",
-  "releasedAt": "2026-08-17T10:45:00+07:00",
-  "title": "History Alignment & Professional Admin UI 9.5.5",
-  "message": "Căn chỉnh lại Lịch sử trên PWA, hiển thị số bảo hiểm ngay dưới họ tên và tái thiết kế Quản trị tài khoản theo nhóm Chưa được cấp quyền/Đã được phân quyền với dropdown vai trò + Lưu quyền. Không thay Firebase path hoặc business logic.",
-  "required": false
+  "version": "9.5.6",
+  "releasedAt": "2026-08-17",
+  "title": "Personalized Greeting & UX Refinement 9.5.6",
+  "businessBaseline": "Business Stable v1.0"
 }

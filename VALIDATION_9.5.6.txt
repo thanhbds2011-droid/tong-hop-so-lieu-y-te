@@ -1,0 +1,45 @@
+ỨNG DỤNG PHÒNG Y TẾ — VALIDATION 9.5.6
+Business Stable baseline: v1.0
+Runtime/PWA: 9.5.6
+Ngày build: 17/08/2026
+
+PHẠM VI THAY ĐỔI
+- UI CHANGE: Có
+- BUSINESS CHANGE: Không
+- DATABASE CHANGE: Không
+- AUTH CHANGE: Không (chỉ hiển thị lời chào từ displayName đã có)
+- REPORT CHANGE: Không
+- FIREBASE RULES CHANGE: Không
+
+KIỂM TRA TĨNH ĐÃ THỰC HIỆN
+PASS  JavaScript syntax: app.js, reports.js, journeys.js, ui.js, update-manager.js, service-worker.js, sw.js, app-config.js
+PASS  JSON parse: version.json, manifest.webmanifest
+PASS  HTML id duplicate: 272 ID / 272 duy nhất
+PASS  JS -> DOM direct references: 252 reference / 0 thiếu ID
+PASS  Local assets referenced by index.html tồn tại
+PASS  Service worker app-shell assets tồn tại
+PASS  CSS brace balance: styles.css, reports.css, journeys.css
+PASS  Runtime version sync: 9.5.6 trong index.html, app-config.js, version.json, service-worker.js, sw.js, update-manager.js, app.js APP_READY, offline.html
+PASS  Không thêm Firestore
+PASS  journeys.js không thay đổi so với source 9.5.5
+PASS  reports.css và journeys.css không thay đổi business/layout nghiệp vụ ngoài source hiện hành
+PASS  Không đổi Firebase root/path/schema
+PASS  Không đổi permission contract / CRUD / hành trình / tử vong / realtime listener
+
+NỘI DUNG 9.5.6
+- Lời chào cá nhân hóa sau đăng nhập: "Xin chào, <tên gọi>".
+- Nguyễn Chí Thạnh -> Xin chào, Thạnh.
+- Hoàng Thị Khánh Huyền -> Xin chào, Huyền.
+- Desktop: lời chào ở Header cạnh Đăng xuất.
+- PWA/mobile: lời chào dưới "Phòng Y tế".
+- Màn đăng nhập không lặp thêm nút "Đăng nhập" trên Header.
+- Quản trị: giữ thao tác chính Cấp quyền/Lưu quyền; thao tác phụ/nguy hiểm gom vào menu •••.
+- Mobile Quản trị compact: dropdown quyền + thao tác chính + •••.
+- Header Desktop/PWA thống nhất phong cách trung tính; hồng giữ vai trò primary accent.
+- Card Tổng quan compact nhẹ, tăng contrast metadata.
+- Vùng Nhập liệu Desktop giới hạn chiều rộng hợp lý hơn.
+
+CHƯA KIỂM TRA LIVE
+- Chưa đăng nhập Firebase production bằng tài khoản thật trong môi trường build này.
+- Chưa chạy CRUD/Firebase Rules/realtime nhiều máy trên production live.
+- Các business flow không bị chỉnh sửa trong build 9.5.6; cần smoke-test sau khi deploy GitHub Pages.
