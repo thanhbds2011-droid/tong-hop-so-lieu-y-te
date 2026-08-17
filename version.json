@@ -1,7 +1,7 @@
 {
-  "version": "9.5.4",
-  "releasedAt": "2026-08-17T09:26:00+07:00",
-  "title": "Compact History & Admin PWA UI 9.5.4",
-  "message": "Loại bỏ các thanh màu nhấn dạng border/underline dễ tạo cảm giác lỗi; thay bằng nền dịu, viền trung tính và độ nổi khối nhẹ trên Header, menu đang chọn, card Nhập liệu và KPI Chuyển viện/Tử vong. Không thay đổi nghiệp vụ, phân quyền, dữ liệu hay Firebase Rules.",
+  "version": "9.5.5",
+  "releasedAt": "2026-08-17T10:45:00+07:00",
+  "title": "History Alignment & Professional Admin UI 9.5.5",
+  "message": "Căn chỉnh lại Lịch sử trên PWA, hiển thị số bảo hiểm ngay dưới họ tên và tái thiết kế Quản trị tài khoản theo nhóm Chưa được cấp quyền/Đã được phân quyền với dropdown vai trò + Lưu quyền. Không thay Firebase path hoặc business logic.",
   "required": false
 }

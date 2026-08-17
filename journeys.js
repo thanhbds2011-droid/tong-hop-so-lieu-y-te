@@ -710,12 +710,12 @@ function renderHistory() {
   const body = rows.map((item, index) => {
     const status = item.kind === 'CENTER_DEATH' ? 'Tử vong tại Trung tâm' : statusLabel(item.trangThaiHienTai);
     const statusClassName = item.kind === 'CENTER_DEATH' ? 'is-death' : statusClass(item.trangThaiHienTai);
-    const bhyt = String(item.theBHYT || '').trim();
+    const bhxh = String(item.soBHXH || item.theBHXH || item.bhxh || item.theBHYT || '').trim();
     return `<tr class="${item.kind === 'CENTER_DEATH' ? 'is-center-death' : ''}">
       <td class="history-col-stt" data-label="STT">${index + 1}</td>
       <td class="history-col-name" data-label="Họ và tên">
         <div class="history-name-row"><span class="history-mobile-field-label">Họ và tên:</span><strong>${esc(item.doiTuong || 'Chưa có tên')}</strong></div>
-        ${bhyt ? `<div class="history-mobile-bhyt"><span class="history-mobile-field-label">BHYT:</span><b>${esc(bhyt)}</b></div>` : ''}
+        ${bhxh ? `<div class="history-mobile-bhyt"><span class="history-mobile-field-label">BHXH:</span><b>${esc(bhxh)}</b></div>` : ''}
       </td>
       <td class="history-col-birth" data-label="Năm sinh">${validBirthYear(item.namSinh) ? esc(item.namSinh) : '—'}</td>
       <td class="history-col-gender" data-label="Giới tính">${validGender(item.gioiTinh) ? esc(item.gioiTinh) : '—'}</td>
