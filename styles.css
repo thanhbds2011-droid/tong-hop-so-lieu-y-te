@@ -1,5 +1,5 @@
 /* ================================================================
-   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.5.1
+   ỨNG DỤNG PHÒNG Y TẾ — PRODUCTION UI 9.5.2
    Shared design system, application shell and cross-module components.
    Business logic lives in app.js / reports.js / journeys.js.
    ================================================================ */
@@ -715,7 +715,7 @@ body.is-busy .loading-layer { display: grid; }
 .offline-card p { margin: 0 0 18px; color: var(--color-text-2); }
 
 /* ================================================================
-   PRODUCTION UX 9.5.1
+   PRODUCTION UX 9.5.2
    General reporting dashboard + selector-first data entry.
    ================================================================ */
 .nav-item { position: relative; }
@@ -817,7 +817,7 @@ body.is-busy .loading-layer { display: grid; }
 
 
 /* =====================================================================
-   UI PRODUCTION 9.5.1 — unified application shell & task-focused UX
+   UI PRODUCTION 9.5.2 — unified application shell & task-focused UX
    Business Stable v1.0 contract is unchanged.
    ===================================================================== */
 :root {
@@ -1013,7 +1013,7 @@ input, select, textarea { max-width: 100%; }
   .entry-selected-facts > div:first-child { border-top: 0; }
 }
 
-/* ---------- UI hotfix 9.5.1: delete-data dialog ---------- */
+/* ---------- UI hotfix 9.5.2: delete-data dialog ---------- */
 .delete-daily-card {
   width: min(560px, 100%);
   max-height: calc(100dvh - 40px);
@@ -1167,7 +1167,7 @@ input, select, textarea { max-width: 100%; }
 }
 
 /* ======================================================================
-   UI PRODUCTION 9.5.1 — typography, read-only role and PWA refinement
+   UI PRODUCTION 9.5.2 — typography, read-only role and PWA refinement
    ====================================================================== */
 #dashboardView #rangeLabel {
   margin-top: 6px;
@@ -1215,7 +1215,7 @@ input, select, textarea { max-width: 100%; }
 
 
 /* ======================================================================
-   PROFESSIONAL PINK UI 9.5.1
+   PROFESSIONAL PINK UI 9.5.2
    Visual-only refinement. Business Stable v1.0 contract is unchanged.
    Palette: #FF66B7 primary · #FEC84C warm · #AA69FA accent · #120E1C ink.
    ====================================================================== */
@@ -1282,14 +1282,14 @@ h1, h2, h3, h4 { color: #120E1C; }
 
 /* Header / navigation: calm neutral desktop, richer branded PWA. */
 @media (min-width: 1024px) {
-  .app-header { border-top: 3px solid #FF66B7; background: rgba(255,255,255,.985); }
+  .app-header { border-top: 0; background: rgba(255,255,255,.985); box-shadow: 0 1px 0 rgba(18,14,28,.04); }
   .brand-org.brand-desktop { color: #120E1C; }
   .brand-app.brand-desktop { color: #7B7182; }
   .nav-item:hover { color: #A82D6C; background: #FFF7FB; }
   .nav-item.active {
     color: #A22767;
-    background: #FFF0F8;
-    box-shadow: inset 3px 0 0 #FF66B7;
+    background: linear-gradient(135deg,#FFF7FB 0%,#FFF0F8 100%);
+    box-shadow: 0 6px 18px rgba(185,47,119,.07);
   }
   .nav-item.active svg { color: #D63D8D; }
 }
@@ -1309,7 +1309,7 @@ h1, h2, h3, h4 { color: #120E1C; }
   .nav-item.active {
     color: #A22767;
     background: #FFF0F8;
-    box-shadow: inset 0 -3px 0 #FF66B7;
+    box-shadow: 0 5px 16px rgba(185,47,119,.08);
   }
   .nav-item.active svg { color: #D63D8D; }
 }
@@ -1370,8 +1370,8 @@ h1, h2, h3, h4 { color: #120E1C; }
 /* Entry: group/category reads like a business data label, not helper copy. */
 .entry-selected-card {
   border-color: #E8DDE5;
-  background: linear-gradient(180deg,#FFFFFF 0%,#FFFBFD 100%);
-  box-shadow: inset 4px 0 0 #FF66B7;
+  background: linear-gradient(135deg,#FFFFFF 0%,#FFF7FB 100%);
+  box-shadow: 0 8px 24px rgba(185,47,119,.055);
 }
 .entry-selected-kicker {
   color: #B12D70;
@@ -1394,8 +1394,9 @@ h1, h2, h3, h4 { color: #120E1C; }
 .admin-tab { color: #5B5261; font-weight: 720; }
 .admin-tab.active {
   color: #A22767;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(18,14,28,.06), inset 0 -2px 0 #FF66B7;
+  border: 1px solid #F1D7E5;
+  background: linear-gradient(135deg,#FFFFFF 0%,#FFF4FA 100%);
+  box-shadow: 0 6px 18px rgba(185,47,119,.07);
 }
 .admin-table th,
 .category-table th,

@@ -1,7 +1,7 @@
 {
-  "version": "9.5.1",
-  "releasedAt": "2026-08-17T08:34:00+07:00",
-  "title": "Professional Pink UI 9.5.1",
-  "message": "Tinh chỉnh UI/UX theo bảng màu #FF66B7: hệ chữ rõ cấp bậc, bố cục card/surface chuyên nghiệp, Nơi hiện tại màu #386B66, tăng độ nổi bật Tổng quan/Nhập liệu/Báo cáo/Quản trị và tối ưu PWA. Không thay đổi luồng nghiệp vụ, phân quyền hay dữ liệu.",
+  "version": "9.5.2",
+  "releasedAt": "2026-08-17T09:26:00+07:00",
+  "title": "Soft Surface UI 9.5.2",
+  "message": "Loại bỏ các thanh màu nhấn dạng border/underline dễ tạo cảm giác lỗi; thay bằng nền dịu, viền trung tính và độ nổi khối nhẹ trên Header, menu đang chọn, card Nhập liệu và KPI Chuyển viện/Tử vong. Không thay đổi nghiệp vụ, phân quyền, dữ liệu hay Firebase Rules.",
   "required": false
 }
