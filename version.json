@@ -1,7 +1,7 @@
 {
-  "version": "9.5.9",
+  "version": "9.6.0",
   "releasedAt": "2026-08-17",
-  "title": "Sign-in & Report Preview 9.5.9",
+  "title": "OneSignal Web Push & Notification Center 9.6.0",
   "businessBaseline": "Business Stable v1.0",
-  "message": "Cập nhật giao diện đăng nhập, xem báo cáo trước khi xuất Excel và đơn giản hóa thông báo quản trị."
+  "message": "Tích hợp OneSignal Web Push cho hai GitHub Pages, bổ sung chuông thông báo và quản lý bật/tắt thông báo theo thiết bị."
 }

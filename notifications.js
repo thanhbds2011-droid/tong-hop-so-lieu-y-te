@@ -1,0 +1,395 @@
+/*
+ * OneSignal Web Push + Notification Center
+ * Runtime 9.6.0
+ *
+ * - One source supports two GitHub Pages origins using separate OneSignal App IDs.
+ * - OneSignal worker uses a dedicated sub-scope so it does not replace the PWA worker.
+ * - Firebase UID is used as OneSignal External ID only after application access is granted.
+ * - No OneSignal API key/private secret is stored in this frontend.
+ */
+(function () {
+  'use strict';
+
+  const cfg = window.YTE_APP_CONFIG || {};
+  const hostMap = (cfg.ONESIGNAL && cfg.ONESIGNAL.HOSTS) || {};
+  const host = String(window.location.hostname || '').toLowerCase();
+  const appId = String(hostMap[host] || '');
+  const supportedHost = !!appId;
+  const MAX_HISTORY = 60;
+  const ROUTE_KEY = 'YTE_OS_PENDING_ROUTE';
+
+  let sdk = null;
+  let initPromise = null;
+  let currentIdentity = null;
+  let eventsBound = false;
+
+  function byId(id) { return document.getElementById(id); }
+  function safeText(value) { return String(value == null ? '' : value); }
+  function nowIso() { return new Date().toISOString(); }
+  function appBaseUrl() { return new URL('./', document.baseURI).href; }
+  function basePath() { return new URL('./', document.baseURI).pathname; }
+  function workerPath() { return (basePath() + 'push/onesignal/OneSignalSDKWorker.js').replace(/^\//, ''); }
+  function workerScope() { return basePath() + 'push/onesignal/'; }
+  function storageKey(uid) { return 'yte_notification_history_v1:' + host + ':' + safeText(uid || 'anonymous'); }
+
+  function currentUid() { return currentIdentity && currentIdentity.uid ? currentIdentity.uid : ''; }
+  function readHistory() {
+    const uid = currentUid();
+    if (!uid) return [];
+    try {
+      const raw = JSON.parse(localStorage.getItem(storageKey(uid)) || '[]');
+      return Array.isArray(raw) ? raw.slice(0, MAX_HISTORY) : [];
+    } catch (_) { return []; }
+  }
+  function writeHistory(items) {
+    const uid = currentUid();
+    if (!uid) return;
+    try { localStorage.setItem(storageKey(uid), JSON.stringify((items || []).slice(0, MAX_HISTORY))); } catch (_) {}
+  }
+  function notificationId(notification) {
+    return safeText(notification && (notification.notificationId || notification.id || notification.webEventId || notification.rawPayload && notification.rawPayload.custom && notification.rawPayload.custom.i)) || ('local-' + Date.now());
+  }
+  function notificationTitle(notification) {
+    return safeText(notification && (notification.title || notification.heading || notification.headings && (notification.headings.vi || notification.headings.en))) || 'Phòng Y tế';
+  }
+  function notificationBody(notification) {
+    return safeText(notification && (notification.body || notification.content || notification.contents && (notification.contents.vi || notification.contents.en))) || 'Có thông báo mới.';
+  }
+  function notificationData(notification) {
+    return (notification && (notification.additionalData || notification.data)) || {};
+  }
+  function addHistory(item, markRead) {
+    if (!currentUid()) return;
+    const items = readHistory();
+    const id = safeText(item.id || ('local-' + Date.now()));
+    const existing = items.findIndex(function (x) { return x.id === id; });
+    const normalized = {
+      id: id,
+      title: safeText(item.title || 'Phòng Y tế'),
+      body: safeText(item.body || 'Có thông báo mới.'),
+      at: safeText(item.at || nowIso()),
+      read: markRead === true || item.read === true,
+      data: item.data && typeof item.data === 'object' ? item.data : {}
+    };
+    if (existing >= 0) {
+      normalized.read = normalized.read || items[existing].read === true;
+      items.splice(existing, 1);
+    }
+    items.unshift(normalized);
+    writeHistory(items);
+    renderHistory();
+  }
+  function unreadCount() { return readHistory().filter(function (item) { return item.read !== true; }).length; }
+  function markAllRead() {
+    const items = readHistory().map(function (item) { return Object.assign({}, item, { read: true }); });
+    writeHistory(items); renderHistory();
+  }
+  function markRead(id) {
+    const items = readHistory().map(function (item) { return item.id === id ? Object.assign({}, item, { read: true }) : item; });
+    writeHistory(items); renderHistory();
+  }
+  function clearHistory() { writeHistory([]); renderHistory(); }
+
+  function relativeTime(iso) {
+    const time = new Date(iso).getTime();
+    if (!Number.isFinite(time)) return '';
+    const seconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+    if (seconds < 45) return 'Vừa xong';
+    if (seconds < 3600) return Math.floor(seconds / 60) + ' phút trước';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + ' giờ trước';
+    if (seconds < 604800) return Math.floor(seconds / 86400) + ' ngày trước';
+    try { return new Intl.DateTimeFormat('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }).format(new Date(time)); }
+    catch (_) { return ''; }
+  }
+  function escapeHtml(value) {
+    return safeText(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  function renderHistory() {
+    const badge = byId('notificationBadge');
+    const count = unreadCount();
+    if (badge) { badge.hidden = count < 1; badge.textContent = count > 99 ? '99+' : String(count); }
+    const list = byId('notificationList');
+    if (!list) return;
+    const items = readHistory();
+    if (!items.length) {
+      list.innerHTML = '<div class="notification-empty"><strong>Chưa có thông báo.</strong><span>Các thông báo nhận trên thiết bị này sẽ xuất hiện tại đây.</span></div>';
+      return;
+    }
+    list.innerHTML = items.map(function (item) {
+      const view = safeText(item.data && item.data.view || '');
+      return '<button class="notification-item'+(item.read ? '' : ' is-unread')+'" type="button" data-notification-id="'+escapeHtml(item.id)+'" data-view="'+escapeHtml(view)+'">'
+        + '<span class="notification-dot" aria-hidden="true"></span>'
+        + '<span class="notification-copy"><strong>'+escapeHtml(item.title)+'</strong><span>'+escapeHtml(item.body)+'</span><small>'+escapeHtml(relativeTime(item.at))+'</small></span>'
+        + '</button>';
+    }).join('');
+  }
+
+  function setStatus(text, kind) {
+    const el = byId('notificationDeviceStatus');
+    if (!el) return;
+    el.textContent = safeText(text || '');
+    el.className = 'notification-device-status' + (kind ? ' is-' + kind : '');
+  }
+  function updateToggleButton(label, disabled) {
+    const btn = byId('notificationToggle');
+    if (!btn) return;
+    btn.textContent = label;
+    btn.disabled = !!disabled;
+  }
+
+  async function refreshPermissionUi() {
+    if (!supportedHost) {
+      setStatus('Thông báo chưa được cấu hình cho địa chỉ này.', 'warn');
+      updateToggleButton('Không khả dụng', true);
+      return;
+    }
+    const OneSignal = await ensureInit();
+    if (!OneSignal) {
+      setStatus('Chưa kết nối được dịch vụ thông báo. Ứng dụng vẫn sử dụng bình thường.', 'warn');
+      updateToggleButton('Thử lại', false);
+      return;
+    }
+    let pushSupported = false;
+    try { pushSupported = !!OneSignal.Notifications.isPushSupported(); } catch (_) {}
+    if (!pushSupported) {
+      setStatus('Trình duyệt hoặc thiết bị này chưa hỗ trợ Web Push.', 'warn');
+      updateToggleButton('Không hỗ trợ', true);
+      return;
+    }
+    const nativePermission = (typeof Notification !== 'undefined') ? Notification.permission : 'default';
+    const permission = !!OneSignal.Notifications.permission;
+    const optedIn = !!(OneSignal.User && OneSignal.User.PushSubscription && OneSignal.User.PushSubscription.optedIn);
+    if (nativePermission === 'denied') {
+      setStatus('Thông báo đang bị chặn trong cài đặt trình duyệt. Hãy cho phép thông báo cho trang này rồi mở lại ứng dụng.', 'danger');
+      updateToggleButton('Đang bị chặn', true);
+    } else if (permission && optedIn) {
+      setStatus('Đang nhận thông báo trên thiết bị này.', 'ok');
+      updateToggleButton('Tắt thông báo', false);
+    } else if (permission) {
+      setStatus('Quyền thông báo đã được cho phép nhưng thiết bị đang tạm ngừng nhận.', 'muted');
+      updateToggleButton('Bật thông báo', false);
+    } else {
+      setStatus('Bật để nhận thông báo quan trọng ngay cả khi ứng dụng không mở.', 'muted');
+      updateToggleButton('Bật thông báo', false);
+    }
+  }
+
+  function openPanel() {
+    const layer = byId('notificationLayer');
+    if (!layer || !currentUid()) return;
+    layer.hidden = false;
+    document.body.classList.add('notification-open');
+    renderHistory();
+    refreshPermissionUi();
+  }
+  function closePanel() {
+    const layer = byId('notificationLayer');
+    if (layer) layer.hidden = true;
+    document.body.classList.remove('notification-open');
+  }
+
+  function routeTo(data) {
+    data = data && typeof data === 'object' ? data : {};
+    let view = safeText(data.view || data.route || '').toLowerCase();
+    if (!view) return;
+    const aliases = { tongquan:'dashboard', dashboard:'dashboard', nhaplieu:'entry', entry:'entry', baocao:'reports', report:'reports', reports:'reports', quantri:'admin', admin:'admin' };
+    view = aliases[view] || view;
+    if (!['dashboard','entry','reports','admin'].includes(view)) return;
+    try { sessionStorage.setItem(ROUTE_KEY, view); } catch (_) {}
+    consumePendingRoute();
+  }
+  function consumePendingRoute() {
+    let view = '';
+    try { view = sessionStorage.getItem(ROUTE_KEY) || ''; } catch (_) {}
+    if (!view) return;
+    const api = window.YTE_APP_UI;
+    if (!api || typeof api.openView !== 'function') return;
+    try {
+      api.openView(view);
+      sessionStorage.removeItem(ROUTE_KEY);
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('view')) { url.searchParams.delete('view'); history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash); }
+    } catch (_) {}
+  }
+  function captureRouteFromUrl() {
+    try {
+      const url = new URL(window.location.href);
+      const view = url.searchParams.get('view');
+      if (view) sessionStorage.setItem(ROUTE_KEY, view);
+    } catch (_) {}
+  }
+
+  function bindSdkEvents(OneSignal) {
+    if (eventsBound || !OneSignal) return;
+    eventsBound = true;
+    try {
+      OneSignal.Notifications.addEventListener('permissionChange', function () { refreshPermissionUi(); });
+      OneSignal.Notifications.addEventListener('foregroundWillDisplay', function (event) {
+        const n = event && event.notification ? event.notification : event;
+        addHistory({ id: notificationId(n), title: notificationTitle(n), body: notificationBody(n), data: notificationData(n), at: nowIso() }, false);
+      });
+      OneSignal.Notifications.addEventListener('click', function (event) {
+        const n = event && event.notification ? event.notification : event;
+        const id = notificationId(n);
+        addHistory({ id: id, title: notificationTitle(n), body: notificationBody(n), data: notificationData(n), at: nowIso() }, true);
+        const data = notificationData(n);
+        if (data && (data.view || data.route)) routeTo(data);
+      });
+      OneSignal.User.PushSubscription.addEventListener('change', function () { refreshPermissionUi(); });
+    } catch (error) { console.warn('OneSignal event binding:', error); }
+  }
+
+  function ensureInit() {
+    if (initPromise) return initPromise;
+    initPromise = new Promise(function (resolve) {
+      if (!supportedHost) { resolve(null); return; }
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async function (OneSignal) {
+        try {
+          await OneSignal.init({
+            appId: appId,
+            serviceWorkerPath: workerPath(),
+            serviceWorkerParam: { scope: workerScope() },
+            autoResubscribe: true,
+            welcomeNotification: { disable: true },
+            notificationClickHandlerMatch: 'origin',
+            notificationClickHandlerAction: 'navigate'
+          });
+          sdk = OneSignal;
+          try { OneSignal.Notifications.setDefaultTitle('Phòng Y tế'); } catch (_) {}
+          try { OneSignal.Notifications.setDefaultUrl(appBaseUrl()); } catch (_) {}
+          bindSdkEvents(OneSignal);
+          resolve(OneSignal);
+        } catch (error) {
+          console.warn('Không khởi tạo được OneSignal:', error);
+          resolve(null);
+        }
+      });
+      window.setTimeout(function () { if (!sdk) resolve(null); }, 12000);
+    });
+    return initPromise;
+  }
+
+  function roleRank(role) {
+    const value = safeText(role).toLowerCase();
+    if (value === 'admin' || value === 'quản trị') return 3;
+    if (value === 'nhaplieu' || value === 'nhập liệu') return 2;
+    if (value === 'viewer' || value === 'xem') return 1;
+    return 0;
+  }
+  function normalizeRole(role) {
+    const rank = roleRank(role);
+    return rank === 3 ? 'admin' : rank === 2 ? 'nhaplieu' : rank === 1 ? 'viewer' : 'none';
+  }
+  function highestRole(identity) {
+    const roles = [identity && identity.tongHopRole, identity && identity.reportRole];
+    let best = 'none', rank = 0;
+    roles.forEach(function (role) { const r = roleRank(role); if (r > rank) { rank = r; best = normalizeRole(role); } });
+    return best;
+  }
+
+  async function syncUser(identity) {
+    identity = identity || null;
+    const uid = safeText(identity && identity.uid || '');
+    if (!uid) { await clearUser(); return; }
+    const normalized = {
+      uid: uid,
+      tongHopRole: normalizeRole(identity.tongHopRole),
+      reportRole: normalizeRole(identity.reportRole),
+      role: highestRole(identity)
+    };
+    currentIdentity = normalized;
+    const button = byId('btnNotificationCenter');
+    if (button) button.hidden = false;
+    renderHistory();
+    const OneSignal = await ensureInit();
+    if (!OneSignal) { refreshPermissionUi(); return; }
+    try {
+      await OneSignal.login(uid);
+      OneSignal.User.addTags({
+        role: normalized.role,
+        tonghop_role: normalized.tongHopRole,
+        baocao_role: normalized.reportRole,
+        app: 'phong_y_te'
+      });
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && OneSignal.User.PushSubscription && !OneSignal.User.PushSubscription.optedIn) {
+        await OneSignal.User.PushSubscription.optIn();
+      }
+    } catch (error) { console.warn('OneSignal sync user:', error); }
+    refreshPermissionUi();
+    window.setTimeout(consumePendingRoute, 0);
+  }
+
+  async function clearUser() {
+    if (!currentIdentity) {
+      const button = byId('btnNotificationCenter'); if (button) button.hidden = true;
+      closePanel(); return;
+    }
+    const OneSignal = await ensureInit();
+    try {
+      if (OneSignal && OneSignal.User && OneSignal.User.PushSubscription && OneSignal.User.PushSubscription.optedIn) await OneSignal.User.PushSubscription.optOut();
+      if (OneSignal) await OneSignal.logout();
+    } catch (error) { console.warn('OneSignal logout:', error); }
+    currentIdentity = null;
+    const button = byId('btnNotificationCenter'); if (button) button.hidden = true;
+    closePanel(); renderHistory();
+  }
+
+  async function togglePush() {
+    const OneSignal = await ensureInit();
+    if (!OneSignal) { await refreshPermissionUi(); return; }
+    try {
+      if (!OneSignal.Notifications.isPushSupported()) { await refreshPermissionUi(); return; }
+      const optedIn = !!OneSignal.User.PushSubscription.optedIn;
+      if (optedIn) {
+        await OneSignal.User.PushSubscription.optOut();
+      } else {
+        if (!OneSignal.Notifications.permission) await OneSignal.Notifications.requestPermission();
+        if (OneSignal.Notifications.permission) await OneSignal.User.PushSubscription.optIn();
+      }
+    } catch (error) { console.warn('OneSignal toggle push:', error); }
+    await refreshPermissionUi();
+  }
+
+  function bindUi() {
+    const open = byId('btnNotificationCenter');
+    const close = byId('notificationClose');
+    const layer = byId('notificationLayer');
+    const toggle = byId('notificationToggle');
+    const markAll = byId('notificationMarkAllRead');
+    const clear = byId('notificationClearHistory');
+    const list = byId('notificationList');
+    if (open) open.addEventListener('click', openPanel);
+    if (close) close.addEventListener('click', closePanel);
+    if (layer) layer.addEventListener('click', function (event) { if (event.target === layer) closePanel(); });
+    if (toggle) toggle.addEventListener('click', togglePush);
+    if (markAll) markAll.addEventListener('click', markAllRead);
+    if (clear) clear.addEventListener('click', clearHistory);
+    if (list) list.addEventListener('click', function (event) {
+      const item = event.target.closest('.notification-item');
+      if (!item) return;
+      markRead(item.getAttribute('data-notification-id') || '');
+      const view = item.getAttribute('data-view') || '';
+      if (view) routeTo({ view: view });
+      closePanel();
+    });
+    document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && layer && !layer.hidden) closePanel(); });
+    captureRouteFromUrl();
+    renderHistory();
+    if (supportedHost) ensureInit();
+  }
+
+  window.YTE_NOTIFICATIONS = Object.freeze({
+    syncUser: syncUser,
+    clearUser: clearUser,
+    signOut: clearUser,
+    open: openPanel,
+    addLocal: function (title, body, data) { addHistory({ title:title, body:body, data:data || {}, at:nowIso() }, false); },
+    consumePendingRoute: consumePendingRoute,
+    getAppId: function () { return appId; }
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindUi, { once:true });
+  else bindUi();
+})();

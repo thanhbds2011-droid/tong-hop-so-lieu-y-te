@@ -1561,6 +1561,15 @@ var AUTO_SYNC_MS = 300000;
     function cacheIsFresh(date){return!!(state.entryCache[date]&&Date.now()-state.entryCache[date].loadedAt<ENTRY_CACHE_MS)}
     function setEntryLoadState(text,type,spinning){var box=$('entryLoadState');if(!spinning&&type==='ok'){box.hidden=true;box.textContent='';return}box.hidden=!text;box.className='inline-state '+(type||'');box.innerHTML=(spinning?'<span class="spinner"></span>':'')+'<span>'+esc(text||'')+'</span>'}
 
+    function syncNotificationIdentity(){
+      if(!window.YTE_NOTIFICATIONS)return;
+      var authenticated=!!state.authUser,hasReport=hasReportAccess(),hasAccess=!!state.user||hasReport;
+      if(!authenticated||!hasAccess){window.YTE_NOTIFICATIONS.clearUser().catch(function(){});return;}
+      var tongHopRole=state.user?dbRole(state.user.role):'none';
+      var reportRole=(state.reportPermission&&state.reportPermission.active===true)?String(state.reportPermission.role||'none'):'none';
+      window.YTE_NOTIFICATIONS.syncUser({uid:state.authUser.uid,tongHopRole:tongHopRole,reportRole:reportRole}).catch(function(error){console.warn('Đồng bộ thông báo:',error)});
+    }
+
     function updateAuthUi(){
       var authenticated=!!state.authUser,loggedIn=!!state.user,isAdmin=isAnyAppAdmin(),canInput=canInputTongHop();
       var tongHopAdmin=isTongHopAdmin()||isOwnerAdmin(),reportAdmin=canManageReportPermissionsUi();
@@ -1591,6 +1600,8 @@ var AUTO_SYNC_MS = 300000;
           authUser:state.authUser
         });
       }
+      syncNotificationIdentity();
+      if(window.YTE_NOTIFICATIONS&&typeof window.YTE_NOTIFICATIONS.consumePendingRoute==='function')window.setTimeout(window.YTE_NOTIFICATIONS.consumePendingRoute,0);
       if(!loggedIn){
         stopEntryRealtime();
         state.entryCache={};state.dailyByCode={};state.loadedEntryDate='';state.adminUsers=[];state.adminLoadedAt=0;state.adminCategories=[];state.categoryLoadedAt=0;
@@ -1627,7 +1638,9 @@ var AUTO_SYNC_MS = 300000;
     }
     window.YTE_REFRESH_SESSION=refreshCurrentSession;
     window.YTE_APP_UI=Object.freeze({
-      hasUnsavedChanges:function(){return quickEntryDirty()}
+      hasUnsavedChanges:function(){return quickEntryDirty()},
+      openView:function(name){showView(String(name||''));},
+      currentView:function(){return currentViewName();}
     });
 
     async function restore(){
@@ -1649,6 +1662,7 @@ var AUTO_SYNC_MS = 300000;
       }catch(error){message(error.message||String(error),'err')}finally{setBusy(false)}
     }
     async function logout(){
+      try{if(window.YTE_NOTIFICATIONS&&typeof window.YTE_NOTIFICATIONS.signOut==='function')await window.YTE_NOTIFICATIONS.signOut()}catch(error){}
       try{await call('logoutSession')}catch(error){}
       stopEntryRealtime();state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi();
       if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.onLogout==='function')window.YTE_REPORTS.onLogout();
@@ -2176,7 +2190,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.5.9'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.6.0'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
