@@ -1,0 +1,29 @@
+ONESIGNAL WEB PUSH - PRODUCTION 9.6.0
+
+Organization: PHONG_Y_TE_TAN_HIEP
+
+1) THẠNH
+Origin: https://thanhbds2011-droid.github.io
+App ID: a4b225b6-eb6c-4523-8889-cf0ac0d96e0f
+
+2) HUYỀN
+Origin: https://khanhhuyen131093-pyt.github.io
+App ID: 8e4e68f9-d961-4709-933c-5488d79094b1
+
+OneSignal Dashboard:
+- Web integration: Custom Code
+- Auto Resubscribe: ON
+- Không cần tải Service Worker từ Dashboard nữa. File chuẩn đã có trong ZIP:
+  push/onesignal/OneSignalSDKWorker.js
+
+Sau khi deploy GitHub Pages, kiểm tra URL (thay domain tương ứng):
+https://<domain>/tong-hop-so-lieu-y-te/push/onesignal/OneSignalSDKWorker.js
+Nội dung phải là:
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+
+Sau đó đăng nhập ứng dụng → bấm chuông → Bật thông báo → Allow.
+Kiểm tra OneSignal Audience / Subscriptions để thấy thiết bị mới.
+
+BẢO MẬT:
+- Không đưa OneSignal App API Key / REST API Key / Organization API Key lên GitHub.
+- App ID là public identifier và đã được cấu hình trong app-config.js.
