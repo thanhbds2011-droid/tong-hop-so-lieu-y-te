@@ -54,10 +54,10 @@ const authReady = new Promise((resolve) => {
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
-function notifyBusinessEvent(eventType, resourceId) {
+function notifyBusinessEvent(eventType, resourceId, extra) {
   const api = window.YTE_NOTIFICATIONS;
   if (!api || typeof api.notifyBusinessEvent !== 'function') return;
-  void api.notifyBusinessEvent(eventType, resourceId);
+  void api.notifyBusinessEvent(eventType, resourceId, extra);
 }
 function normalizeUsername(value) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 40);
@@ -808,7 +808,7 @@ async function deleteDailyDataFirebase(payload) {
     throw error;
   }
 
-  return { success: true, deleted: true, date, code, beforeValue, message: 'Đã xóa số liệu. Thay đổi đã được lưu trong Lịch sử.' };
+  return { success: true, deleted: true, date, code, beforeValue, auditId: historyRef.key, message: 'Đã xóa số liệu. Thay đổi đã được lưu trong Lịch sử.' };
 }
 
 async function getDailyDataHistoryFirebase(payload) {
@@ -1600,11 +1600,14 @@ var AUTO_SYNC_MS = 300000;
       var tongHopAdmin=isTongHopAdmin()||isOwnerAdmin(),reportAdmin=canManageReportPermissionsUi();
       var hasReport=hasReportAccess();
       var hasAnyAccess=loggedIn||hasReport;
+      if($('mobileNavToggle'))$('mobileNavToggle').hidden=!hasAnyAccess;
+      if(!hasAnyAccess&&window.YTE_CLOSE_MOBILE_NAV)window.YTE_CLOSE_MOBILE_NAV();
       $('btnAccount').hidden=authenticated;$('btnTopLogout').hidden=!authenticated;if(authenticated){$('btnTopLogout').title='Đăng xuất '+String((loggedIn&&state.user&&state.user.name)||(state.authUser&&state.authUser.name)||'tài khoản');}
       var fullGreetingName=authenticated?String((loggedIn&&state.user&&state.user.name)||(state.authUser&&state.authUser.name)||'Người dùng Phòng Y tế'):'';
       var shortGreetingName=friendlyGivenName(fullGreetingName);
       if($('headerGreeting')){$('headerGreeting').hidden=!authenticated;$('headerGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('headerGreeting').title=fullGreetingName;}
       if($('mobileGreeting')){$('mobileGreeting').hidden=!authenticated;$('mobileGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('mobileGreeting').title=fullGreetingName;}
+      if($('mobileNavUser')){$('mobileNavUser').textContent=authenticated?fullGreetingName:'Menu chức năng';$('mobileNavUser').title=fullGreetingName;}
       if($('btnSync'))$('btnSync').hidden=authenticated&&!loggedIn;
       if($('navDashboard'))$('navDashboard').hidden=authenticated&&!loggedIn&&!hasReport;
       $('navEntry').hidden=!canInput;$('navAdmin').hidden=!isAdmin;
@@ -1665,7 +1668,8 @@ var AUTO_SYNC_MS = 300000;
     window.YTE_APP_UI=Object.freeze({
       hasUnsavedChanges:function(){return quickEntryDirty()},
       openView:function(name){showView(String(name||''));},
-      currentView:function(){return currentViewName();}
+      currentView:function(){return currentViewName();},
+      confirm:function(options){return confirmAction(options||{});}
     });
 
     async function restore(){
@@ -1828,9 +1832,9 @@ var AUTO_SYNC_MS = 300000;
         toast('Dữ liệu đang được lưu. Vui lòng chờ hoàn tất.','warn');
         return;
       }
-      if(quickEntryDirty()&&!window.confirm('Số liệu đang nhập chưa được lưu. Bạn có muốn đổi ngày và bỏ nội dung này?')){
-        $('entryDate').value=state.loadedEntryDate||$('entryDate').value;
-        return;
+      if(quickEntryDirty()){
+        var discardEntry=await confirmAction({title:'Bỏ số liệu chưa lưu?',message:'Số liệu đang nhập chưa được lưu. Nếu tiếp tục đổi ngày, nội dung đang nhập sẽ bị bỏ.',confirmText:'Bỏ thay đổi',cancelText:'Tiếp tục nhập',danger:true});
+        if(!discardEntry){$('entryDate').value=state.loadedEntryDate||$('entryDate').value;return;}
       }
       resetEntrySelection();state.dailyByCode={};state.loadedEntryDate='';renderIndicators();
       startEntryRealtime($('entryDate').value);
@@ -1974,6 +1978,7 @@ var AUTO_SYNC_MS = 300000;
       try{
         var payload={token:state.token,date:$('entryDate').value,code:code,expectedVersion:Number(record.version||0),reason:reason};
         var result=await call('deleteDailyData',payload);
+        if(result&&result.auditId)notifyBusinessEvent('TONGHOP_DATA_DELETED',result.auditId,{date:payload.date,code:code});
         delete state.dailyByCode[code];state.entryCache[payload.date]={byCode:state.dailyByCode,loadedAt:Date.now()};
         setDeleteDailySaving(false);closeDeleteDailyDialog();renderIndicators();clearMessage();toast(result.message||'Đã xóa số liệu.','ok');
         $('rangeType').value='day';updateRangeFields();$('singleDate').value=payload.date;Promise.resolve(syncData(true,true)).catch(function(){});
@@ -2006,7 +2011,24 @@ var AUTO_SYNC_MS = 300000;
 
     function renderAdminUsers(){
       var query=String($('adminSearch').value||'').trim().toLowerCase();
-      var rows=state.adminUsers.filter(function(user){return!query||String(user.name+' '+user.username+' '+user.email+' '+user.role+' '+user.status).toLowerCase().indexOf(query)>=0});
+      var statusFilter=$('adminStatusFilter')?String($('adminStatusFilter').value||'all'):'all';
+      var totalCount=state.adminUsers.length;
+      var pendingMetric=state.adminUsers.filter(function(user){return user.isPending&&(user.requestStatus==='pending'||user.requestStatus==='unassigned')}).length;
+      var activeMetric=state.adminUsers.filter(function(user){return!user.isPending&&user.status==='Hoạt động'}).length;
+      var adminMetric=state.adminUsers.filter(function(user){return!user.isPending&&user.role==='Quản trị'&&user.status==='Hoạt động'}).length;
+      if($('adminMetricTotal'))$('adminMetricTotal').textContent=String(totalCount);
+      if($('adminMetricPending'))$('adminMetricPending').textContent=String(pendingMetric);
+      if($('adminMetricActive'))$('adminMetricActive').textContent=String(activeMetric);
+      if($('adminMetricAdmins'))$('adminMetricAdmins').textContent=String(adminMetric);
+      var rows=state.adminUsers.filter(function(user){
+        var textOk=!query||String(user.name+' '+user.username+' '+user.email+' '+user.role+' '+user.status).toLowerCase().indexOf(query)>=0;
+        if(!textOk)return false;
+        if(statusFilter==='pending')return user.isPending&&(user.requestStatus==='pending'||user.requestStatus==='unassigned');
+        if(statusFilter==='active')return !user.isPending&&user.status==='Hoạt động';
+        if(statusFilter==='locked')return !user.isPending&&user.status!=='Hoạt động';
+        if(statusFilter==='admin')return !user.isPending&&user.role==='Quản trị';
+        return true;
+      });
       var pendingRows=rows.filter(function(user){return user.isPending&&(user.requestStatus==='pending'||user.requestStatus==='unassigned'||user.requestStatus==='rejected')});
       var grantedRows=rows.filter(function(user){return!user.isPending});
       var pendingCount=state.adminUsers.filter(function(user){return user.isPending&&(user.requestStatus==='pending'||user.requestStatus==='unassigned')}).length;
@@ -2059,6 +2081,7 @@ var AUTO_SYNC_MS = 300000;
       if($('adminUsersTab'))$('adminUsersTab').hidden=!canTongHop;
       if($('adminCategoriesTab'))$('adminCategoriesTab').hidden=!canTongHop;
       if($('adminReportPermissionsTab'))$('adminReportPermissionsTab').hidden=!canReport;
+      if($('adminOverview'))$('adminOverview').hidden=!canTongHop;
       if(name!=='users'&&name!=='categories'&&name!=='reportPermissions')name=canTongHop?'users':'reportPermissions';
       if((name==='users'||name==='categories')&&!canTongHop)name=canReport?'reportPermissions':'users';
       if(name==='reportPermissions'&&!canReport)name=canTongHop?'users':'reportPermissions';
@@ -2215,7 +2238,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.7.0'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.8.0'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
@@ -2230,7 +2253,7 @@ var AUTO_SYNC_MS = 300000;
       window.addEventListener('beforeunload',function(event){if(!quickEntryDirty())return;event.preventDefault();event.returnValue=''});
       $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;
       $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value;if(code)openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value;if(code)openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value;if(code)openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
-      $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value'),card=button.closest('.admin-account-card');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='approve-selected'){var select=card&&card.querySelector('.admin-role-select');if(select)approveRegistration(id,select.value);return}if(kind==='save-role'){var roleSelect=card&&card.querySelector('.admin-role-select');if(roleSelect)adminRole(id,roleSelect.value);return}if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-viewer')approveRegistration(id,'Xem');if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='revoke')adminRevoke(id);if(kind==='delete')adminDelete(id)});
+      $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;if($('adminStatusFilter'))$('adminStatusFilter').onchange=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value'),card=button.closest('.admin-account-card');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='approve-selected'){var select=card&&card.querySelector('.admin-role-select');if(select)approveRegistration(id,select.value);return}if(kind==='save-role'){var roleSelect=card&&card.querySelector('.admin-role-select');if(roleSelect)adminRole(id,roleSelect.value);return}if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-viewer')approveRegistration(id,'Xem');if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='revoke')adminRevoke(id);if(kind==='delete')adminDelete(id)});
       $('btnReloadAdminReportUsers').onclick=function(){loadAdminReportUsers(true)};$('adminReportSearch').oninput=renderAdminReportUsers;$('adminReportUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-report-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value'),card=button.closest('.admin-account-card');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='grant-selected'){var select=card&&card.querySelector('.admin-report-role-select');if(select)adminReportPermission(id,select.value,true);return}if(kind==='save-role'){var roleSelect=card&&card.querySelector('.admin-report-role-select');if(roleSelect)adminReportPermission(id,roleSelect.value,true);return}if(kind==='grant-viewer')adminReportPermission(id,'viewer',true);if(kind==='grant-entry')adminReportPermission(id,'nhaplieu',true);if(kind==='grant-admin')adminReportPermission(id,'admin',true);if(kind==='role')adminReportPermission(id,value,true);if(kind==='revoke')adminReportPermission(id,'nhaplieu',false);if(kind==='delete')adminDelete(id)});
       $('displayNameCancel').onclick=closeDisplayNameDialog;$('displayNameCloseX').onclick=closeDisplayNameDialog;$('displayNameSave').onclick=saveDisplayName;$('displayNameLayer').addEventListener('click',function(event){if(event.target===$('displayNameLayer'))closeDisplayNameDialog()});
       $('btnAddCategory').onclick=function(){openCategoryDialog('')};$('btnReloadCategories').onclick=function(){loadAdminCategories(true)};$('categorySearch').oninput=renderAdminCategories;$('adminCategories').addEventListener('click',function(event){var button=event.target.closest('.category-action');if(!button)return;var kind=button.getAttribute('data-kind'),code=button.getAttribute('data-code'),value=button.getAttribute('data-value');if(kind==='edit')openCategoryDialog(code);if(kind==='status')setCategoryStatus(code,value)});
