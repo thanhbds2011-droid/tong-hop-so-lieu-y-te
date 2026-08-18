@@ -43,6 +43,11 @@ const reportState = {
 };
 
 function $(id) { return document.getElementById(id); }
+function notifyBusinessEvent(eventType, resourceId) {
+  const api = window.YTE_NOTIFICATIONS;
+  if (!api || typeof api.notifyBusinessEvent !== 'function') return;
+  void api.notifyBusinessEvent(eventType, resourceId);
+}
 function esc(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -786,6 +791,9 @@ async function saveReport() {
       updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${record.ngayBaoCao}/CENTER_${generated}`] = true;
     }
     await update(ref(db), updates);
+    if (!existing && record.loaiBaoCao === 'TU_VONG' && record.source === 'CENTER_DEATH') {
+      notifyBusinessEvent('DEATH_CENTER', generated);
+    }
     closeReportForm(true);
     showToast(existing ? 'Đã cập nhật báo cáo.' : 'Đã lưu báo cáo.', 'ok');
     await loadReports(true);

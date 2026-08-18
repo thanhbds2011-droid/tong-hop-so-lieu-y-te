@@ -54,6 +54,11 @@ const authReady = new Promise((resolve) => {
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
+function notifyBusinessEvent(eventType, resourceId) {
+  const api = window.YTE_NOTIFICATIONS;
+  if (!api || typeof api.notifyBusinessEvent !== 'function') return;
+  void api.notifyBusinessEvent(eventType, resourceId);
+}
 function normalizeUsername(value) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 40);
 }
@@ -332,6 +337,7 @@ async function ensureRegistrationRequest(user, profile) {
     requestedAt: Date.now()
   };
   await set(requestRef, request);
+  notifyBusinessEvent('ACCOUNT_PENDING', user.uid);
   return request;
 }
 
@@ -1034,6 +1040,7 @@ async function adminApproveRegistrationFirebase(uid, roleValue) {
   }
   await update(ref(firebaseDatabase), updates);
   await writeAuditLog(admin, 'Cấp quyền tài khoản', `${email} → ${uiRole(role)}`, '');
+  notifyBusinessEvent('ACCOUNT_ROLE_CHANGED', uid);
   return { success: true, message: `Đã cấp quyền ${uiRole(role)} cho tài khoản.` };
 }
 
@@ -1064,6 +1071,7 @@ async function adminSetUserStatusFirebase(uid, statusValue) {
     : { active: false, updatedAt: Date.now(), updatedByUid: admin.uid });
   const item = snap.val() || {};
   await writeAuditLog(admin, active ? 'Mở khóa tài khoản' : 'Khóa tài khoản', item.email || uid, '');
+  if (!active) notifyBusinessEvent('ACCOUNT_LOCKED', uid);
   return { success: true, message: active ? 'Đã mở quyền sử dụng Tổng hợp Y tế.' : 'Đã khóa quyền Tổng hợp số liệu.' };
 }
 
@@ -1108,6 +1116,7 @@ async function adminSetUserRoleFirebase(uid, roleValue) {
   }
   await update(ref(firebaseDatabase), updates);
   await writeAuditLog(admin, 'Thay đổi vai trò', `${item.email || uid} → ${uiRole(role)}`, '');
+  notifyBusinessEvent('ACCOUNT_ROLE_CHANGED', uid);
   return { success: true, message: `Đã cập nhật vai trò ${uiRole(role)}.` };
 }
 
@@ -1126,6 +1135,7 @@ async function adminRevokeUserFirebase(uid) {
     updatedAt: Date.now()
   });
   await writeAuditLog(admin, 'Thu hồi quyền Tổng hợp số liệu', item.email || uid, '');
+  notifyBusinessEvent('ACCOUNT_LOCKED', uid);
   return { success: true, message: 'Đã thu hồi quyền Tổng hợp số liệu.' };
 }
 
@@ -2205,7 +2215,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.6.3'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.7.0'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;

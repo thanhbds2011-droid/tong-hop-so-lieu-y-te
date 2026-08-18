@@ -1,6 +1,6 @@
 /*
  * OneSignal Web Push + Notification Center
- * Runtime 9.6.3
+ * Runtime 9.7.0
  *
  * - One source supports two GitHub Pages origins using separate OneSignal App IDs.
  * - OneSignal worker uses a dedicated sub-scope so it does not replace the PWA worker.
@@ -15,6 +15,7 @@
   const host = String(window.location.hostname || '').toLowerCase();
   const appId = String(hostMap[host] || '');
   const supportedHost = !!appId;
+  const gatewayUrl = String(cfg.NOTIFICATION_GATEWAY_URL || '').trim();
   const MAX_HISTORY = 60;
   const ROUTE_KEY = 'YTE_OS_PENDING_ROUTE';
 
@@ -307,12 +308,21 @@
     if (!OneSignal) { refreshPermissionUi(); return; }
     try {
       await OneSignal.login(uid);
-      OneSignal.User.addTags({
-        role: normalized.role,
+      // OneSignal Free chỉ cho tối đa 2 Data Tags/user.
+      // Xóa tags legacy rồi chỉ giữ 2 tags nghiệp vụ. Vì SDK có thể xử lý
+      // đồng bộ tag theo hàng đợi, lặp lại addTags sau một khoảng ngắn để
+      // tự phục hồi trường hợp lần ghi đầu tiên bị giới hạn tag chặn im lặng.
+      try { OneSignal.User.removeTags(['role', 'app']); } catch (_) {}
+      const desiredTags = {
         tonghop_role: normalized.tongHopRole,
-        baocao_role: normalized.reportRole,
-        app: 'phong_y_te'
-      });
+        baocao_role: normalized.reportRole
+      };
+      const applyDesiredTags = function () {
+        try { OneSignal.User.addTags(desiredTags); } catch (_) {}
+      };
+      applyDesiredTags();
+      window.setTimeout(applyDesiredTags, 1500);
+      window.setTimeout(applyDesiredTags, 5000);
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && OneSignal.User.PushSubscription && !OneSignal.User.PushSubscription.optedIn) {
         await OneSignal.User.PushSubscription.optIn();
       }
@@ -334,6 +344,53 @@
     currentIdentity = null;
     const button = byId('btnNotificationCenter'); if (button) button.hidden = true;
     closePanel(); renderHistory();
+  }
+
+  async function getFirebaseAuthForGateway() {
+    const appModule = await import('https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js');
+    const authModule = await import('https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js');
+    const apps = appModule.getApps();
+    if (!apps.length) throw new Error('FIREBASE_APP_NOT_READY');
+    return authModule.getAuth(apps[0]);
+  }
+
+  async function sendBusinessEvent(eventType, resourceId, extra) {
+    if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/i.test(gatewayUrl)) {
+      throw new Error('NOTIFICATION_GATEWAY_NOT_CONFIGURED');
+    }
+    const auth = await getFirebaseAuthForGateway();
+    const user = auth.currentUser;
+    if (!user) throw new Error('NOT_AUTHENTICATED');
+    const idToken = await user.getIdToken();
+    const payload = Object.assign({
+      action: 'BUSINESS_EVENT',
+      eventType: safeText(eventType).trim().toUpperCase(),
+      idToken: idToken
+    }, extra && typeof extra === 'object' ? extra : {});
+    if (resourceId) payload.resourceId = safeText(resourceId).trim();
+    const response = await fetch(gatewayUrl, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const text = await response.text();
+    let result;
+    try { result = JSON.parse(text || '{}'); }
+    catch (_) { throw new Error('NOTIFICATION_GATEWAY_INVALID_RESPONSE'); }
+    if (!response.ok || !result || result.success !== true) {
+      const code = result && (result.error || result.message) ? (result.error || result.message) : ('HTTP_' + response.status);
+      throw new Error('NOTIFICATION_GATEWAY_FAILED: ' + code);
+    }
+    return result;
+  }
+
+  function notifyBusinessEvent(eventType, resourceId, extra) {
+    return sendBusinessEvent(eventType, resourceId, extra).catch(function (error) {
+      // Push không được phép làm rollback nghiệp vụ đã ghi thành công vào Firebase.
+      console.warn('Notification business event:', eventType, error);
+      return null;
+    });
   }
 
   async function togglePush() {
@@ -387,7 +444,10 @@
     open: openPanel,
     addLocal: function (title, body, data) { addHistory({ title:title, body:body, data:data || {}, at:nowIso() }, false); },
     consumePendingRoute: consumePendingRoute,
-    getAppId: function () { return appId; }
+    getAppId: function () { return appId; },
+    sendBusinessEvent: sendBusinessEvent,
+    notifyBusinessEvent: notifyBusinessEvent,
+    getGatewayUrl: function () { return gatewayUrl; }
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindUi, { once:true });

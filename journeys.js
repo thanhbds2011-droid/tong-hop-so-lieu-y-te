@@ -59,6 +59,11 @@ const state = {
 };
 
 function $(id) { return document.getElementById(id); }
+function notifyBusinessEvent(eventType, resourceId) {
+  const api = window.YTE_NOTIFICATIONS;
+  if (!api || typeof api.notifyBusinessEvent !== 'function') return;
+  void api.notifyBusinessEvent(eventType, resourceId);
+}
 function esc(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -1059,6 +1064,7 @@ async function createJourney() {
       await releaseOpenIndex(payload.doiTuongKey, caseId);
       throw error;
     }
+    notifyBusinessEvent('TRANSFER_CREATED', caseId);
     showToast('Đã lập hành trình chuyển viện.', 'ok');
     resetCreateForm();
     await loadJourneys(true);
@@ -1340,6 +1346,9 @@ async function saveJourneyUpdate() {
       createdAt: ts
     };
     await update(ref(db), updates);
+    if (isTransfer) notifyBusinessEvent('TRANSFER_FORWARDED', caseId);
+    else if (isReturn) notifyBusinessEvent('TRANSFER_RETURNED', caseId);
+    else if (isDeath) notifyBusinessEvent('DEATH_HOSPITAL', caseId);
     closeUpdateDialog(true);
     showToast(isReturn ? 'Đã xác nhận đối tượng về Trung tâm.' : isDeath ? 'Đã kết thúc hành trình với trạng thái tử vong tại bệnh viện.' : 'Đã cập nhật hành trình.', 'ok');
     await loadJourneys(true);

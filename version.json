@@ -1,7 +1,7 @@
 {
-  "version": "9.6.3",
+  "version": "9.7.0",
   "releasedAt": "2026-08-18",
-  "title": "Notification Gateway Connectivity 9.6.3",
+  "title": "Notification Gateway Production Integration 9.7.0",
   "businessBaseline": "Business Stable v1.0",
-  "message": "Cho phép ứng dụng kết nối HTTPS tới Google Apps Script Notification Gateway để kiểm thử Firebase AUTH_CHECK; không thay đổi nghiệp vụ, dữ liệu hoặc phân quyền."
+  "message": "Hoàn thiện Notification Gateway production, tự đồng bộ đúng 2 OneSignal Data Tags và phát Push sau các Firebase write nghiệp vụ đã chốt."
 }

@@ -2,7 +2,7 @@
 
 (function () {
   const cfg = window.YTE_APP_CONFIG || {};
-  const currentVersion = String(cfg.VERSION || '9.6.3');
+  const currentVersion = String(cfg.VERSION || '9.7.0');
   const CHECK_INTERVAL_MS = 60000;
   const DISMISS_TTL_MS = 15 * 60 * 1000;
   let registration = null;
