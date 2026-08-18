@@ -48,6 +48,14 @@ function notifyBusinessEvent(eventType, resourceId) {
   if (!api || typeof api.notifyBusinessEvent !== 'function') return;
   void api.notifyBusinessEvent(eventType, resourceId);
 }
+async function confirmInApp(options) {
+  const ui = window.YTE_APP_UI;
+  if (!ui || typeof ui.confirm !== 'function') {
+    showToast('Không mở được cửa sổ xác nhận. Vui lòng thử lại.', 'err');
+    return false;
+  }
+  return ui.confirm(options || {});
+}
 function esc(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -584,8 +592,11 @@ function populateReportForm(item, readonly) {
   reportState.formBaseline = reportFormSignature();
 }
 
-function closeReportForm(force = false) {
-  if (!force && isReportDirty() && !window.confirm('Bạn có thay đổi chưa lưu. Bạn có muốn bỏ các thay đổi này không?')) return false;
+async function closeReportForm(force = false) {
+  if (!force && isReportDirty()) {
+    const discard = await confirmInApp({title:'Bỏ thay đổi chưa lưu?',message:'Bạn có thay đổi chưa lưu. Nếu tiếp tục, nội dung đang nhập sẽ bị bỏ.',confirmText:'Bỏ thay đổi',cancelText:'Tiếp tục nhập',danger:true});
+    if (!discard) return false;
+  }
   $('reportLayer').hidden = true;
   document.body.style.overflow = '';
   reportState.editingId = '';
@@ -811,7 +822,14 @@ async function softDeleteReport(id) {
   if (!canAdminReport()) return;
   const item = reportState.reports.find((row) => row.id === id);
   if (!item) return;
-  if (!window.confirm(`Xóa báo cáo ${typeLabel(item.loaiBaoCao)} của ${item.hoTenBenhNhan}? Dữ liệu sẽ được xóa mềm và vẫn còn trong lịch sử.`)) return;
+  const confirmed = await confirmInApp({
+    title: `Xóa báo cáo ${typeLabel(item.loaiBaoCao)}?`,
+    message: `Bạn có chắc muốn xóa báo cáo của ${item.hoTenBenhNhan || 'đối tượng'}? Báo cáo sẽ rời danh sách chính nhưng vẫn được lưu trong lịch sử quản trị.`,
+    confirmText: 'Xóa báo cáo',
+    cancelText: 'Hủy',
+    danger: true
+  });
+  if (!confirmed) return;
   const user = auth.currentUser;
   const now = Date.now();
   const displayName = await preferredDisplayName(user, reportState.permission && reportState.permission.displayName);
@@ -859,6 +877,9 @@ async function softDeleteReport(id) {
     updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${item.ngayBaoCao}/CENTER_${id}`] = null;
   }
   await update(ref(db), updates);
+  if (item.loaiBaoCao === 'TU_VONG' && (item.source === 'CENTER_DEATH' || normalizeSearch(item.noiTuVong) === normalizeSearch('Trung tâm Bảo trợ xã hội Tân Hiệp'))) {
+    notifyBusinessEvent('DEATH_CENTER_DELETED', id);
+  }
   showToast('Đã xóa báo cáo khỏi danh sách.', 'ok');
   await loadReports(true);
 }
