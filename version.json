@@ -1,7 +1,7 @@
 {
-  "version": "9.7.0",
+  "version": "9.8.0",
   "releasedAt": "2026-08-18",
-  "title": "Notification Gateway Production Integration 9.7.0",
+  "title": "Professional UI + Delete Audit Notifications 9.8.0",
   "businessBaseline": "Business Stable v1.0",
-  "message": "Hoàn thiện Notification Gateway production, tự đồng bộ đúng 2 OneSignal Data Tags và phát Push sau các Firebase write nghiệp vụ đã chốt."
+  "message": "Đổi Notification Center thành popup modal, chuẩn hóa popup xác nhận xóa, bổ sung Push khi xóa dữ liệu, tối ưu Quản trị, chuyển giao diện sang xanh đen - trắng và thay bottom navigation bằng mobile drawer 3 gạch."
 }
