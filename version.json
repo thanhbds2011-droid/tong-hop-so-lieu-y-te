@@ -1,7 +1,7 @@
 {
-  "version": "9.8.2",
+  "version": "9.9.1",
   "releasedAt": "2026-08-18",
-  "title": "Pink UI + Device-managed Push Settings 9.8.2",
-  "businessBaseline": "Business Stable v1.0",
-  "message": "Giữ giao diện hồng và chữ xanh đen; sau khi Push đã bật thành công, ẩn khối thiết lập thông báo trong ứng dụng. Người dùng tắt/bật lại quyền Push qua Cài đặt của thiết bị hoặc trình duyệt."
+  "title": "Professional Popup & Mobile Report UI 9.9.1",
+  "businessBaseline": "Business Stable v1.0 / Source of Truth 9.9.0",
+  "message": "Tinh chỉnh giao diện production: popup Yêu cầu kiểm tra số liệu được thiết kế lại theo dạng modal chuyên nghiệp, cân đối desktop/PWA; sửa tiêu đề Chuyển viện & tử vong bị bó hẹp trên mobile; tối ưu thanh hành động và bộ lọc lịch sử. Không thay đổi Firebase schema, Rules, Apps Script Gateway, OneSignal targeting hoặc nghiệp vụ nguồn dữ liệu."
 }

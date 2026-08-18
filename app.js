@@ -32,6 +32,7 @@ const OWNER_EMAIL = String(APP_CONFIG.OWNER_EMAIL || '').trim().toLowerCase();
 const ROOT = 'tongHopYTe';
 const REPORT_ROOT = 'baoCaoYTe';
 const YTE_APP_ROOT = 'yTeApp';
+const REVIEW_ROOT = `${YTE_APP_ROOT}/yeuCauDoiSoat`;
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
@@ -80,8 +81,15 @@ function metricKindFromCategory(item) {
   if (['tu vong', 'luot tu vong', 'so tu vong', 'so luot tu vong'].includes(name) || ['TU_VONG', 'TUVONG'].includes(code)) return 'death';
   return '';
 }
-function markerCount(raw) {
-  return Object.keys(raw || {}).filter((key) => raw[key] === true || raw[key] === 1 || raw[key] === '1').length;
+function markerCount(raw, kind) {
+  return Object.keys(raw || {}).filter((key) => {
+    const active = raw[key] === true || raw[key] === 1 || raw[key] === '1';
+    if (!active) return false;
+    // Nghiệp vụ tử vong tại Trung tâm đã ngừng sử dụng từ v9.9.0.
+    // Giữ dữ liệu legacy trong Firebase nhưng không đưa CENTER_* vào số liệu tự động.
+    if (kind === 'death' && /^CENTER_/i.test(String(key))) return false;
+    return true;
+  }).length;
 }
 function derivedCategory(categories, kind) {
   return (categories || []).find((item) => metricKindFromCategory(item) === kind) || null;
@@ -92,20 +100,11 @@ function mergeDerivedDailyRecords(records, categories, date, transferRaw, deathR
   const death = derivedCategory(categories, 'death');
   function applyDerived(category, kind, raw) {
     if (!category) return;
-    const autoValue = markerCount(raw);
+    const autoValue = markerCount(raw, kind);
     const stored = map.get(category.code) || null;
     if (!stored && autoValue === 0) return;
-    if (stored) {
-      map.set(category.code, {
-        ...stored,
-        autoDerived: true,
-        derivedKind: kind,
-        autoValue,
-        manualOverride: true
-      });
-      return;
-    }
     map.set(category.code, {
+      ...(stored || {}),
       id: `${date}-${category.code}`,
       date,
       code: category.code,
@@ -113,11 +112,10 @@ function mergeDerivedDailyRecords(records, categories, date, transferRaw, deathR
       value: autoValue,
       autoValue,
       note: '',
-      updatedAt: 0,
-      version: 0,
       autoDerived: true,
       derivedKind: kind,
-      manualOverride: false
+      manualOverride: false,
+      sourceLocked: true
     });
   }
   applyDerived(transfer, 'transfer', transferRaw);
@@ -137,20 +135,11 @@ function mergeDerivedRangeRecords(records, categories, transferByDate, deathByDa
   function applyDerived(date, category, kind, raw) {
     if (!category) return;
     const id = `${date}-${category.code}`;
-    const autoValue = markerCount(raw);
+    const autoValue = markerCount(raw, kind);
     const stored = map.get(id) || null;
     if (!stored && autoValue === 0) return;
-    if (stored) {
-      map.set(id, {
-        ...stored,
-        autoDerived: true,
-        derivedKind: kind,
-        autoValue,
-        manualOverride: true
-      });
-      return;
-    }
     map.set(id, {
+      ...(stored || {}),
       id,
       date,
       code: category.code,
@@ -158,11 +147,10 @@ function mergeDerivedRangeRecords(records, categories, transferByDate, deathByDa
       value: autoValue,
       autoValue,
       note: '',
-      updatedAt: 0,
-      version: 0,
       autoDerived: true,
       derivedKind: kind,
-      manualOverride: false
+      manualOverride: false,
+      sourceLocked: true
     });
   }
   dates.forEach((date) => {
@@ -172,6 +160,7 @@ function mergeDerivedRangeRecords(records, categories, transferByDate, deathByDa
   });
   return Array.from(map.values());
 }
+
 function formatDateTime(value) {
   const date = value instanceof Date ? value : new Date(Number(value || Date.now()));
   return new Intl.DateTimeFormat('vi-VN', {
@@ -613,12 +602,8 @@ async function adjustDailyDataFirebase(payload) {
   }
   const category = categorySnap.val() || {};
   const derivedKind = metricKindFromCategory({ code, name: category.ten || code });
-  let autoValue = null;
   if (derivedKind) {
-    const autoPath = derivedKind === 'transfer' ? 'chuyenVienTheoNgay' : 'tuVongTheoNgay';
-    const autoRaw = await readOptionalSnapshot(ref(firebaseDatabase, `${PUBLIC_REPORT_STATS_ROOT}/${autoPath}/${date}`));
-    autoValue = markerCount(autoRaw);
-    if (reason.length < 3) throw new Error('Vui lòng nhập lý do điều chỉnh để lưu lịch sử đối chiếu.');
+    throw new Error('Chuyển viện/Tử vong là số liệu tự động từ phân hệ Báo cáo. Không được sửa trực tiếp; hãy dùng Yêu cầu kiểm tra.');
   }
   const recordRef = ref(firebaseDatabase, `${ROOT}/soLieuTheoNgay/${date}/${code}`);
   const currentSnap = await get(recordRef);
@@ -627,13 +612,13 @@ async function adjustDailyDataFirebase(payload) {
   if (currentVersion !== expectedVersion) {
     throw new Error('Số liệu vừa được cập nhật từ thiết bị khác. Ứng dụng đã tự đồng bộ; vui lòng kiểm tra giá trị mới và thực hiện lại.');
   }
-  const beforeValue = currentSnap.exists() ? Number(current.giaTri || 0) : (derivedKind ? Number(autoValue || 0) : 0);
+  const beforeValue = currentSnap.exists() ? Number(current.giaTri || 0) : 0;
   // Giá trị 0 là dữ liệu hợp lệ ở lần ghi nhận đầu tiên. Chỉ chặn thao tác
   // không làm thay đổi dữ liệu khi bản ghi thực tế đã tồn tại.
   if (currentSnap.exists() && beforeValue === newValue) throw new Error('Số liệu mới đang bằng số hiện tại.');
 
   const nextVersion = expectedVersion + 1;
-  const action = derivedKind ? 'Điều chỉnh số liệu tự động' : (currentSnap.exists() ? 'Điều chỉnh' : 'Ghi nhận');
+  const action = currentSnap.exists() ? 'Điều chỉnh' : 'Ghi nhận';
   const historyRef = push(ref(firebaseDatabase, `${ROOT}/lichSu/${monthKey(date)}`));
   const logRef = push(ref(firebaseDatabase, `${ROOT}/nhatKy/${monthKey(date)}`));
   const createdAt = current.createdAt || Date.now();
@@ -681,13 +666,10 @@ async function adjustDailyDataFirebase(payload) {
     role: user.appRole,
     createdAt: serverTimestamp()
   };
-  if (derivedKind) historyRecord.autoValue = Number(autoValue || 0);
   updates[`${ROOT}/lichSu/${monthKey(date)}/${historyRef.key}`] = historyRecord;
   updates[`${ROOT}/nhatKy/${monthKey(date)}/${logRef.key}`] = {
-    action: derivedKind ? 'Điều chỉnh số liệu tự động' : (action === 'Ghi nhận' ? 'Ghi nhận số liệu' : 'Điều chỉnh số liệu'),
-    content: derivedKind
-      ? `Ngày ${date} - ${category.ten || code}: Tự động ${beforeValue} → Chính thức ${newValue}`
-      : `Ngày ${date} - ${category.ten || code}: ${currentSnap.exists() ? beforeValue : 'Chưa ghi nhận'} → ${newValue}`,
+    action: action === 'Ghi nhận' ? 'Ghi nhận số liệu' : 'Điều chỉnh số liệu',
+    content: `Ngày ${date} - ${category.ten || code}: ${currentSnap.exists() ? beforeValue : 'Chưa ghi nhận'} → ${newValue}`,
     dataDate: date,
     uid: user.uid,
     email: normalizeEmail(user.email),
@@ -719,12 +701,11 @@ async function adjustDailyDataFirebase(payload) {
       updatedBy: displayName,
       updatedAt: formatDateTime(new Date()),
       version: nextVersion,
-      autoDerived: !!derivedKind,
-      derivedKind: derivedKind || '',
-      autoValue: derivedKind ? Number(autoValue || 0) : undefined,
-      manualOverride: !!derivedKind
+      autoDerived: false,
+      derivedKind: '',
+      manualOverride: false
     },
-    message: derivedKind ? 'Đã lưu số liệu điều chỉnh và ghi lịch sử.' : (action === 'Ghi nhận' ? 'Đã ghi nhận số liệu.' : 'Đã lưu thay đổi.')
+    message: action === 'Ghi nhận' ? 'Đã ghi nhận số liệu.' : 'Đã lưu thay đổi.'
   };
 }
 
@@ -744,7 +725,7 @@ async function deleteDailyDataFirebase(payload) {
   const category = categorySnap.val() || {};
   const derivedKind = metricKindFromCategory({ code, name: category.ten || code });
   if (derivedKind) {
-    throw new Error('Không thể xóa số liệu Chuyển viện/Tử vong được cập nhật tự động tại màn hình Nhập liệu. Bạn có thể dùng chức năng điều chỉnh khi cần.');
+    throw new Error('Chuyển viện/Tử vong là số liệu tự động từ phân hệ Báo cáo. Không được xóa trực tiếp; hãy dùng Yêu cầu kiểm tra.');
   }
 
   const recordRef = ref(firebaseDatabase, `${ROOT}/soLieuTheoNgay/${date}/${code}`);
@@ -1353,6 +1334,7 @@ var AUTO_SYNC_MS = 300000;
       editingCategoryCode:'',categorySaving:false,
       adjustingCode:'',adjustSaving:false,quickEntrySaving:false,quickEntryBaseline:'',deleteDailyCode:'',deleteDailySaving:false,
       historyCode:'',historyLoading:false,displayNameEditUid:'',
+      reviewRequestCode:'',reviewRequestSaving:false,
       dashboardLiveUnsubscribe:null,dashboardTransferStatsUnsubscribe:null,dashboardDeathStatsUnsubscribe:null,categoryLiveUnsubscribe:null,entryLiveUnsubscribe:null,entryTransferStatsUnsubscribe:null,entryDeathStatsUnsubscribe:null,
       dashboardBaseRecords:[],dashboardTransferStats:{},dashboardDeathStats:{},entryBaseRecords:[],entryTransferStats:{},entryDeathStats:{},
       liveRangeKey:'',entryLiveDate:''
@@ -1553,8 +1535,8 @@ var AUTO_SYNC_MS = 300000;
       var categories=selectedCategories().filter(function(c){return !!recorded[c.code]||!!c.derivedKind});
       if(!categories.length){$('summaryCards').innerHTML='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có số liệu trong phạm vi này.</strong><span>Chọn thời gian khác hoặc nhập số liệu khi có phát sinh.</span></div>';return}
       $('summaryCards').innerHTML=categories.map(function(c){
-        var value=Number(totals[c.code]||0),manual=state.records.some(function(record){return record.code===c.code&&record.manualOverride});
-        var chip=c.derivedKind?'<span class="status-chip '+(manual?'is-adjusted':'is-auto')+'" title="Số liệu được đồng bộ từ Chuyển viện & tử vong">'+(manual?'Đã điều chỉnh':'Tự động')+'</span>':'';
+        var value=Number(totals[c.code]||0);
+        var chip=c.derivedKind?'<span class="status-chip is-auto" title="Số liệu được đồng bộ từ phân hệ Báo cáo và không sửa trực tiếp tại Tổng hợp">Tự động từ Báo cáo</span>':'';
         return'<article class="summary-item summary-recorded-item'+(c.derivedKind?' is-auto-derived':'')+'">'+uiMetricIcon(c)+'<div class="summary-copy"><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+'</p></div><div class="summary-value"><span class="summary-number">'+value.toLocaleString('vi-VN')+'</span><span class="summary-unit">'+esc(c.unit)+'</span>'+chip+'</div></article>';
       }).join('');
     }
@@ -1749,20 +1731,20 @@ var AUTO_SYNC_MS = 300000;
       var code=select.value,category=state.categories.find(function(item){return item.code===code});
       var info=$('entrySelectedInfo'),valueField=$('entryQuickValueField'),actions=$('entryInlineActions'),save=$('btnSaveQuickEntry'),adjust=$('btnEntrySelectedAdjust'),history=$('btnEntrySelectedHistory'),del=$('btnEntrySelectedDelete');
       if(!category){resetEntrySelection();return}
-      var record=state.dailyByCode[code]||null,auto=!!category.derivedKind,current=record?Number(record.value||0):(auto?0:null),manual=!!(record&&record.manualOverride),autoValue=auto?Number(record?(record.autoValue==null?current:record.autoValue):0):null;
+      var record=state.dailyByCode[code]||null,auto=!!category.derivedKind,current=auto?Number(record?record.autoValue!=null?record.autoValue:record.value||0:0):record?Number(record.value||0):null,autoValue=auto?current:null;
       info.hidden=false;actions.hidden=false;
       $('entrySelectedName').textContent=category.name||code;$('entrySelectedGroup').textContent=category.group||'Chỉ tiêu';$('entrySelectedUnit').textContent=category.unit||'—';
       $('entrySelectedCurrent').textContent=current==null?'Chưa ghi nhận':current.toLocaleString('vi-VN')+' '+category.unit;
       $('entrySelectedAutoRow').hidden=!auto;$('entrySelectedAuto').textContent=auto?autoValue.toLocaleString('vi-VN')+' '+category.unit:'—';
-      $('entrySelectedUpdaterRow').hidden=!(record&&record.updatedBy);$('entrySelectedUpdater').textContent=record&&record.updatedBy?record.updatedBy:'—';
-      if(auto)setEntrySelectedStatus(manual?'Đã điều chỉnh':'Tự động',manual?'is-adjusted':'is-auto');
+      $('entrySelectedUpdaterRow').hidden=auto||!(record&&record.updatedBy);$('entrySelectedUpdater').textContent=!auto&&record&&record.updatedBy?record.updatedBy:'—';
+      if(auto)setEntrySelectedStatus('Tự động từ Báo cáo','is-auto');
       else if(record)setEntrySelectedStatus('Đã ghi nhận','is-complete');else setEntrySelectedStatus('','');
-      if(adjust&&adjust.querySelector('span'))adjust.querySelector('span').textContent=auto?'Điều chỉnh số liệu':'Cập nhật số liệu';
-      history.hidden=!record;
+      if(adjust&&adjust.querySelector('span'))adjust.querySelector('span').textContent=auto?'Yêu cầu kiểm tra':'Cập nhật số liệu';
+      if(history&&history.querySelector('span'))history.querySelector('span').textContent=auto?'Mở Báo cáo':'Lịch sử';
+      history.hidden=auto?false:!record;
       if(auto){
-        valueField.hidden=true;save.hidden=true;adjust.hidden=false;if(del)del.hidden=true;state.quickEntryBaseline='';$('entryQuickValue').value='';
+        valueField.hidden=true;save.hidden=true;adjust.hidden=!canInputTongHop();if(del)del.hidden=true;state.quickEntryBaseline='';$('entryQuickValue').value='';
       }else if(record){
-        // Record thủ công đã tồn tại: thao tác rõ ràng Sửa / Xóa / Lịch sử.
         valueField.hidden=true;save.hidden=true;adjust.hidden=false;if(del)del.hidden=!isTongHopAdmin()&&!isOwnerAdmin();
         $('entryQuickValue').value=String(Number(record.value||0));state.quickEntryBaseline=code+'|'+$('entryQuickValue').value;
       }else{
@@ -1773,6 +1755,59 @@ var AUTO_SYNC_MS = 300000;
       }
       if($('entryQuickError'))$('entryQuickError').textContent='';
     }
+    function closeReviewRequestDialog(){
+      if(state.reviewRequestSaving)return;
+      $('reviewRequestLayer').hidden=true;state.reviewRequestCode='';$('reviewRequestError').textContent='';document.body.style.overflow='';
+    }
+    function openReviewRequestDialog(code){
+      var category=state.categories.find(function(item){return item.code===code});
+      if(!category||!category.derivedKind||!canInputTongHop())return;
+      var date=$('entryDate').value,record=state.dailyByCode[code]||null,current=Number(record?record.autoValue!=null?record.autoValue:record.value||0:0);
+      state.reviewRequestCode=code;
+      $('reviewRequestMetric').textContent=category.name||code;
+      $('reviewRequestDate').textContent=fmtDate(date);
+      $('reviewRequestCurrent').textContent=current.toLocaleString('vi-VN')+' '+(category.unit||'Lượt');
+      $('reviewRequestExpected').value='';$('reviewRequestReason').value='';$('reviewRequestError').textContent='';
+      $('reviewRequestLayer').hidden=false;document.body.style.overflow='hidden';
+      window.setTimeout(function(){if(window.matchMedia&&window.matchMedia('(pointer:fine) and (min-width:761px)').matches)$('reviewRequestExpected').focus()},0);
+    }
+    function openDerivedSource(code){
+      var category=state.categories.find(function(item){return item.code===code});
+      var date=$('entryDate').value;
+      if(!category||!category.derivedKind)return;
+      showView('reports');
+      window.setTimeout(function(){
+        if(window.YTE_JOURNEYS&&typeof window.YTE_JOURNEYS.openHistoryFilter==='function')window.YTE_JOURNEYS.openHistoryFilter({from:date,to:date,status:'all'});
+      },80);
+    }
+    async function submitReviewRequest(){
+      if(state.reviewRequestSaving)return;
+      var code=state.reviewRequestCode,category=state.categories.find(function(item){return item.code===code});
+      if(!category||!category.derivedKind){$('reviewRequestError').textContent='Không xác định được chỉ tiêu tự động.';return}
+      var reason=String($('reviewRequestReason').value||'').trim();
+      if(!reason){$('reviewRequestError').textContent='Vui lòng nhập lý do yêu cầu kiểm tra.';return}
+      if(reason.length>500){$('reviewRequestError').textContent='Lý do không được vượt quá 500 ký tự.';return}
+      var expectedRaw=String($('reviewRequestExpected').value||'').trim(),expectedProvided=expectedRaw!=='';
+      var expectedValue=expectedProvided?Number(expectedRaw):0;
+      if(expectedProvided&&(!isFinite(expectedValue)||expectedValue<0||Math.floor(expectedValue)!==expectedValue)){$('reviewRequestError').textContent='Số liệu đề nghị phải là số nguyên không âm.';return}
+      var user=firebaseAuth.currentUser;if(!user){$('reviewRequestError').textContent='Vui lòng đăng nhập lại.';return}
+      var record=state.dailyByCode[code]||null,currentValue=Number(record?record.autoValue!=null?record.autoValue:record.value||0:0),date=$('entryDate').value;
+      state.reviewRequestSaving=true;$('reviewRequestSend').disabled=true;$('reviewRequestSend').textContent='Đang gửi...';$('reviewRequestError').textContent='';
+      try{
+        var requestRef=push(ref(firebaseDatabase,REVIEW_ROOT)),id=requestRef.key;
+        var displayName=await preferredDisplayNameForUid(user.uid,(state.authUser&&state.authUser.name)||user.displayName||user.email||'');
+        await set(requestRef,{
+          id:id,metricType:category.derivedKind==='death'?'DEATH':'TRANSFER',metricCode:category.code,metricName:category.name||category.code,date:date,
+          currentValue:currentValue,expectedValueProvided:expectedProvided,expectedValue:expectedValue,reason:reason,status:'PENDING',
+          requestedByUid:user.uid,requestedByEmail:normalizeEmail(user.email),requestedByName:displayName,requestedAt:serverTimestamp(),
+          resolvedByUid:'',resolvedByEmail:'',resolvedByName:'',resolvedAt:0,resolutionNote:'',finalValue:currentValue,updatedAt:serverTimestamp()
+        });
+        notifyBusinessEvent('REPORT_REVIEW_REQUESTED',id);
+        closeReviewRequestDialog();toast('Đã gửi yêu cầu kiểm tra đến người phụ trách Báo cáo.','ok');
+      }catch(error){$('reviewRequestError').textContent=error.message||'Không thể gửi yêu cầu kiểm tra.'}
+      finally{state.reviewRequestSaving=false;$('reviewRequestSend').disabled=false;$('reviewRequestSend').textContent='Gửi yêu cầu'}
+    }
+
     function setQuickEntrySaving(active){
       state.quickEntrySaving=active===true;
       ['entryCategorySelect','entryQuickValue','btnEntrySelectedAdjust','btnEntrySelectedHistory','btnEntrySelectedDelete'].forEach(function(id){var el=$(id);if(el)el.disabled=state.quickEntrySaving});
@@ -1865,18 +1900,19 @@ var AUTO_SYNC_MS = 300000;
       var record=state.dailyByCode[code]||null;
       var category=state.categories.find(function(item){return item.code===code});
       if(!category){toast('Không tìm thấy chỉ tiêu cần cập nhật.','warn');return}
+      if(category.derivedKind){openReviewRequestDialog(code);return}
       state.adjustingCode=code;
       var isDerived=!!(category.derivedKind||(record&&record.derivedKind));
       var autoValue=isDerived?Number(record?(record.autoValue==null?record.value||0:record.autoValue):0):null;
-      $('adjustTitle').textContent=(isDerived?'Điều chỉnh ':'Sửa ')+category.name;
+      $('adjustTitle').textContent='Sửa '+category.name;
       $('adjustContext').textContent='Ngày '+fmtDate($('entryDate').value)+' · Đơn vị: '+category.unit+' · Có thể nhập 0.';
       $('adjustCurrentValue').textContent=record?Number(record.value||0).toLocaleString('vi-VN')+' '+category.unit:(isDerived?'0 '+category.unit:'Chưa ghi nhận');
       $('adjustAutoReference').hidden=!isDerived;
-      $('adjustAutoReference').textContent=isDerived?'Số liệu tự động từ Chuyển viện & tử vong: '+autoValue.toLocaleString('vi-VN')+' '+category.unit+'. Số bạn lưu sẽ là số liệu chính thức dùng cho Tổng hợp số liệu.':'';
-      $('adjustReasonLabel').textContent=isDerived?'Lý do điều chỉnh *':'Lý do điều chỉnh';
+      $('adjustAutoReference').textContent='';
+      $('adjustReasonLabel').textContent='Lý do điều chỉnh';
       $('adjustReason').value='';
-      $('adjustReason').placeholder=isDerived?'Ví dụ: Báo cáo trùng một trường hợp, đã kiểm tra lại':'Nhập lý do nếu cần lưu để đối chiếu';
-      $('adjustNewValue').value=record?String(Number(record.value||0)):(isDerived?'0':'');
+      $('adjustReason').placeholder='Nhập lý do nếu cần lưu để đối chiếu';
+      $('adjustNewValue').value=record?String(Number(record.value||0)):'';
       $('adjustError').textContent='';
       setAdjustmentSaving(false);
       $('adjustLayer').hidden=false;
@@ -1904,6 +1940,7 @@ var AUTO_SYNC_MS = 300000;
       if(!isFinite(newValue)||newValue<0||Math.floor(newValue)!==newValue)throw new Error('Số liệu mới phải là số nguyên không âm.');
       if(record&&newValue===Number(record.value||0))throw new Error('Số liệu mới đang bằng số hiện tại.');
       var isDerived=!!(category.derivedKind||(record&&record.derivedKind));
+      if(isDerived)throw new Error('Chuyển viện/Tử vong là số liệu tự động từ Báo cáo. Hãy dùng Yêu cầu kiểm tra thay vì sửa trực tiếp.');
       var typedReason=String($('adjustReason').value||'').trim();
       if(isDerived&&typedReason.length<3)throw new Error('Vui lòng nhập lý do điều chỉnh để lưu lịch sử đối chiếu.');
       var reason=typedReason||(record?'Cập nhật trực tiếp trên ứng dụng':'Ghi nhận số liệu lần đầu');
@@ -1996,7 +2033,7 @@ var AUTO_SYNC_MS = 300000;
       }).join('');
     }
     async function openDataHistoryDialog(code){
-      var category=state.categories.find(function(item){return item.code===code});if(!category)return;
+      var category=state.categories.find(function(item){return item.code===code});if(!category)return;if(category.derivedKind){$('adjustError').textContent='Chuyển viện/Tử vong là số liệu tự động từ Báo cáo và không được điều chỉnh trực tiếp.';return;}
       state.historyCode=code;state.historyLoading=true;
       $('dataHistoryTitle').textContent='Lịch sử điều chỉnh · '+category.name;
       $('dataHistoryContext').textContent='Ngày '+fmtDate($('entryDate').value)+' · Mọi thay đổi đều ghi nhận người thực hiện và thời điểm điều chỉnh.';
@@ -2238,7 +2275,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.8.2'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.9.1'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
@@ -2246,13 +2283,13 @@ var AUTO_SYNC_MS = 300000;
       if($('btnLoginClose'))$('btnLoginClose').onclick=function(){showView('dashboard')};
       if($('btnPreviewSummary'))$('btnPreviewSummary').onclick=previewSummaryReport;
       $('confirmAccept').onclick=function(){closeConfirm(true)};$('confirmCancel').onclick=function(){closeConfirm(false)};$('confirmLayer').addEventListener('click',function(event){if(event.target===$('confirmLayer'))closeConfirm(false)});
-      $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});
+      $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});$('reviewRequestCancel').onclick=closeReviewRequestDialog;$('reviewRequestCloseX').onclick=closeReviewRequestDialog;$('reviewRequestSend').onclick=submitReviewRequest;$('reviewRequestLayer').addEventListener('click',function(event){if(event.target===$('reviewRequestLayer'))closeReviewRequestDialog()});
       $('dataHistoryClose').onclick=closeDataHistoryDialog;$('dataHistoryFooterClose').onclick=closeDataHistoryDialog;$('dataHistoryLayer').addEventListener('click',function(event){if(event.target===$('dataHistoryLayer'))closeDataHistoryDialog()});$('deleteDailyCancel').onclick=closeDeleteDailyDialog;$('deleteDailyAccept').onclick=submitDeleteDaily;$('deleteDailyLayer').addEventListener('click',function(event){if(event.target===$('deleteDailyLayer'))closeDeleteDailyDialog()});
       $('categoryCancel').onclick=closeCategoryDialog;$('categorySave').onclick=submitCategory;$('categoryLayer').addEventListener('click',function(event){if(event.target===$('categoryLayer'))closeCategoryDialog()});
-      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(!$('deleteDailyLayer').hidden)closeDeleteDailyDialog();else if(!$('dataHistoryLayer').hidden)closeDataHistoryDialog();else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
+      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(!$('deleteDailyLayer').hidden)closeDeleteDailyDialog();else if(!$('dataHistoryLayer').hidden)closeDataHistoryDialog();else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('reviewRequestLayer').hidden)closeReviewRequestDialog();else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
       window.addEventListener('beforeunload',function(event){if(!quickEntryDirty())return;event.preventDefault();event.returnValue=''});
       $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;
-      $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value;if(code)openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value;if(code)openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value;if(code)openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
+      $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openReviewRequestDialog(code);else openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(code&&!(category&&category.derivedKind))openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
       $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;if($('adminStatusFilter'))$('adminStatusFilter').onchange=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value'),card=button.closest('.admin-account-card');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='approve-selected'){var select=card&&card.querySelector('.admin-role-select');if(select)approveRegistration(id,select.value);return}if(kind==='save-role'){var roleSelect=card&&card.querySelector('.admin-role-select');if(roleSelect)adminRole(id,roleSelect.value);return}if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-viewer')approveRegistration(id,'Xem');if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='revoke')adminRevoke(id);if(kind==='delete')adminDelete(id)});
       $('btnReloadAdminReportUsers').onclick=function(){loadAdminReportUsers(true)};$('adminReportSearch').oninput=renderAdminReportUsers;$('adminReportUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-report-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value'),card=button.closest('.admin-account-card');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='grant-selected'){var select=card&&card.querySelector('.admin-report-role-select');if(select)adminReportPermission(id,select.value,true);return}if(kind==='save-role'){var roleSelect=card&&card.querySelector('.admin-report-role-select');if(roleSelect)adminReportPermission(id,roleSelect.value,true);return}if(kind==='grant-viewer')adminReportPermission(id,'viewer',true);if(kind==='grant-entry')adminReportPermission(id,'nhaplieu',true);if(kind==='grant-admin')adminReportPermission(id,'admin',true);if(kind==='role')adminReportPermission(id,value,true);if(kind==='revoke')adminReportPermission(id,'nhaplieu',false);if(kind==='delete')adminDelete(id)});
       $('displayNameCancel').onclick=closeDisplayNameDialog;$('displayNameCloseX').onclick=closeDisplayNameDialog;$('displayNameSave').onclick=saveDisplayName;$('displayNameLayer').addEventListener('click',function(event){if(event.target===$('displayNameLayer'))closeDisplayNameDialog()});

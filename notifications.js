@@ -1,6 +1,6 @@
 /*
  * OneSignal Web Push + Notification Center
- * Runtime 9.8.2
+ * Runtime 9.9.0
  *
  * - One source supports two GitHub Pages origins using separate OneSignal App IDs.
  * - OneSignal worker uses a dedicated sub-scope so it does not replace the PWA worker.
@@ -18,6 +18,7 @@
   const gatewayUrl = String(cfg.NOTIFICATION_GATEWAY_URL || '').trim();
   const MAX_HISTORY = 60;
   const ROUTE_KEY = 'YTE_OS_PENDING_ROUTE';
+  const ROUTE_DATA_KEY = 'YTE_OS_PENDING_ROUTE_DATA';
 
   let sdk = null;
   let initPromise = null;
@@ -118,8 +119,7 @@
       return;
     }
     list.innerHTML = items.map(function (item) {
-      const view = safeText(item.data && item.data.view || '');
-      return '<button class="notification-item'+(item.read ? '' : ' is-unread')+'" type="button" data-notification-id="'+escapeHtml(item.id)+'" data-view="'+escapeHtml(view)+'">'
+      return '<button class="notification-item'+(item.read ? '' : ' is-unread')+'" type="button" data-notification-id="'+escapeHtml(item.id)+'">'
         + '<span class="notification-dot" aria-hidden="true"></span>'
         + '<span class="notification-copy"><strong>'+escapeHtml(item.title)+'</strong><span>'+escapeHtml(item.body)+'</span><small>'+escapeHtml(relativeTime(item.at))+'</small></span>'
         + '</button>';
@@ -205,6 +205,16 @@
     document.body.classList.remove('notification-open');
   }
 
+  function savePendingRoute(data) {
+    data = data && typeof data === 'object' ? data : {};
+    const view = safeText(data.view || data.route || '').toLowerCase();
+    if (!view) return false;
+    try {
+      sessionStorage.setItem(ROUTE_KEY, view);
+      sessionStorage.setItem(ROUTE_DATA_KEY, JSON.stringify(data));
+      return true;
+    } catch (_) { return false; }
+  }
   function routeTo(data) {
     data = data && typeof data === 'object' ? data : {};
     let view = safeText(data.view || data.route || '').toLowerCase();
@@ -212,27 +222,49 @@
     const aliases = { tongquan:'dashboard', dashboard:'dashboard', nhaplieu:'entry', entry:'entry', baocao:'reports', report:'reports', reports:'reports', quantri:'admin', admin:'admin' };
     view = aliases[view] || view;
     if (!['dashboard','entry','reports','admin'].includes(view)) return;
-    try { sessionStorage.setItem(ROUTE_KEY, view); } catch (_) {}
+    savePendingRoute(Object.assign({}, data, { view: view }));
     consumePendingRoute();
   }
-  function consumePendingRoute() {
-    let view = '';
-    try { view = sessionStorage.getItem(ROUTE_KEY) || ''; } catch (_) {}
+  async function consumePendingRoute() {
+    let view = '', data = {};
+    try {
+      view = sessionStorage.getItem(ROUTE_KEY) || '';
+      data = JSON.parse(sessionStorage.getItem(ROUTE_DATA_KEY) || '{}');
+    } catch (_) {}
     if (!view) return;
     const api = window.YTE_APP_UI;
     if (!api || typeof api.openView !== 'function') return;
     try {
       api.openView(view);
-      sessionStorage.removeItem(ROUTE_KEY);
-      const url = new URL(window.location.href);
-      if (url.searchParams.has('view')) { url.searchParams.delete('view'); history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash); }
+      let handled = true;
+      if (view === 'reports' && window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.openResource === 'function') {
+        handled = await window.YTE_JOURNEYS.openResource(data);
+      }
+      if (view === 'entry' && data.date) {
+        const entryDate = byId('entryDate');
+        if (entryDate) {
+          entryDate.value = safeText(data.date);
+          entryDate.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+      if (handled !== false) {
+        sessionStorage.removeItem(ROUTE_KEY);
+        sessionStorage.removeItem(ROUTE_DATA_KEY);
+        const url = new URL(window.location.href);
+        ['view','resourceId','caseId','eventType','requestId','date','metricType','status'].forEach(function (key) { url.searchParams.delete(key); });
+        history.replaceState(null, '', url.pathname + (url.search ? url.search : '') + url.hash);
+      }
     } catch (_) {}
   }
   function captureRouteFromUrl() {
     try {
       const url = new URL(window.location.href);
-      const view = url.searchParams.get('view');
-      if (view) sessionStorage.setItem(ROUTE_KEY, view);
+      const data = {};
+      ['view','resourceId','caseId','eventType','requestId','date','metricType','status'].forEach(function (key) {
+        const value = url.searchParams.get(key);
+        if (value) data[key] = value;
+      });
+      if (data.view) savePendingRoute(data);
     } catch (_) {}
   }
 
@@ -438,11 +470,12 @@
     if (markAll) markAll.addEventListener('click', markAllRead);
     if (clear) clear.addEventListener('click', clearHistory);
     if (list) list.addEventListener('click', function (event) {
-      const item = event.target.closest('.notification-item');
-      if (!item) return;
-      markRead(item.getAttribute('data-notification-id') || '');
-      const view = item.getAttribute('data-view') || '';
-      if (view) routeTo({ view: view });
+      const button = event.target.closest('.notification-item');
+      if (!button) return;
+      const id = button.getAttribute('data-notification-id') || '';
+      const record = readHistory().find(function (item) { return item.id === id; }) || null;
+      markRead(id);
+      if (record && record.data) routeTo(record.data);
       closePanel();
     });
     document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && layer && !layer.hidden) closePanel(); });

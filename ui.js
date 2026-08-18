@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Shared interaction layer — production 9.8.2.
+ * Shared interaction layer — production 9.9.0.
  * Owns cross-module UX only: search autofill protection, textarea sizing,
  * mobile keyboard safety, dialog focus management and overflow menus.
  * No Firebase or business logic belongs in this file.
