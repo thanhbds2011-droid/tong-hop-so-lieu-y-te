@@ -1,7 +1,7 @@
 {
-  "version": "9.6.0",
-  "releasedAt": "2026-08-17",
-  "title": "OneSignal Web Push & Notification Center 9.6.0",
+  "version": "9.6.1",
+  "releasedAt": "2026-08-18",
+  "title": "Startup Resilience 9.6.1",
   "businessBaseline": "Business Stable v1.0",
-  "message": "Tích hợp OneSignal Web Push cho hai GitHub Pages, bổ sung chuông thông báo và quản lý bật/tắt thông báo theo thiết bị."
+  "message": "Tối ưu khởi động: Tổng quan public không còn chờ Firebase Auth và lớp tải dữ liệu có giới hạn thời gian an toàn."
 }

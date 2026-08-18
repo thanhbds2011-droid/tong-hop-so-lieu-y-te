@@ -1293,10 +1293,13 @@ async function adminSetDisplayNameFirebase(uid, displayNameValue) {
 }
 
 async function firebaseCall(name, ...args) {
+  // Dashboard chỉ đọc các nhánh congKhai được Realtime Database Rules cho phép public.
+  // Không buộc luồng public này phải chờ Firebase Auth khôi phục phiên đăng nhập.
+  if (name === 'getDashboardData') return getDashboardDataFirebase(args[0]);
+
   await authPersistenceReady;
   await authReady;
   switch (name) {
-    case 'getDashboardData': return getDashboardDataFirebase(args[0]);
     case 'restoreSession': return restoreSessionFirebase();
     case 'googleLoginAccount': return loginGoogleFirebase();
     case 'logoutSession': return logoutFirebase();
@@ -1324,6 +1327,7 @@ async function firebaseCall(name, ...args) {
 
 var AUTO_SYNC_MS = 300000;
     var SILENT_SYNC_MIN_AGE_MS = 45000;
+    var DASHBOARD_LOAD_TIMEOUT_MS = 12000;
     var ENTRY_CACHE_MS = 120000;
     var ADMIN_CACHE_MS = 60000;
 
@@ -1440,6 +1444,13 @@ var AUTO_SYNC_MS = 300000;
     function closeConfirm(result){var layer=$('confirmLayer');if(layer.hidden)return;layer.hidden=true;document.body.style.overflow='';var resolver=confirmResolver;confirmResolver=null;if(resolver)resolver(!!result)}
     function confirmAction(options){options=options||{};if(confirmResolver)closeConfirm(false);$('confirmTitle').textContent=options.title||'Xác nhận thao tác';$('confirmMessage').textContent=options.message||'';$('confirmAccept').textContent=options.confirmText||'Xác nhận';$('confirmCancel').textContent=options.cancelText||'Quay lại';$('confirmAccept').className='btn '+(options.danger?'btn-danger':'btn-primary');$('confirmLayer').classList.toggle('is-danger',!!options.danger);$('confirmLayer').hidden=false;document.body.style.overflow='hidden';window.setTimeout(function(){$('confirmAccept').focus()},0);return new Promise(function(resolve){confirmResolver=resolve})}
     function setBusy(active,text){state.busyCount=Math.max(0,state.busyCount+(active?1:-1));if(active&&text)$('loadingText').textContent=text;document.body.classList.toggle('is-busy',state.busyCount>0);if(state.busyCount===0)$('loadingText').textContent='Đang xử lý...'}
+    function withTimeout(promise,timeoutMs,messageText){
+      var timer=null;
+      return Promise.race([
+        Promise.resolve(promise),
+        new Promise(function(_,reject){timer=window.setTimeout(function(){reject(new Error(messageText||'Tác vụ mất quá nhiều thời gian.'))},timeoutMs)})
+      ]).finally(function(){if(timer!==null)window.clearTimeout(timer)});
+    }
     function currentViewName(){var view=document.querySelector('.view.active');return view?view.id.replace(/View$/,''):''}
     function friendlyGivenName(value){
       var text=String(value||'').trim().replace(/\s+/g,' ');
@@ -1509,7 +1520,11 @@ var AUTO_SYNC_MS = 300000;
         try{
           var range=getRange();
           if(!silent)setBusy(true,'Đang tải dữ liệu...');
-          var result=await call('getDashboardData',{from:range.from,to:range.to});
+          var result=await withTimeout(
+            call('getDashboardData',{from:range.from,to:range.to}),
+            DASHBOARD_LOAD_TIMEOUT_MS,
+            'Kết nối dữ liệu đang chậm. Ứng dụng sẽ tiếp tục tự đồng bộ khi mạng ổn định.'
+          );
           if(!result||!result.success)throw new Error(result&&result.message?result.message:'Không thể tải dữ liệu.');
           state.categories=result.categories||[];state.records=result.records||[];state.from=result.from;state.to=result.to;state.lastSyncAt=Date.now();
           populateContentFilter();$('rangeLabel').textContent=range.label;renderAll();
@@ -2190,7 +2205,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.6.0'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.6.1'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
@@ -2210,7 +2225,12 @@ var AUTO_SYNC_MS = 300000;
       $('displayNameCancel').onclick=closeDisplayNameDialog;$('displayNameCloseX').onclick=closeDisplayNameDialog;$('displayNameSave').onclick=saveDisplayName;$('displayNameLayer').addEventListener('click',function(event){if(event.target===$('displayNameLayer'))closeDisplayNameDialog()});
       $('btnAddCategory').onclick=function(){openCategoryDialog('')};$('btnReloadCategories').onclick=function(){loadAdminCategories(true)};$('categorySearch').oninput=renderAdminCategories;$('adminCategories').addEventListener('click',function(event){var button=event.target.closest('.category-action');if(!button)return;var kind=button.getAttribute('data-kind'),code=button.getAttribute('data-code'),value=button.getAttribute('data-value');if(kind==='edit')openCategoryDialog(code);if(kind==='status')setCategoryStatus(code,value)});
       document.addEventListener('visibilitychange',function(){if(!document.hidden&&Date.now()-state.lastSyncAt>90000)syncData(true)});window.addEventListener('focus',function(){if(Date.now()-state.lastSyncAt>90000)syncData(true)});
-      await Promise.all([restore(),syncData(false)]);startCategoryRealtime();startDashboardRealtime(false);updateAuthUi();onAuthStateChanged(firebaseAuth,function(user){if(!user&&state.authUser){state.authUser=null;state.user=null;updateAuthUi()}});
+      // Public Dashboard phải có thể khởi động và nhận realtime độc lập với việc Firebase Auth
+      // đang khôi phục session. Không await restore() ở startup để tránh khóa toàn bộ UI.
+      startCategoryRealtime();startDashboardRealtime(false);updateAuthUi();
+      onAuthStateChanged(firebaseAuth,function(user){if(!user&&state.authUser){state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi()}});
+      Promise.resolve(restore()).catch(function(error){console.warn('Khôi phục phiên đăng nhập:',error)});
+      Promise.resolve(syncData(false)).catch(function(error){console.warn('Đồng bộ Tổng quan ban đầu:',error)});
       state.syncTimer=setInterval(function(){if(!document.hidden)syncData(true)},AUTO_SYNC_MS);
     }
 
