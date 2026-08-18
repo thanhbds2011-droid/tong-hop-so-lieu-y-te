@@ -1,13 +1,13 @@
 'use strict';
 
 /**
- * Shared interaction layer — production 9.2.1.
+ * Shared interaction layer — production 9.8.0.
  * Owns cross-module UX only: search autofill protection, textarea sizing,
  * mobile keyboard safety, dialog focus management and overflow menus.
  * No Firebase or business logic belongs in this file.
  */
 (function () {
-  const MOBILE_QUERY = '(max-width: 760px)';
+  const MOBILE_QUERY = '(max-width: 1023px)';
   const EDITABLE_SELECTOR = 'input:not([type="button"]):not([type="checkbox"]):not([type="radio"]), textarea, select';
   const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
   const dialogState = new WeakMap();
@@ -148,11 +148,48 @@
     });
   }
 
+  function setupMobileNavigation() {
+    const toggle = document.getElementById('mobileNavToggle');
+    const close = document.getElementById('mobileNavClose');
+    const backdrop = document.getElementById('mobileNavBackdrop');
+    const nav = document.getElementById('appNav');
+    if (!toggle || !nav || !backdrop) return;
+
+    const setOpen = (open) => {
+      const mobile = window.matchMedia(MOBILE_QUERY).matches;
+      const shouldOpen = !!open && mobile;
+      document.body.classList.toggle('mobile-nav-open', shouldOpen);
+      toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+      backdrop.hidden = !shouldOpen;
+      if (shouldOpen) {
+        const first = nav.querySelector('.nav-item:not([hidden])');
+        window.setTimeout(() => first && first.focus({ preventScroll: true }), 0);
+      } else if (open === false && document.activeElement && nav.contains(document.activeElement)) {
+        window.setTimeout(() => toggle.focus({ preventScroll: true }), 0);
+      }
+    };
+
+    toggle.addEventListener('click', () => setOpen(!document.body.classList.contains('mobile-nav-open')));
+    if (close) close.addEventListener('click', () => setOpen(false));
+    backdrop.addEventListener('click', () => setOpen(false));
+    nav.addEventListener('click', (event) => {
+      if (event.target.closest('.nav-item')) setOpen(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && document.body.classList.contains('mobile-nav-open')) setOpen(false);
+    });
+    window.addEventListener('resize', () => {
+      if (!window.matchMedia(MOBILE_QUERY).matches) setOpen(false);
+    });
+    window.YTE_CLOSE_MOBILE_NAV = () => setOpen(false);
+  }
+
   function init() {
     setupTextareaAutoGrow();
     setupMobileKeyboardSafety();
     setupDialogFocus();
     setupOverflowMenus();
+    setupMobileNavigation();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
