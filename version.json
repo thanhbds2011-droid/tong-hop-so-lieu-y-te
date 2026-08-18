@@ -1,7 +1,7 @@
 {
-  "version": "9.8.0",
+  "version": "9.8.1",
   "releasedAt": "2026-08-18",
-  "title": "Professional UI + Delete Audit Notifications 9.8.0",
+  "title": "Professional UI + Delete Audit Notifications 9.8.1",
   "businessBaseline": "Business Stable v1.0",
   "message": "Đổi Notification Center thành popup modal, chuẩn hóa popup xác nhận xóa, bổ sung Push khi xóa dữ liệu, tối ưu Quản trị, chuyển giao diện sang xanh đen - trắng và thay bottom navigation bằng mobile drawer 3 gạch."
 }

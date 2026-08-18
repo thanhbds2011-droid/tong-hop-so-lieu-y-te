@@ -1977,82 +1977,142 @@ body.notification-open { overflow: hidden; }
 
 
 /* ======================================================================
-   UI 9.8.0 — NAVY/WHITE PROFESSIONAL THEME + MODAL UX + MOBILE DRAWER
-   Visual layer only. Business Stable v1.0 schema/rules remain unchanged.
+   UI 9.8.1 — PROFESSIONAL PINK THEME + NAVY INK
+   Giữ nguyên Modal UX + Mobile Drawer + Admin layout của 9.8.0.
+   Chỉ khôi phục nhận diện hồng, đổi font chuyên nghiệp và chữ xanh đen.
+   Business Stable v1.0 / Firebase schema / notification logic unchanged.
    ====================================================================== */
 :root {
-  --color-primary: #173A5E;
-  --color-primary-hover: #0F2F4F;
-  --color-primary-strong: #0B2239;
-  --color-primary-soft: #EFF5FA;
-  --color-primary-soft-2: #E2EDF6;
-  --color-accent: #2D6B9F;
-  --color-bg: #F5F8FB;
+  --color-primary: #FF66B7;
+  --color-primary-hover: #F252A8;
+  --color-primary-strong: #B92F77;
+  --color-primary-soft: #FFF0F8;
+  --color-primary-soft-2: #FFE1F0;
+  --color-accent: #AA69FA;
+
+  --color-bg: #FBF9FC;
   --color-surface: #FFFFFF;
-  --color-surface-subtle: #F8FAFC;
-  --color-surface-muted: #F1F5F9;
-  --color-text: #0E1C2B;
-  --color-text-2: #334155;
-  --color-text-3: #64748B;
-  --color-border: #DCE5ED;
-  --color-border-strong: #C6D3DE;
-  --color-info: #285F8F;
-  --color-info-soft: #EDF5FB;
-  --ui-bg: #F5F8FB;
-  --ui-line: #DCE5ED;
-  --ui-line-soft: #EAF0F5;
-  --ui-ink: #0E1C2B;
-  --ui-muted: #64748B;
-  --shadow-sm: 0 1px 2px rgba(15,39,66,.035), 0 8px 22px rgba(15,39,66,.045);
-  --shadow-md: 0 16px 42px rgba(15,39,66,.12);
-  --shadow-lg: 0 28px 72px rgba(15,39,66,.18);
+  --color-surface-subtle: #FFFCFE;
+  --color-surface-muted: #F8F3F7;
+
+  /* Navy ink: không dùng đen tuyệt đối. */
+  --color-text: #102A43;
+  --color-text-2: #40566B;
+  --color-text-3: #6B7C8F;
+  --color-border: #E9E1E8;
+  --color-border-strong: #DCCFDA;
+
+  --color-success: #386B66;
+  --color-success-soft: #EDF7F5;
+  --color-warning: #9B6900;
+  --color-warning-soft: #FFF7DB;
+  --color-danger: #B6405C;
+  --color-danger-soft: #FFF0F3;
+  --color-info: #6E4A8E;
+  --color-info-soft: #F5EEFF;
+
+  --ui-bg: #F8F6F9;
+  --ui-line: #E7DFE6;
+  --ui-line-soft: #F0EBEF;
+  --ui-ink: #102A43;
+  --ui-muted: #6B7C8F;
+
+  --shadow-sm: 0 1px 2px rgba(16,42,67,.03), 0 7px 20px rgba(185,47,119,.035);
+  --shadow-md: 0 14px 36px rgba(16,42,67,.09);
+  --shadow-lg: 0 26px 64px rgba(16,42,67,.16);
 }
+
 html, body {
-  background: var(--color-bg);
+  background: var(--ui-bg);
   color: var(--color-text);
-  font-family: Inter, "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  font-family: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
-::selection { background: #D9EAF7; color: #0B2239; }
-:focus-visible { outline-color: rgba(23,58,94,.42); }
-.app-header { color: var(--color-text); background: rgba(255,255,255,.985); border-bottom-color: var(--color-border); }
+button, input, select, textarea { font-family: inherit; }
+::selection { background: #FFD0E8; color: #102A43; }
+:focus-visible { outline-color: rgba(255,102,183,.42); }
+
+/* Header: nền trắng, nhận diện hồng; chữ xanh đen. */
+.app-header {
+  color: var(--color-text);
+  background: rgba(255,255,255,.985);
+  border-bottom-color: #E7DFE6;
+  box-shadow: 0 1px 0 rgba(16,42,67,.04);
+}
 .brand-org.brand-desktop, .brand-mobile, .brand-mobile-title { color: var(--color-text); }
 .brand-app.brand-desktop, .header-mobile-greeting:not([hidden]) { color: var(--color-text-3); }
-.header-actions .btn-light { color: var(--color-text-2); border-color: var(--color-border); background: #fff; }
-.header-actions .btn-light:hover { color: var(--color-primary-strong); border-color: #BFD0DF; background: #F8FBFD; }
-.btn-primary, .filter-apply-btn { color: #fff; border-color: var(--color-primary); background: var(--color-primary); box-shadow: 0 7px 18px rgba(23,58,94,.16); }
-.btn-primary:hover, .filter-apply-btn:hover { color: #fff; border-color: var(--color-primary-hover); background: var(--color-primary-hover); box-shadow: 0 9px 22px rgba(23,58,94,.22); }
-.btn-soft { color: var(--color-primary-strong); border-color: #C9D8E5; background: #F4F8FB; }
-.btn-soft:hover { border-color: #B7CBDC; background: #EAF2F8; }
+.header-actions .btn-light { color: var(--color-text-2); border-color: #DED6DD; background: #fff; }
+.header-actions .btn-light:hover { color: var(--color-primary-strong); border-color: #E8C7DA; background: #FFF7FB; }
+
+/* Pink is the hero interaction colour, text stays navy. */
+.btn-primary, .filter-apply-btn {
+  color: #102A43;
+  border-color: #FF66B7;
+  background: #FF66B7;
+  font-weight: 790;
+  box-shadow: 0 6px 16px rgba(255,102,183,.18);
+}
+.btn-primary:hover, .filter-apply-btn:hover {
+  color: #102A43;
+  border-color: #F252A8;
+  background: #F252A8;
+  box-shadow: 0 8px 20px rgba(255,102,183,.24);
+}
+.btn-soft { color: var(--color-primary-strong); border-color: #E8D7E1; background: #FFF8FC; }
+.btn-soft:hover { border-color: #E8C7DA; background: #FFF0F8; }
+
 .page-heading h2, .report-head h2, .admin-head h2, h1, h2, h3, h4 { color: var(--color-text); }
 .page-subtitle, .page-heading p, .report-page-subtitle, .report-head p { color: var(--color-text-3); }
-.page-title-icon, .section-icon, .summary-icon, .dashboard-range-icon { color: #285F8F; background: #EDF5FB; box-shadow: inset 0 0 0 1px rgba(40,95,143,.08); }
-.page-title-icon.is-home { color: #173A5E; background: #EAF2F8; }
-.page-title-icon.is-entry { color: #315D78; background: #EEF5F8; }
-.page-title-icon.is-report { color: #285F8F; background: #EDF5FB; }
-.summary-item, .dashboard-filter-panel, .entry-simple-panel, .report-workspace, .page-card, .admin-card { border-color: var(--color-border); background: #fff; }
+.page-title-icon, .section-icon, .summary-icon, .dashboard-range-icon {
+  color: #C7367F;
+  background: #FFF0F8;
+  box-shadow: inset 0 0 0 1px rgba(255,102,183,.08);
+}
+.page-title-icon.is-home { color: #7D47C6; background: #F4EDFF; }
+.page-title-icon.is-entry { color: #9B6900; background: #FFF5D6; }
+.page-title-icon.is-report { color: #C7367F; background: #FFF0F8; }
+
+.summary-item, .dashboard-filter-panel, .entry-simple-panel, .report-workspace, .page-card, .admin-card {
+  border-color: #E7DFE6;
+  background: #fff;
+}
 .summary-number { color: var(--color-primary-strong); }
-.summary-copy h3 { color: #172A3D; }
-.summary-copy p { color: #64748B; }
-input, select, textarea { color: var(--color-text); border-color: #CCD8E2; background: #fff; }
-input:hover, select:hover, textarea:hover { border-color: #AFC2D2; }
-input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0 0 0 3px rgba(45,107,159,.12); }
-.notification-bell-button { color: #526477; border-color: var(--color-border); }
-.notification-bell-button:hover { color: var(--color-primary); border-color: #BFD0DF; background: #F4F8FB; }
-.notification-badge { background: #2563A1; }
-.nav-item:hover { color: var(--color-primary-strong); background: #F2F7FB; }
-.nav-item.active { color: var(--color-primary-strong); border-color: transparent; background: #EAF2F8; box-shadow: inset 3px 0 0 var(--color-primary); }
-.nav-item.active svg { color: #285F8F; }
-.journey-subtab.active, .journey-create-mode-btn.active, .report-mode-tab.active { color: var(--color-primary-strong) !important; border-color: #C9D8E5 !important; background: #F3F8FC !important; box-shadow: inset 0 -2px 0 var(--color-primary), 0 1px 3px rgba(15,39,66,.04) !important; }
-.journey-tab-badge { color: var(--color-primary-strong); background: #EAF2F8; }
+.summary-copy h3 { color: var(--color-text); }
+.summary-copy p { color: var(--color-text-3); }
+
+input, select, textarea { color: var(--color-text); border-color: #DCD2DA; background: #fff; }
+input:hover, select:hover, textarea:hover { border-color: #CFC1CC; }
+input:focus, select:focus, textarea:focus { border-color: #FF66B7; box-shadow: 0 0 0 3px rgba(255,102,183,.13); }
+
+.notification-bell-button { color: #6B5A67; border-color: #E5DCE4; }
+.notification-bell-button:hover { color: #C7367F; border-color: #EBC5D9; background: #FFF7FB; }
+.notification-badge { color: #102A43; background: #FF66B7; }
+
+.nav-item:hover { color: #A82D6C; background: #FFF7FB; }
+.nav-item.active {
+  color: #A22767;
+  border-color: transparent;
+  background: linear-gradient(135deg,#FFF7FB 0%,#FFF0F8 100%);
+  box-shadow: inset 3px 0 0 #FF66B7, 0 6px 18px rgba(185,47,119,.06);
+}
+.nav-item.active svg { color: #D63D8D; }
+.journey-subtab.active, .journey-create-mode-btn.active, .report-mode-tab.active {
+  color: #A22767 !important;
+  border-color: #F0C9DE !important;
+  background: #FFF0F8 !important;
+  box-shadow: inset 0 -2px 0 #FF66B7, 0 1px 3px rgba(16,42,67,.04) !important;
+}
+.journey-tab-badge { color: #A22767; background: #FFF0F8; }
 
 /* Mobile navigation drawer. Existing nav remains the desktop sidebar. */
 .mobile-nav-toggle, .mobile-nav-head, .mobile-nav-section-label, .mobile-nav-backdrop { display: none; }
 .mobile-nav-toggle, .mobile-nav-close {
-  border: 1px solid var(--color-border);
+  border: 1px solid #E5DCE4;
   color: var(--color-text-2);
   background: #fff;
   cursor: pointer;
 }
+.mobile-nav-toggle:hover, .mobile-nav-close:hover { color: #C7367F; border-color: #EBC5D9; background: #FFF7FB; }
 .mobile-nav-toggle { width: 42px; min-width: 42px; height: 42px; padding: 0; place-items: center; border-radius: 11px; }
 .mobile-nav-toggle svg { width: 21px; height: 21px; }
 .mobile-nav-close { width: 40px; min-width: 40px; height: 40px; border-radius: 10px; font-size: 24px; line-height: 1; }
@@ -2060,14 +2120,14 @@ input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0
 .mobile-nav-identity img { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; }
 .mobile-nav-identity strong { display: block; color: var(--color-text); font-size: 16px; font-weight: 800; }
 .mobile-nav-identity span { display: block; max-width: 190px; margin-top: 2px; overflow: hidden; color: var(--color-text-3); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.mobile-nav-section-label { padding: 7px 8px 5px; color: #7A8A9A; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.mobile-nav-section-label { padding: 7px 8px 5px; color: #9A647C; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 
-/* Notification is a real in-app modal, never a right side sheet. */
+/* Notification remains the centered in-app modal introduced in 9.8.0. */
 .notification-layer {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(8,25,43,.42);
+  background: rgba(16,42,67,.38);
   backdrop-filter: blur(5px);
 }
 .notification-panel {
@@ -2075,63 +2135,63 @@ input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0
   height: auto;
   max-height: min(78dvh, 760px);
   overflow: hidden;
-  border: 1px solid var(--color-border);
+  border: 1px solid #E7DFE6;
   border-radius: 20px;
   background: #fff;
-  box-shadow: 0 32px 90px rgba(8,25,43,.25);
+  box-shadow: 0 32px 90px rgba(16,42,67,.22);
 }
-.notification-head { padding: 20px 22px 16px; border-bottom-color: var(--color-border); }
+.notification-head { padding: 20px 22px 16px; border-bottom-color: #E7DFE6; }
 .notification-head h3 { color: var(--color-text); font-size: 22px; }
-.notification-device-card { margin: 16px 18px 9px; border-color: #D6E2EC; background: #F7FAFC; }
-.notification-device-icon { color: var(--color-primary); background: #EAF2F8; }
-.notification-toolbar { padding: 11px 20px; border-bottom-color: var(--color-border); }
+.notification-device-card { margin: 16px 18px 9px; border-color: #F0D8E5; background: #FFF8FC; }
+.notification-device-icon { color: #C7367F; background: #FFF0F8; }
+.notification-toolbar { padding: 11px 20px; border-bottom-color: #E7DFE6; }
 .notification-list { flex: 1 1 auto; min-height: 180px; max-height: 52dvh; padding: 8px 14px 18px; overflow: auto; }
-.notification-item { border-bottom-color: #EAF0F5; }
-.notification-item:hover { background: #F6F9FC; }
-.notification-item.is-unread .notification-dot { background: #2D6B9F; }
-.notification-text-button:hover { color: var(--color-primary); }
+.notification-item { border-bottom-color: #F0EAEF; }
+.notification-item:hover { background: #FFF8FC; }
+.notification-item.is-unread .notification-dot { background: #FF66B7; }
+.notification-text-button:hover { color: #C7367F; }
 
-/* Confirmation dialogs always stay inside the app and centered. */
+/* Confirmation dialogs stay inside the application and centered. */
 #confirmLayer, #deleteDailyLayer { align-items: center !important; justify-content: center; padding: 20px !important; }
 #confirmLayer .confirm-card, #deleteDailyLayer .delete-daily-card {
   width: min(520px, calc(100vw - 40px));
   max-height: min(88dvh, 720px);
-  border: 1px solid var(--color-border);
+  border: 1px solid #E5DCE4;
   border-radius: 18px !important;
   overflow: auto;
-  box-shadow: 0 28px 80px rgba(8,25,43,.22);
+  box-shadow: 0 28px 80px rgba(16,42,67,.20);
 }
 #confirmLayer .confirm-card .confirm-actions, #deleteDailyLayer .confirm-actions {
   position: static;
   margin-bottom: 0;
   border-radius: 0 0 18px 18px;
 }
-.confirm-icon { color: var(--color-primary); background: #EAF2F8; }
+.confirm-icon { color: #C7367F; background: #FFF0F8; }
 #confirmLayer.is-danger .confirm-icon { color: var(--color-danger); background: var(--color-danger-soft); }
 
-/* Admin information architecture. */
+/* Admin information architecture stays as 9.8.0, palette returns to pink. */
 #adminView .page-card { padding: 20px; }
 .admin-overview-grid { margin-bottom: 16px; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
-.admin-overview-card { min-height: 104px; padding: 14px 15px; display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--color-border); border-radius: 14px; background: #fff; box-shadow: var(--shadow-sm); }
-.admin-overview-card > span { color: #536779; font-size: 12px; font-weight: 760; }
+.admin-overview-card { min-height: 104px; padding: 14px 15px; display: flex; flex-direction: column; justify-content: center; border: 1px solid #E7DFE6; border-radius: 14px; background: #fff; box-shadow: var(--shadow-sm); }
+.admin-overview-card > span { color: var(--color-text-2); font-size: 12px; font-weight: 760; }
 .admin-overview-card > strong { margin-top: 3px; color: var(--color-primary-strong); font-size: 27px; line-height: 1; font-weight: 850; letter-spacing: -.035em; }
-.admin-overview-card > small { margin-top: 7px; color: #7A8A9A; font-size: 10.5px; line-height: 1.35; }
-.admin-overview-card.is-pending > strong { color: #9A661A; }
-.admin-overview-card.is-active > strong { color: #196B5E; }
-.admin-overview-card.is-admin > strong { color: #285F8F; }
-.admin-tabs { padding: 5px; border-color: var(--color-border); background: #F2F6F9; }
-.admin-tab { color: #526477; font-weight: 760; }
-.admin-tab.active { color: var(--color-primary-strong); border-color: #C8D7E4; background: #fff; box-shadow: 0 5px 15px rgba(15,39,66,.07); }
+.admin-overview-card > small { margin-top: 7px; color: var(--color-text-3); font-size: 10.5px; line-height: 1.35; }
+.admin-overview-card.is-pending > strong { color: #9B6900; }
+.admin-overview-card.is-active > strong { color: #386B66; }
+.admin-overview-card.is-admin > strong { color: #C7367F; }
+.admin-tabs { padding: 5px; border-color: #E5DDE4; background: #F8F3F7; }
+.admin-tab { color: var(--color-text-2); font-weight: 760; }
+.admin-tab.active { color: #A22767; border-color: #F1D7E5; background: linear-gradient(135deg,#fff,#FFF4FA); box-shadow: 0 5px 15px rgba(185,47,119,.07); }
 .admin-panel { margin-top: 16px; }
 .admin-user-filters { display: flex; align-items: end; gap: 10px; }
 .admin-status-filter { width: 170px; flex: 0 0 170px; }
 .admin-status-filter label { gap: 5px; }
 .admin-status-filter select { width: 100%; min-height: 42px; }
-.admin-account-card { border-color: var(--color-border) !important; box-shadow: 0 4px 16px rgba(15,39,66,.035) !important; }
-.admin-account-card.is-pending { border-left: 3px solid #C58A2D !important; }
-.admin-account-avatar { color: #1E5D87 !important; background: #EAF2F8 !important; }
-.admin-section-count, .summary-pill { color: var(--color-primary-strong); background: #EDF4F9; border-color: #D7E3EC; }
-.admin-note { border-left-color: #2D6B9F; background: #F2F7FB; color: #3B5368; }
+.admin-account-card { border-color: #E7DFE6 !important; box-shadow: 0 4px 16px rgba(16,42,67,.035) !important; }
+.admin-account-card.is-pending { border-left: 3px solid #FEC84C !important; }
+.admin-account-avatar { color: #A22767 !important; background: #FFF0F8 !important; }
+.admin-section-count, .summary-pill { color: #A22767; background: #FFF0F8; border-color: #F0D8E5; }
+.admin-note { border-left-color: #FEC84C; background: #FFF8E5; color: #5D5140; }
 
 @media (max-width: 1023px) {
   .mobile-nav-toggle { display: grid; }
@@ -2154,10 +2214,10 @@ input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0
     justify-content: flex-start;
     gap: 5px;
     border: 0;
-    border-right: 1px solid var(--color-border);
+    border-right: 1px solid #E7DFE6;
     border-radius: 0 18px 18px 0;
     background: #fff;
-    box-shadow: 20px 0 60px rgba(8,25,43,.20);
+    box-shadow: 20px 0 60px rgba(16,42,67,.18);
     backdrop-filter: none;
     transform: translateX(-108%);
     transition: transform .22s ease;
@@ -2165,11 +2225,11 @@ input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0
   }
   body.mobile-nav-open { overflow: hidden; }
   body.mobile-nav-open .nav { transform: translateX(0); }
-  .mobile-nav-head { display: flex; min-height: 62px; margin-bottom: 6px; padding: 2px 2px 12px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); }
+  .mobile-nav-head { display: flex; min-height: 62px; margin-bottom: 6px; padding: 2px 2px 12px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #E7DFE6; }
   .mobile-nav-section-label { display: block; }
   .nav-item { flex: 0 0 auto; width: 100%; min-height: 50px; padding: 10px 12px; flex-direction: row; justify-content: flex-start; gap: 12px; border-radius: 11px; font-size: 14px; font-weight: 720; }
   .nav-item svg { width: 21px; height: 21px; }
-  .nav-item.active { box-shadow: inset 3px 0 0 var(--color-primary); }
+  .nav-item.active { box-shadow: inset 3px 0 0 #FF66B7; }
   .mobile-nav-backdrop {
     display: block;
     position: fixed;
@@ -2179,7 +2239,7 @@ input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0
     height: 100%;
     padding: 0;
     border: 0;
-    background: rgba(8,25,43,.42);
+    background: rgba(16,42,67,.38);
     opacity: 0;
     pointer-events: none;
     transition: opacity .18s ease;
@@ -2193,7 +2253,7 @@ input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0
 
 @media (max-width: 760px) {
   :root { --header-height: 62px; }
-  body { background: #F5F8FB; }
+  body { background: #FAF7FA; }
   .header-inner { padding: 8px 10px; }
   .brand-mark { width: 38px; height: 38px; }
   .mobile-nav-toggle { width: 40px; min-width: 40px; height: 40px; }
@@ -2203,13 +2263,13 @@ input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0
   .notification-bell-button { width: 42px; min-width: 42px; height: 42px; }
   .app-shell { padding: 14px 11px calc(24px + env(safe-area-inset-bottom)); }
   .notification-layer { align-items: center; padding: 10px; }
-  .notification-panel { width: calc(100vw - 20px); height: auto; max-height: calc(100dvh - 20px); border: 1px solid var(--color-border); border-radius: 18px; box-shadow: 0 24px 72px rgba(8,25,43,.24); }
+  .notification-panel { width: calc(100vw - 20px); height: auto; max-height: calc(100dvh - 20px); border: 1px solid #E7DFE6; border-radius: 18px; box-shadow: 0 24px 72px rgba(16,42,67,.22); }
   .notification-head { padding: 16px 14px 13px; }
   .notification-device-card { grid-template-columns: 1fr; margin: 10px 10px 6px; }
   .notification-toolbar { padding-inline: 13px; }
   .notification-list { min-height: 150px; max-height: 52dvh; }
   #confirmLayer, #deleteDailyLayer { align-items: center !important; padding: 12px !important; }
-  #confirmLayer .confirm-card, #deleteDailyLayer .delete-daily-card { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); border-radius: 17px !important; border-bottom: 1px solid var(--color-border) !important; }
+  #confirmLayer .confirm-card, #deleteDailyLayer .delete-daily-card { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); border-radius: 17px !important; border-bottom: 1px solid #E7DFE6 !important; }
   #confirmLayer .confirm-card { padding: 22px 18px; }
   #confirmLayer .confirm-card .confirm-actions { position: static; margin: 18px -18px -22px; padding-bottom: 15px; border-radius: 0 0 17px 17px; }
   #deleteDailyLayer .confirm-actions { position: static; padding-bottom: 14px; }
@@ -2223,17 +2283,16 @@ input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0
   #adminView .page-card { padding: 14px; }
 }
 
-
-/* 9.8.0 specificity guards against legacy pink selectors. */
-.admin-account-avatar { color: #1E5D87 !important; background: #EAF2F8 !important; }
-.admin-account-controls .btn-primary { color: #fff !important; border-color: var(--color-primary) !important; background: var(--color-primary) !important; }
-.admin-role-select:focus, .admin-report-role-select:focus { border-color: #2D6B9F !important; box-shadow: 0 0 0 3px rgba(45,107,159,.12) !important; }
-.journey-person-icon, .journey-section-icon { color: #285F8F !important; background: #EDF5FB !important; }
-.journey-card-details > summary, .journey-history-actions .small-btn { color: var(--color-primary-strong) !important; }
-.journey-history-actions .small-btn { border-color: #C9D8E5 !important; background: #F3F8FC !important; }
-.journey-history-actions .small-btn:hover { border-color: #AFC5D7 !important; background: #EAF2F8 !important; }
-.journey-create-mode-btn.active { color: var(--color-primary-strong) !important; border-color: #BFD0DF !important; }
-.report-preview-icon { color: #285F8F !important; background: #EDF5FB !important; }
-.login-close:hover { color: var(--color-primary) !important; border-color: #BFD0DF !important; background: #F4F8FB !important; }
-.login-logo-wrap { background: #EDF5FB !important; }
-.btn-login-primary, .btn-login-primary:hover { color: #fff !important; border-color: var(--color-primary) !important; background: var(--color-primary) !important; }
+/* 9.8.1 guards against old navy/white specificity. */
+.admin-account-avatar { color: #A22767 !important; background: #FFF0F8 !important; }
+.admin-account-controls .btn-primary { color: #102A43 !important; border-color: #FF66B7 !important; background: #FF66B7 !important; }
+.admin-role-select:focus, .admin-report-role-select:focus { border-color: #FF66B7 !important; box-shadow: 0 0 0 3px rgba(255,102,183,.13) !important; }
+.journey-person-icon, .journey-section-icon { color: #C7367F !important; background: #FFF0F8 !important; }
+.journey-card-details > summary, .journey-history-actions .small-btn { color: #A22767 !important; }
+.journey-history-actions .small-btn { border-color: #F0C9DE !important; background: #FFF0F8 !important; }
+.journey-history-actions .small-btn:hover { border-color: #FF66B7 !important; background: #FFE5F2 !important; }
+.journey-create-mode-btn.active { color: #A22767 !important; border-color: #FF66B7 !important; }
+.report-preview-icon { color: #C7367F !important; background: #FFF0F8 !important; }
+.login-close:hover { color: #A22767 !important; border-color: #EBC5D9 !important; background: #FFF7FB !important; }
+.login-logo-wrap { background: #FFF0F8 !important; }
+.btn-login-primary, .btn-login-primary:hover { color: #102A43 !important; border-color: #FF66B7 !important; background: #FF66B7 !important; }
