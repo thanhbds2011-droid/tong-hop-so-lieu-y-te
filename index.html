@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
-<meta content="#FF66B7" name="theme-color"/>
+<meta content="#0F2742" name="theme-color"/>
 <meta content="light" name="color-scheme"/>
 <meta content="Ứng dụng Phòng Y tế - Tổng hợp số liệu và báo cáo chuyên môn" name="description"/>
 <meta content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://accounts.google.com https://cdn.onesignal.com https://api.onesignal.com https://*.onesignal.com https://*.firebaseio.com https://*.firebasedatabase.app; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; manifest-src 'self'; frame-src 'self' https://hsba-trung-tam-test.firebaseapp.com https://accounts.google.com https://*.firebaseapp.com; connect-src 'self' https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.gstatic.com https://api.onesignal.com https://*.onesignal.com https://script.google.com https://script.googleusercontent.com;" http-equiv="Content-Security-Policy"/>
@@ -12,27 +12,28 @@
 <link href="./manifest.webmanifest" rel="manifest"/>
 <link href="./assets/favicon-32.png" rel="icon" sizes="32x32" type="image/png"/>
 <link href="./assets/apple-touch-icon.png" rel="apple-touch-icon"/>
-<link href="./styles.css?v=9.7.0" rel="stylesheet"/>
+<link href="./styles.css?v=9.8.0" rel="stylesheet"/>
 
-<link href="./reports.css?v=9.7.0" rel="stylesheet"/>
-<link href="./journeys.css?v=9.7.0" rel="stylesheet"/>
+<link href="./reports.css?v=9.8.0" rel="stylesheet"/>
+<link href="./journeys.css?v=9.8.0" rel="stylesheet"/>
 
-<script src="./app-config.js?v=9.7.0"></script>
-<script defer src="./ui.js?v=9.7.0"></script>
-<script defer src="./update-manager.js?v=9.7.0"></script>
+<script src="./app-config.js?v=9.8.0"></script>
+<script defer src="./ui.js?v=9.8.0"></script>
+<script defer src="./update-manager.js?v=9.8.0"></script>
 <script defer src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"></script>
-<script defer src="./notifications.js?v=9.7.0"></script>
-<script src="./app.js?v=9.7.0" type="module"></script>
-<script src="./reports.js?v=9.7.0" type="module"></script>
-<script src="./journeys.js?v=9.7.0" type="module"></script>
+<script defer src="./notifications.js?v=9.8.0"></script>
+<script src="./app.js?v=9.8.0" type="module"></script>
+<script src="./reports.js?v=9.8.0" type="module"></script>
+<script src="./journeys.js?v=9.8.0" type="module"></script>
 
 </head>
 <body>
 <header class="app-header">
 <div class="header-inner">
+<button aria-controls="appNav" aria-expanded="false" aria-label="Mở menu" class="mobile-nav-toggle" hidden id="mobileNavToggle" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
 <div class="brand">
 <div aria-hidden="true" class="brand-mark brand-mark-logo">
-<img alt="" src="./assets/icon-192.png?v=9.7.0"/>
+<img alt="" src="./assets/icon-192.png?v=9.8.0"/>
 </div>
 <div class="brand-copy">
 <strong class="brand-org brand-desktop">Trung tâm Bảo trợ xã hội Tân Hiệp</strong>
@@ -51,7 +52,12 @@
 </header>
 <main class="app-shell">
 <div aria-live="polite" id="message"></div>
-<nav aria-label="Điều hướng chính" class="nav">
+<nav aria-label="Điều hướng chính" class="nav" id="appNav">
+<div class="mobile-nav-head">
+  <div class="mobile-nav-identity"><img alt="" src="./assets/icon-192.png?v=9.8.0"/><div><strong>Phòng Y tế</strong><span id="mobileNavUser">Menu chức năng</span></div></div>
+  <button aria-label="Đóng menu" class="mobile-nav-close" id="mobileNavClose" type="button">×</button>
+</div>
+<div class="mobile-nav-section-label">Chức năng</div>
 <button class="nav-item active" data-view="dashboard" id="navDashboard" type="button">
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h14V10M9 20v-6h6v6"></path></svg><span>Tổng quan</span>
 </button>
@@ -65,6 +71,7 @@
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.15.38.36.72.66 1 .29.26.68.4 1.07.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"></path></svg><span>Quản trị</span>
 </button>
 </nav>
+<button aria-label="Đóng menu" class="mobile-nav-backdrop" hidden id="mobileNavBackdrop" type="button"></button>
 <section class="view active" id="dashboardView">
 <div class="page-header dashboard-page-header">
 <div class="page-heading">
@@ -120,7 +127,7 @@
 <div class="login-stage">
 <div class="login-shell">
 <button aria-label="Đóng đăng nhập" class="login-close" id="btnLoginClose" type="button">×</button>
-<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=9.7.0"/></div>
+<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=9.8.0"/></div>
 <div class="auth-panel active" id="loginPanel">
 <div class="login-action-copy">
 <h2>Ứng dụng Phòng Y tế</h2>
@@ -296,6 +303,12 @@
 </section>
 <section class="view" id="adminView">
 <div class="card page-card"><div class="page-header admin-page-header"><div class="page-heading"><h2>Quản trị</h2><p>Quản lý tài khoản, chỉ tiêu và quyền sử dụng.</p></div></div>
+<div class="admin-overview-grid" id="adminOverview">
+  <article class="admin-overview-card"><span>Tổng tài khoản</span><strong id="adminMetricTotal">0</strong><small>Trong phân hệ Tổng hợp</small></article>
+  <article class="admin-overview-card is-pending"><span>Chờ duyệt</span><strong id="adminMetricPending">0</strong><small>Cần Quản trị xử lý</small></article>
+  <article class="admin-overview-card is-active"><span>Đang hoạt động</span><strong id="adminMetricActive">0</strong><small>Đang được phép sử dụng</small></article>
+  <article class="admin-overview-card is-admin"><span>Quản trị</span><strong id="adminMetricAdmins">0</strong><small>Tài khoản quyền cao nhất</small></article>
+</div>
 <div aria-label="Chức năng quản trị" class="admin-tabs" role="tablist">
 <button class="admin-tab active" data-admin-tab="users" id="adminUsersTab" type="button">Tài khoản Tổng hợp</button>
 <button class="admin-tab" data-admin-tab="categories" id="adminCategoriesTab" type="button">Chỉ tiêu</button>
@@ -304,7 +317,7 @@
 <div class="admin-panel" id="adminUsersPanel">
 <div class="compact-toolbar">
 <div class="admin-summary"><span class="summary-pill" id="adminCount">0 tài khoản</span><span class="summary-pill pending" hidden="" id="adminPending">0 chờ duyệt</span></div>
-<div class="toolbar-actions"><div class="search-wrap"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input aria-label="Tìm tài khoản" class="search-box" id="adminSearch" placeholder="Tìm tài khoản..." type="search"/></div><button class="btn btn-soft" id="btnReloadUsers" type="button">Làm mới</button></div>
+<div class="toolbar-actions admin-user-filters"><div class="field admin-status-filter"><label>Trạng thái<select id="adminStatusFilter"><option value="all">Tất cả</option><option value="pending">Chờ duyệt</option><option value="active">Đang hoạt động</option><option value="locked">Đang khóa</option><option value="admin">Quản trị</option></select></label></div><div class="search-wrap"><svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input aria-label="Tìm tài khoản" class="search-box" id="adminSearch" placeholder="Tìm tên hoặc email..." type="search"/></div><button class="btn btn-soft" id="btnReloadUsers" type="button">Làm mới</button></div>
 </div>
 <div class="inline-state" hidden="" id="adminLoadState"></div>
 <div class="admin-note" hidden="" id="adminNote"></div>
@@ -502,7 +515,6 @@
 <div class="notification-device-card"><div class="notification-device-copy"><span class="notification-device-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg></span><div><strong>Thông báo trên thiết bị này</strong><p class="notification-device-status" id="notificationDeviceStatus">Đang kiểm tra trạng thái...</p></div></div><button class="btn btn-primary notification-toggle" id="notificationToggle" type="button">Bật thông báo</button></div>
 <div class="notification-toolbar"><strong>Lịch sử</strong><div><button class="notification-text-button" id="notificationMarkAllRead" type="button">Đánh dấu đã đọc</button><button class="notification-text-button is-danger" id="notificationClearHistory" type="button">Xóa lịch sử</button></div></div>
 <div class="notification-list" id="notificationList"></div>
-<div class="notification-footnote">Thông báo đẩy hoạt động qua OneSignal. Ứng dụng không lưu API Key hoặc khóa bí mật trên GitHub.</div>
 </div>
 </div>
 <div aria-hidden="true" class="loading-layer"><div class="loading-box"><span class="spinner"></span><span id="loadingText">Đang xử lý...</span></div></div>
