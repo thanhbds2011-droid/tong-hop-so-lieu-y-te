@@ -1974,3 +1974,266 @@ body.notification-open { overflow: hidden; }
   .header-actions { gap: 7px; }
   .notification-toolbar { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* ======================================================================
+   UI 9.8.0 — NAVY/WHITE PROFESSIONAL THEME + MODAL UX + MOBILE DRAWER
+   Visual layer only. Business Stable v1.0 schema/rules remain unchanged.
+   ====================================================================== */
+:root {
+  --color-primary: #173A5E;
+  --color-primary-hover: #0F2F4F;
+  --color-primary-strong: #0B2239;
+  --color-primary-soft: #EFF5FA;
+  --color-primary-soft-2: #E2EDF6;
+  --color-accent: #2D6B9F;
+  --color-bg: #F5F8FB;
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #F8FAFC;
+  --color-surface-muted: #F1F5F9;
+  --color-text: #0E1C2B;
+  --color-text-2: #334155;
+  --color-text-3: #64748B;
+  --color-border: #DCE5ED;
+  --color-border-strong: #C6D3DE;
+  --color-info: #285F8F;
+  --color-info-soft: #EDF5FB;
+  --ui-bg: #F5F8FB;
+  --ui-line: #DCE5ED;
+  --ui-line-soft: #EAF0F5;
+  --ui-ink: #0E1C2B;
+  --ui-muted: #64748B;
+  --shadow-sm: 0 1px 2px rgba(15,39,66,.035), 0 8px 22px rgba(15,39,66,.045);
+  --shadow-md: 0 16px 42px rgba(15,39,66,.12);
+  --shadow-lg: 0 28px 72px rgba(15,39,66,.18);
+}
+html, body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: Inter, "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+}
+::selection { background: #D9EAF7; color: #0B2239; }
+:focus-visible { outline-color: rgba(23,58,94,.42); }
+.app-header { color: var(--color-text); background: rgba(255,255,255,.985); border-bottom-color: var(--color-border); }
+.brand-org.brand-desktop, .brand-mobile, .brand-mobile-title { color: var(--color-text); }
+.brand-app.brand-desktop, .header-mobile-greeting:not([hidden]) { color: var(--color-text-3); }
+.header-actions .btn-light { color: var(--color-text-2); border-color: var(--color-border); background: #fff; }
+.header-actions .btn-light:hover { color: var(--color-primary-strong); border-color: #BFD0DF; background: #F8FBFD; }
+.btn-primary, .filter-apply-btn { color: #fff; border-color: var(--color-primary); background: var(--color-primary); box-shadow: 0 7px 18px rgba(23,58,94,.16); }
+.btn-primary:hover, .filter-apply-btn:hover { color: #fff; border-color: var(--color-primary-hover); background: var(--color-primary-hover); box-shadow: 0 9px 22px rgba(23,58,94,.22); }
+.btn-soft { color: var(--color-primary-strong); border-color: #C9D8E5; background: #F4F8FB; }
+.btn-soft:hover { border-color: #B7CBDC; background: #EAF2F8; }
+.page-heading h2, .report-head h2, .admin-head h2, h1, h2, h3, h4 { color: var(--color-text); }
+.page-subtitle, .page-heading p, .report-page-subtitle, .report-head p { color: var(--color-text-3); }
+.page-title-icon, .section-icon, .summary-icon, .dashboard-range-icon { color: #285F8F; background: #EDF5FB; box-shadow: inset 0 0 0 1px rgba(40,95,143,.08); }
+.page-title-icon.is-home { color: #173A5E; background: #EAF2F8; }
+.page-title-icon.is-entry { color: #315D78; background: #EEF5F8; }
+.page-title-icon.is-report { color: #285F8F; background: #EDF5FB; }
+.summary-item, .dashboard-filter-panel, .entry-simple-panel, .report-workspace, .page-card, .admin-card { border-color: var(--color-border); background: #fff; }
+.summary-number { color: var(--color-primary-strong); }
+.summary-copy h3 { color: #172A3D; }
+.summary-copy p { color: #64748B; }
+input, select, textarea { color: var(--color-text); border-color: #CCD8E2; background: #fff; }
+input:hover, select:hover, textarea:hover { border-color: #AFC2D2; }
+input:focus, select:focus, textarea:focus { border-color: #2D6B9F; box-shadow: 0 0 0 3px rgba(45,107,159,.12); }
+.notification-bell-button { color: #526477; border-color: var(--color-border); }
+.notification-bell-button:hover { color: var(--color-primary); border-color: #BFD0DF; background: #F4F8FB; }
+.notification-badge { background: #2563A1; }
+.nav-item:hover { color: var(--color-primary-strong); background: #F2F7FB; }
+.nav-item.active { color: var(--color-primary-strong); border-color: transparent; background: #EAF2F8; box-shadow: inset 3px 0 0 var(--color-primary); }
+.nav-item.active svg { color: #285F8F; }
+.journey-subtab.active, .journey-create-mode-btn.active, .report-mode-tab.active { color: var(--color-primary-strong) !important; border-color: #C9D8E5 !important; background: #F3F8FC !important; box-shadow: inset 0 -2px 0 var(--color-primary), 0 1px 3px rgba(15,39,66,.04) !important; }
+.journey-tab-badge { color: var(--color-primary-strong); background: #EAF2F8; }
+
+/* Mobile navigation drawer. Existing nav remains the desktop sidebar. */
+.mobile-nav-toggle, .mobile-nav-head, .mobile-nav-section-label, .mobile-nav-backdrop { display: none; }
+.mobile-nav-toggle, .mobile-nav-close {
+  border: 1px solid var(--color-border);
+  color: var(--color-text-2);
+  background: #fff;
+  cursor: pointer;
+}
+.mobile-nav-toggle { width: 42px; min-width: 42px; height: 42px; padding: 0; place-items: center; border-radius: 11px; }
+.mobile-nav-toggle svg { width: 21px; height: 21px; }
+.mobile-nav-close { width: 40px; min-width: 40px; height: 40px; border-radius: 10px; font-size: 24px; line-height: 1; }
+.mobile-nav-identity { min-width: 0; display: flex; align-items: center; gap: 11px; }
+.mobile-nav-identity img { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; }
+.mobile-nav-identity strong { display: block; color: var(--color-text); font-size: 16px; font-weight: 800; }
+.mobile-nav-identity span { display: block; max-width: 190px; margin-top: 2px; overflow: hidden; color: var(--color-text-3); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.mobile-nav-section-label { padding: 7px 8px 5px; color: #7A8A9A; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+
+/* Notification is a real in-app modal, never a right side sheet. */
+.notification-layer {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8,25,43,.42);
+  backdrop-filter: blur(5px);
+}
+.notification-panel {
+  width: min(680px, calc(100vw - 48px));
+  height: auto;
+  max-height: min(78dvh, 760px);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 32px 90px rgba(8,25,43,.25);
+}
+.notification-head { padding: 20px 22px 16px; border-bottom-color: var(--color-border); }
+.notification-head h3 { color: var(--color-text); font-size: 22px; }
+.notification-device-card { margin: 16px 18px 9px; border-color: #D6E2EC; background: #F7FAFC; }
+.notification-device-icon { color: var(--color-primary); background: #EAF2F8; }
+.notification-toolbar { padding: 11px 20px; border-bottom-color: var(--color-border); }
+.notification-list { flex: 1 1 auto; min-height: 180px; max-height: 52dvh; padding: 8px 14px 18px; overflow: auto; }
+.notification-item { border-bottom-color: #EAF0F5; }
+.notification-item:hover { background: #F6F9FC; }
+.notification-item.is-unread .notification-dot { background: #2D6B9F; }
+.notification-text-button:hover { color: var(--color-primary); }
+
+/* Confirmation dialogs always stay inside the app and centered. */
+#confirmLayer, #deleteDailyLayer { align-items: center !important; justify-content: center; padding: 20px !important; }
+#confirmLayer .confirm-card, #deleteDailyLayer .delete-daily-card {
+  width: min(520px, calc(100vw - 40px));
+  max-height: min(88dvh, 720px);
+  border: 1px solid var(--color-border);
+  border-radius: 18px !important;
+  overflow: auto;
+  box-shadow: 0 28px 80px rgba(8,25,43,.22);
+}
+#confirmLayer .confirm-card .confirm-actions, #deleteDailyLayer .confirm-actions {
+  position: static;
+  margin-bottom: 0;
+  border-radius: 0 0 18px 18px;
+}
+.confirm-icon { color: var(--color-primary); background: #EAF2F8; }
+#confirmLayer.is-danger .confirm-icon { color: var(--color-danger); background: var(--color-danger-soft); }
+
+/* Admin information architecture. */
+#adminView .page-card { padding: 20px; }
+.admin-overview-grid { margin-bottom: 16px; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+.admin-overview-card { min-height: 104px; padding: 14px 15px; display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--color-border); border-radius: 14px; background: #fff; box-shadow: var(--shadow-sm); }
+.admin-overview-card > span { color: #536779; font-size: 12px; font-weight: 760; }
+.admin-overview-card > strong { margin-top: 3px; color: var(--color-primary-strong); font-size: 27px; line-height: 1; font-weight: 850; letter-spacing: -.035em; }
+.admin-overview-card > small { margin-top: 7px; color: #7A8A9A; font-size: 10.5px; line-height: 1.35; }
+.admin-overview-card.is-pending > strong { color: #9A661A; }
+.admin-overview-card.is-active > strong { color: #196B5E; }
+.admin-overview-card.is-admin > strong { color: #285F8F; }
+.admin-tabs { padding: 5px; border-color: var(--color-border); background: #F2F6F9; }
+.admin-tab { color: #526477; font-weight: 760; }
+.admin-tab.active { color: var(--color-primary-strong); border-color: #C8D7E4; background: #fff; box-shadow: 0 5px 15px rgba(15,39,66,.07); }
+.admin-panel { margin-top: 16px; }
+.admin-user-filters { display: flex; align-items: end; gap: 10px; }
+.admin-status-filter { width: 170px; flex: 0 0 170px; }
+.admin-status-filter label { gap: 5px; }
+.admin-status-filter select { width: 100%; min-height: 42px; }
+.admin-account-card { border-color: var(--color-border) !important; box-shadow: 0 4px 16px rgba(15,39,66,.035) !important; }
+.admin-account-card.is-pending { border-left: 3px solid #C58A2D !important; }
+.admin-account-avatar { color: #1E5D87 !important; background: #EAF2F8 !important; }
+.admin-section-count, .summary-pill { color: var(--color-primary-strong); background: #EDF4F9; border-color: #D7E3EC; }
+.admin-note { border-left-color: #2D6B9F; background: #F2F7FB; color: #3B5368; }
+
+@media (max-width: 1023px) {
+  .mobile-nav-toggle { display: grid; }
+  .header-inner { gap: 9px; }
+  .brand { min-width: 0; flex: 1 1 auto; }
+  .app-shell { padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+  .nav {
+    display: flex !important;
+    position: fixed;
+    z-index: 520;
+    left: 0;
+    right: auto;
+    top: 0;
+    bottom: 0;
+    width: min(330px, 86vw);
+    height: 100dvh;
+    padding: 14px 12px calc(18px + env(safe-area-inset-bottom));
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 5px;
+    border: 0;
+    border-right: 1px solid var(--color-border);
+    border-radius: 0 18px 18px 0;
+    background: #fff;
+    box-shadow: 20px 0 60px rgba(8,25,43,.20);
+    backdrop-filter: none;
+    transform: translateX(-108%);
+    transition: transform .22s ease;
+    overflow-y: auto;
+  }
+  body.mobile-nav-open { overflow: hidden; }
+  body.mobile-nav-open .nav { transform: translateX(0); }
+  .mobile-nav-head { display: flex; min-height: 62px; margin-bottom: 6px; padding: 2px 2px 12px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); }
+  .mobile-nav-section-label { display: block; }
+  .nav-item { flex: 0 0 auto; width: 100%; min-height: 50px; padding: 10px 12px; flex-direction: row; justify-content: flex-start; gap: 12px; border-radius: 11px; font-size: 14px; font-weight: 720; }
+  .nav-item svg { width: 21px; height: 21px; }
+  .nav-item.active { box-shadow: inset 3px 0 0 var(--color-primary); }
+  .mobile-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 510;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(8,25,43,.42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease;
+  }
+  body.mobile-nav-open .mobile-nav-backdrop:not([hidden]) { opacity: 1; pointer-events: auto; }
+  body.keyboard-open .nav { display: flex !important; }
+  .toast { bottom: calc(22px + env(safe-area-inset-bottom)); }
+  .app-update-banner { bottom: calc(18px + env(safe-area-inset-bottom)); }
+  body:has(#reportsView.active[data-journey-view="create"]) .nav { display: flex !important; }
+}
+
+@media (max-width: 760px) {
+  :root { --header-height: 62px; }
+  body { background: #F5F8FB; }
+  .header-inner { padding: 8px 10px; }
+  .brand-mark { width: 38px; height: 38px; }
+  .mobile-nav-toggle { width: 40px; min-width: 40px; height: 40px; }
+  .header-actions { gap: 6px; }
+  .header-actions #btnTopLogout span { display: none; }
+  .header-actions #btnTopLogout { width: 42px; min-width: 42px; padding: 0; justify-content: center; }
+  .notification-bell-button { width: 42px; min-width: 42px; height: 42px; }
+  .app-shell { padding: 14px 11px calc(24px + env(safe-area-inset-bottom)); }
+  .notification-layer { align-items: center; padding: 10px; }
+  .notification-panel { width: calc(100vw - 20px); height: auto; max-height: calc(100dvh - 20px); border: 1px solid var(--color-border); border-radius: 18px; box-shadow: 0 24px 72px rgba(8,25,43,.24); }
+  .notification-head { padding: 16px 14px 13px; }
+  .notification-device-card { grid-template-columns: 1fr; margin: 10px 10px 6px; }
+  .notification-toolbar { padding-inline: 13px; }
+  .notification-list { min-height: 150px; max-height: 52dvh; }
+  #confirmLayer, #deleteDailyLayer { align-items: center !important; padding: 12px !important; }
+  #confirmLayer .confirm-card, #deleteDailyLayer .delete-daily-card { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); border-radius: 17px !important; border-bottom: 1px solid var(--color-border) !important; }
+  #confirmLayer .confirm-card { padding: 22px 18px; }
+  #confirmLayer .confirm-card .confirm-actions { position: static; margin: 18px -18px -22px; padding-bottom: 15px; border-radius: 0 0 17px 17px; }
+  #deleteDailyLayer .confirm-actions { position: static; padding-bottom: 14px; }
+  .admin-overview-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .admin-overview-card { min-height: 92px; padding: 12px; }
+  .admin-overview-card > strong { font-size: 24px; }
+  .admin-user-filters { width: 100%; display: grid; grid-template-columns: 1fr; gap: 9px; }
+  .admin-status-filter { width: 100%; flex-basis: auto; }
+  .admin-tabs { display: grid; grid-template-columns: 1fr; gap: 5px; overflow: visible; }
+  .admin-tab { width: 100%; text-align: left; }
+  #adminView .page-card { padding: 14px; }
+}
+
+
+/* 9.8.0 specificity guards against legacy pink selectors. */
+.admin-account-avatar { color: #1E5D87 !important; background: #EAF2F8 !important; }
+.admin-account-controls .btn-primary { color: #fff !important; border-color: var(--color-primary) !important; background: var(--color-primary) !important; }
+.admin-role-select:focus, .admin-report-role-select:focus { border-color: #2D6B9F !important; box-shadow: 0 0 0 3px rgba(45,107,159,.12) !important; }
+.journey-person-icon, .journey-section-icon { color: #285F8F !important; background: #EDF5FB !important; }
+.journey-card-details > summary, .journey-history-actions .small-btn { color: var(--color-primary-strong) !important; }
+.journey-history-actions .small-btn { border-color: #C9D8E5 !important; background: #F3F8FC !important; }
+.journey-history-actions .small-btn:hover { border-color: #AFC5D7 !important; background: #EAF2F8 !important; }
+.journey-create-mode-btn.active { color: var(--color-primary-strong) !important; border-color: #BFD0DF !important; }
+.report-preview-icon { color: #285F8F !important; background: #EDF5FB !important; }
+.login-close:hover { color: var(--color-primary) !important; border-color: #BFD0DF !important; background: #F4F8FB !important; }
+.login-logo-wrap { background: #EDF5FB !important; }
+.btn-login-primary, .btn-login-primary:hover { color: #fff !important; border-color: var(--color-primary) !important; background: var(--color-primary) !important; }
