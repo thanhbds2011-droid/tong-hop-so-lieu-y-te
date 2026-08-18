@@ -1,7 +1,7 @@
 {
-  "version": "9.6.1",
+  "version": "9.6.2",
   "releasedAt": "2026-08-18",
-  "title": "Startup Resilience 9.6.1",
+  "title": "CSP Connectivity Hotfix 9.6.2",
   "businessBaseline": "Business Stable v1.0",
-  "message": "Tối ưu khởi động: Tổng quan public không còn chờ Firebase Auth và lớp tải dữ liệu có giới hạn thời gian an toàn."
+  "message": "Hotfix Content Security Policy: cho phép Firebase Realtime Database long-poll/script fallback và OneSignal API theo đúng domain production; không thay đổi Business Logic, Database Rules hoặc phân quyền."
 }
