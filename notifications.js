@@ -1,6 +1,6 @@
 /*
  * OneSignal Web Push + Notification Center
- * Runtime 9.8.1
+ * Runtime 9.8.2
  *
  * - One source supports two GitHub Pages origins using separate OneSignal App IDs.
  * - OneSignal worker uses a dedicated sub-scope so it does not replace the PWA worker.
@@ -132,47 +132,62 @@
     el.textContent = safeText(text || '');
     el.className = 'notification-device-status' + (kind ? ' is-' + kind : '');
   }
-  function updateToggleButton(label, disabled) {
+  function setDeviceCardVisible(visible) {
+    const card = byId('notificationDeviceCard');
+    if (card) card.hidden = !visible;
+  }
+  function updateToggleButton(label, disabled, visible) {
     const btn = byId('notificationToggle');
     if (!btn) return;
     btn.textContent = label;
     btn.disabled = !!disabled;
+    btn.hidden = visible === false;
   }
 
   async function refreshPermissionUi() {
+    // Khối thiết lập chỉ dùng cho bước bật thông báo lần đầu.
+    // Sau khi thiết bị đã subscribed, khối này tự ẩn; người dùng tắt Push
+    // bằng cài đặt hệ điều hành/trình duyệt, không opt-out trong ứng dụng.
+    setDeviceCardVisible(true);
+
     if (!supportedHost) {
       setStatus('Thông báo chưa được cấu hình cho địa chỉ này.', 'warn');
-      updateToggleButton('Không khả dụng', true);
+      updateToggleButton('Không khả dụng', true, false);
       return;
     }
     const OneSignal = await ensureInit();
     if (!OneSignal) {
       setStatus('Chưa kết nối được dịch vụ thông báo. Ứng dụng vẫn sử dụng bình thường.', 'warn');
-      updateToggleButton('Thử lại', false);
+      updateToggleButton('Thử lại', false, true);
       return;
     }
     let pushSupported = false;
     try { pushSupported = !!OneSignal.Notifications.isPushSupported(); } catch (_) {}
     if (!pushSupported) {
       setStatus('Trình duyệt hoặc thiết bị này chưa hỗ trợ Web Push.', 'warn');
-      updateToggleButton('Không hỗ trợ', true);
+      updateToggleButton('Không hỗ trợ', true, false);
       return;
     }
+
     const nativePermission = (typeof Notification !== 'undefined') ? Notification.permission : 'default';
     const permission = !!OneSignal.Notifications.permission;
     const optedIn = !!(OneSignal.User && OneSignal.User.PushSubscription && OneSignal.User.PushSubscription.optedIn);
+
+    if (permission && optedIn) {
+      setDeviceCardVisible(false);
+      updateToggleButton('', true, false);
+      return;
+    }
+
     if (nativePermission === 'denied') {
-      setStatus('Thông báo đang bị chặn trong cài đặt trình duyệt. Hãy cho phép thông báo cho trang này rồi mở lại ứng dụng.', 'danger');
-      updateToggleButton('Đang bị chặn', true);
-    } else if (permission && optedIn) {
-      setStatus('Đang nhận thông báo trên thiết bị này.', 'ok');
-      updateToggleButton('Tắt thông báo', false);
+      setStatus('Thông báo đang tắt trong cài đặt thiết bị. Muốn bật lại, hãy mở Cài đặt > Thông báo của ứng dụng/trình duyệt.', 'danger');
+      updateToggleButton('', true, false);
     } else if (permission) {
-      setStatus('Quyền thông báo đã được cho phép nhưng thiết bị đang tạm ngừng nhận.', 'muted');
-      updateToggleButton('Bật thông báo', false);
+      setStatus('Thiết bị đã có quyền thông báo. Bấm Bật thông báo để khôi phục nhận Push.', 'muted');
+      updateToggleButton('Bật thông báo', false, true);
     } else {
       setStatus('Bật để nhận thông báo quan trọng ngay cả khi ứng dụng không mở.', 'muted');
-      updateToggleButton('Bật thông báo', false);
+      updateToggleButton('Bật thông báo', false, true);
     }
   }
 
@@ -398,14 +413,13 @@
     if (!OneSignal) { await refreshPermissionUi(); return; }
     try {
       if (!OneSignal.Notifications.isPushSupported()) { await refreshPermissionUi(); return; }
-      const optedIn = !!OneSignal.User.PushSubscription.optedIn;
-      if (optedIn) {
-        await OneSignal.User.PushSubscription.optOut();
-      } else {
-        if (!OneSignal.Notifications.permission) await OneSignal.Notifications.requestPermission();
-        if (OneSignal.Notifications.permission) await OneSignal.User.PushSubscription.optIn();
+      // Nút trong ứng dụng chỉ có chức năng BẬT. Không cho optOut từ UI.
+      // Khi muốn tắt, người dùng quản lý quyền tại Cài đặt của điện thoại/trình duyệt.
+      if (!OneSignal.Notifications.permission) await OneSignal.Notifications.requestPermission();
+      if (OneSignal.Notifications.permission && !OneSignal.User.PushSubscription.optedIn) {
+        await OneSignal.User.PushSubscription.optIn();
       }
-    } catch (error) { console.warn('OneSignal toggle push:', error); }
+    } catch (error) { console.warn('OneSignal enable push:', error); }
     await refreshPermissionUi();
   }
 

@@ -1977,7 +1977,7 @@ body.notification-open { overflow: hidden; }
 
 
 /* ======================================================================
-   UI 9.8.1 — PROFESSIONAL PINK THEME + NAVY INK
+   UI 9.8.2 — PROFESSIONAL PINK THEME + NAVY INK
    Giữ nguyên Modal UX + Mobile Drawer + Admin layout của 9.8.0.
    Chỉ khôi phục nhận diện hồng, đổi font chuyên nghiệp và chữ xanh đen.
    Business Stable v1.0 / Firebase schema / notification logic unchanged.
@@ -2296,3 +2296,11 @@ input:focus, select:focus, textarea:focus { border-color: #FF66B7; box-shadow: 0
 .login-close:hover { color: #A22767 !important; border-color: #EBC5D9 !important; background: #FFF7FB !important; }
 .login-logo-wrap { background: #FFF0F8 !important; }
 .btn-login-primary, .btn-login-primary:hover { color: #102A43 !important; border-color: #FF66B7 !important; background: #FF66B7 !important; }
+
+
+/* ============================================================
+   UI 9.8.2 — NOTIFICATION ONBOARDING-ONLY CONTROL
+   ============================================================ */
+.notification-device-card[hidden] + .notification-toolbar {
+  margin-top: 8px;
+}
