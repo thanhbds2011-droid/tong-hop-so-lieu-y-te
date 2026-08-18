@@ -391,8 +391,22 @@ const CREATE_FIELD_IDS = ['journeyPatient','journeyGender','journeyBirthYear','j
 const UPDATE_FIELD_IDS = ['journeyUpdateStatus','journeyUpdateDestination','journeyUpdateDestinationOther','journeyUpdateReason','journeyUpdateDiagnosis','journeyReturnCondition','journeyUpdateNote'];
 function isCreateDirty() { return !!state.createBaseline && formSignature(CREATE_FIELD_IDS) !== state.createBaseline; }
 function isUpdateDirty() { return !!state.updateBaseline && formSignature(UPDATE_FIELD_IDS) !== state.updateBaseline; }
-function confirmDiscard() {
-  return window.confirm('Bạn có thay đổi chưa lưu. Bạn có muốn bỏ các thay đổi này không?');
+async function confirmInApp(options) {
+  const ui = window.YTE_APP_UI;
+  if (!ui || typeof ui.confirm !== 'function') {
+    showToast('Không mở được cửa sổ xác nhận. Vui lòng thử lại.', 'err');
+    return false;
+  }
+  return ui.confirm(options || {});
+}
+async function confirmDiscard() {
+  return confirmInApp({
+    title: 'Bỏ thay đổi chưa lưu?',
+    message: 'Bạn có thay đổi chưa lưu. Nếu tiếp tục, nội dung đang nhập sẽ bị bỏ.',
+    confirmText: 'Bỏ thay đổi',
+    cancelText: 'Tiếp tục nhập',
+    danger: true
+  });
 }
 function setBodyModalState(open) {
   document.body.style.overflow = open ? 'hidden' : '';
@@ -836,9 +850,9 @@ function initializeActionPopoverPositioning() {
   });
 }
 
-function requestSubView(name) {
+async function requestSubView(name) {
   if (state.subView === 'create' && name !== 'create' && isCreateDirty()) {
-    if (!confirmDiscard()) return;
+    if (!(await confirmDiscard())) return;
     resetCreateForm();
   }
   setSubView(name);
@@ -1085,7 +1099,14 @@ async function deleteJourney(id) {
   }
   const item = findCase(id);
   if (!item) return;
-  if (!window.confirm(`Xóa hành trình chuyển viện của ${item.doiTuong || 'đối tượng'}? Bạn có chắc muốn tiếp tục?`)) return;
+  const confirmed = await confirmInApp({
+    title: 'Xóa hành trình chuyển viện?',
+    message: `Bạn có chắc muốn xóa hành trình của ${item.doiTuong || 'đối tượng'}? Dữ liệu sẽ rời danh sách chính nhưng vẫn được lưu vết để Quản trị kiểm tra.`,
+    confirmText: 'Xóa hành trình',
+    cancelText: 'Hủy',
+    danger: true
+  });
+  if (!confirmed) return;
   const user = auth.currentUser;
   if (!user) return;
   try {
@@ -1128,6 +1149,7 @@ async function deleteJourney(id) {
       createdAt: deletedAt
     };
     await update(ref(db), updates);
+    notifyBusinessEvent('TRANSFER_DELETED', id);
     showToast('Đã xóa hành trình và lưu bản lưu vết dành cho Quản trị.', 'ok');
     await loadJourneys(true);
   } catch (error) {
@@ -1187,8 +1209,8 @@ function updateUpdateFields() {
   }
 }
 
-function closeUpdateDialog(force = false) {
-  if (!force && isUpdateDirty() && !confirmDiscard()) return false;
+async function closeUpdateDialog(force = false) {
+  if (!force && isUpdateDirty() && !(await confirmDiscard())) return false;
   $('journeyUpdateLayer').hidden = true;
   setBodyModalState(false);
   state.selectedCase = null;
