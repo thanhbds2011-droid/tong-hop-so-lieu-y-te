@@ -1,7 +1,7 @@
 {
-  "version": "9.9.1",
-  "releasedAt": "2026-08-18",
-  "title": "Professional Popup & Mobile Report UI 9.9.1",
+  "version": "9.9.2",
+  "releasedAt": "2026-08-19",
+  "title": "Source Detail & Professional Mobile UX 9.9.2",
   "businessBaseline": "Business Stable v1.0 / Source of Truth 9.9.0",
-  "message": "Tinh chỉnh giao diện production: popup Yêu cầu kiểm tra số liệu được thiết kế lại theo dạng modal chuyên nghiệp, cân đối desktop/PWA; sửa tiêu đề Chuyển viện & tử vong bị bó hẹp trên mobile; tối ưu thanh hành động và bộ lọc lịch sử. Không thay đổi Firebase schema, Rules, Apps Script Gateway, OneSignal targeting hoặc nghiệp vụ nguồn dữ liệu."
+  "message": "Bổ sung xem chi tiết nguồn Chuyển viện/Tử vong cho tài khoản được cấp quyền; ADMIN là quyền cao nhất toàn ứng dụng; tối ưu Tổng quan, Lịch sử, Quản trị và Notification Center dạng popover; giữ Source of Truth, audit, deep-link và Realtime Database."
 }

@@ -1588,7 +1588,7 @@
 
 
 /* =====================================================================
-   PRODUCTION UI REFINEMENT 9.9.1
+   PRODUCTION UI REFINEMENT 9.9.2
    Review-request modal + mobile report hierarchy.
    UI-only: no Firebase schema, Rules, Gateway or business logic changes.
    ===================================================================== */
@@ -2049,4 +2049,70 @@
   .review-optional-badge { font-size: 10px; }
   .review-request-actions { padding-inline: 15px; }
   .review-request-actions .btn { min-width: 88px; }
+}
+
+/* =========================================================
+   Runtime 9.9.2 — Compact history filters
+   ========================================================= */
+.journey-history-filter-shell {
+  margin-bottom: 12px;
+  display: grid;
+  gap: 9px;
+}
+.journey-history-filter-shell .journey-history-search { width: 100%; min-width: 0; }
+.journey-history-advanced { min-width: 0; }
+.journey-history-advanced > summary {
+  display: none;
+  min-height: 42px;
+  padding: 8px 11px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  list-style: none;
+  color: #40566b;
+  border: 1px solid #e5dde3;
+  border-radius: 11px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.journey-history-advanced > summary::-webkit-details-marker { display: none; }
+.journey-filter-chevron { transition: transform .15s ease; }
+.journey-history-advanced[open] .journey-filter-chevron { transform: rotate(180deg); }
+.journey-history-advanced .journey-history-filters {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(145px,.75fr) minmax(145px,.75fr) minmax(190px,1fr) auto;
+  align-items: end;
+  gap: 9px;
+}
+.journey-history-filter-actions { display: flex; align-items: center; gap: 7px; }
+.journey-history-filter-actions .journey-history-clear { white-space: nowrap; }
+.journey-history-filter-actions .journey-reload-btn { flex: 0 0 auto; }
+
+@media (max-width: 760px) {
+  .journey-history-filter-shell { margin: 0 0 10px; gap: 8px; }
+  .journey-history-advanced > summary { display: flex; }
+  .journey-history-advanced[open] > summary { border-color: #edc7da; background: #fff7fb; color: #b92f77; }
+  .journey-history-advanced .journey-history-filters {
+    margin-top: 7px;
+    padding: 10px;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    border: 1px solid #eadfe7;
+    border-radius: 12px;
+    background: #fbfafb;
+  }
+  .journey-history-advanced .journey-history-status-field { grid-column: 1 / -1 !important; }
+  .journey-history-filter-actions { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,1fr) 44px; }
+  .journey-history-filter-actions .journey-history-clear { width: 100% !important; }
+  .journey-history-filter-actions .journey-reload-btn { width: 44px !important; min-width: 44px; }
+  .journey-history-search input { min-height: 44px; }
+}
+
+@media (max-width: 350px) {
+  .journey-history-advanced .journey-history-filters { grid-template-columns: 1fr !important; }
+  .journey-history-advanced .journey-history-status-field,
+  .journey-history-filter-actions { grid-column: 1 !important; }
 }

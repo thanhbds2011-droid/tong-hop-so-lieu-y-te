@@ -191,18 +191,50 @@
     }
   }
 
-  function openPanel() {
+  function positionPanel() {
     const layer = byId('notificationLayer');
+    const panel = layer && layer.querySelector('.notification-panel');
+    const bell = byId('btnNotificationCenter');
+    if (!layer || layer.hidden || !panel || !bell) return;
+    const viewportWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const viewportHeight = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+    const bellRect = bell.getBoundingClientRect();
+    const mobile = viewportWidth <= 760;
+    if (mobile) {
+      const header = document.querySelector('.app-header, .header, header');
+      const headerRect = header ? header.getBoundingClientRect() : bellRect;
+      panel.style.left = '10px';
+      panel.style.right = '10px';
+      panel.style.width = 'auto';
+      panel.style.top = Math.max(8, Math.round(headerRect.bottom + 8)) + 'px';
+      panel.style.maxHeight = Math.max(280, Math.round(viewportHeight - headerRect.bottom - 20)) + 'px';
+      return;
+    }
+    const width = Math.min(430, viewportWidth - 24);
+    const left = Math.max(12, Math.min(viewportWidth - width - 12, bellRect.right - width));
+    panel.style.width = width + 'px';
+    panel.style.left = Math.round(left) + 'px';
+    panel.style.right = 'auto';
+    panel.style.top = Math.round(bellRect.bottom + 9) + 'px';
+    panel.style.maxHeight = Math.max(340, Math.min(680, Math.round(viewportHeight - bellRect.bottom - 24))) + 'px';
+  }
+  function openPanel(event) {
+    if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+    const layer = byId('notificationLayer');
+    const bell = byId('btnNotificationCenter');
     if (!layer || !currentUid()) return;
+    if (!layer.hidden) { closePanel(); return; }
     layer.hidden = false;
-    document.body.classList.add('notification-open');
+    if (bell) bell.setAttribute('aria-expanded', 'true');
     renderHistory();
     refreshPermissionUi();
+    requestAnimationFrame(positionPanel);
   }
   function closePanel() {
     const layer = byId('notificationLayer');
+    const bell = byId('btnNotificationCenter');
     if (layer) layer.hidden = true;
-    document.body.classList.remove('notification-open');
+    if (bell) bell.setAttribute('aria-expanded', 'false');
   }
 
   function savePendingRoute(data) {
@@ -465,7 +497,14 @@
     const list = byId('notificationList');
     if (open) open.addEventListener('click', openPanel);
     if (close) close.addEventListener('click', closePanel);
-    if (layer) layer.addEventListener('click', function (event) { if (event.target === layer) closePanel(); });
+    document.addEventListener('pointerdown', function (event) {
+      if (!layer || layer.hidden) return;
+      const panel = layer.querySelector('.notification-panel');
+      if ((panel && panel.contains(event.target)) || (open && open.contains(event.target))) return;
+      closePanel();
+    });
+    window.addEventListener('resize', positionPanel);
+    window.addEventListener('scroll', positionPanel, true);
     if (toggle) toggle.addEventListener('click', togglePush);
     if (markAll) markAll.addEventListener('click', markAllRead);
     if (clear) clear.addEventListener('click', clearHistory);

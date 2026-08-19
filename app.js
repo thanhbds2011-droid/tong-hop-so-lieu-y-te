@@ -377,6 +377,49 @@ async function resolveApplicationAccess(user, profile) {
   if (permission) permission.displayName = preferredName;
   if (reportPermission) reportPermission.displayName = preferredName;
   const reportActive = validModulePermission(reportPermission);
+  const globalAdmin = ownerUser(user) ||
+    (validModulePermission(permission) && permission.role === 'admin') ||
+    (validModulePermission(reportPermission) && reportPermission.role === 'admin');
+
+  // v9.9.2: admin là quyền cao nhất toàn Ứng dụng Phòng Y tế.
+  // Không nhân bản quyền trong database: nếu admin chỉ tồn tại ở một phân hệ,
+  // frontend tạo quyền hiệu lực (synthetic) cho phân hệ còn lại trong phiên hiện tại.
+  if (globalAdmin) {
+    const effectivePermission = (validModulePermission(permission) && permission.role === 'admin')
+      ? permission
+      : {
+          email: normalizeEmail(user.email),
+          displayName: preferredName || user.displayName || user.email || '',
+          role: 'admin',
+          active: true,
+          source: 'GLOBAL_ADMIN_EFFECTIVE'
+        };
+    return {
+      success: true,
+      active: true,
+      tongHopActive: true,
+      authenticated: true,
+      pending: false,
+      token: 'FIREBASE_AUTH',
+      authUser: {
+        uid: user.uid,
+        email: normalizeEmail(user.email),
+        name: preferredName || user.displayName || user.email || '',
+        provider: providerId(user)
+      },
+      user: permissionToUser(user, effectivePermission),
+      reportPermission: (validModulePermission(reportPermission) && reportPermission.role === 'admin')
+        ? reportPermission
+        : {
+            email: normalizeEmail(user.email),
+            displayName: preferredName || user.displayName || user.email || '',
+            role: 'admin',
+            active: true,
+            source: 'GLOBAL_ADMIN_EFFECTIVE'
+          },
+      categories: await readPrivateCategories(true)
+    };
+  }
 
   if (permission && ['admin', 'nhaplieu', 'viewer'].includes(permission.role)) {
     const appUser = permissionToUser(user, permission);
@@ -489,16 +532,34 @@ async function requireAppUser(requiredRole) {
   await authReady;
   const user = firebaseAuth.currentUser;
   if (!user) throw new Error('Vui lòng đăng nhập.');
-  const permission = await getOwnPermission(user);
-  if (!permission || permission.active !== true || !['admin', 'nhaplieu'].includes(permission.role)) {
-    throw new Error('Tài khoản chưa được cấp quyền Tổng hợp Y tế hoặc đã bị khóa.');
+  const [permission, reportPermission] = await Promise.all([getOwnPermission(user), getOwnReportPermission(user)]);
+  const globalAdmin = ownerUser(user) ||
+    (validModulePermission(permission) && permission.role === 'admin') ||
+    (validModulePermission(reportPermission) && reportPermission.role === 'admin');
+  const tongHopEditor = validModulePermission(permission) && ['admin', 'nhaplieu'].includes(permission.role);
+  if (!globalAdmin && !tongHopEditor) {
+    throw new Error('Tài khoản chưa được cấp quyền nhập liệu Tổng hợp Y tế hoặc đã bị khóa.');
   }
-  if (requiredRole === 'admin' && permission.role !== 'admin' && !ownerUser(user)) {
-    throw new Error('Bạn không có quyền Quản trị Tổng hợp Y tế.');
+  if (requiredRole === 'admin' && !globalAdmin) {
+    throw new Error('Bạn không có quyền Quản trị hệ thống.');
   }
-  user.appRole = permission.role;
-  user.appPermission = { ...permission, displayName: await preferredDisplayNameForUid(user.uid, permission.displayName || user.displayName || user.email || '') };
+  const preferredName = await preferredDisplayNameForUid(user.uid,
+    (permission && permission.displayName) || (reportPermission && reportPermission.displayName) || user.displayName || user.email || '');
+  user.appRole = globalAdmin ? 'admin' : permission.role;
+  user.appPermission = globalAdmin
+    ? { email: normalizeEmail(user.email), displayName: preferredName, role: 'admin', active: true, source: 'GLOBAL_ADMIN_EFFECTIVE' }
+    : { ...permission, displayName: preferredName };
   return user;
+}
+
+async function requireAnyYteViewer() {
+  await authReady;
+  const user = firebaseAuth.currentUser;
+  if (!user) throw new Error('Vui lòng đăng nhập để xem dữ liệu chi tiết.');
+  const [tongHopPermission, reportPermission] = await Promise.all([getOwnPermission(user), getOwnReportPermission(user)]);
+  const allowed = ownerUser(user) || validModulePermission(tongHopPermission) || validModulePermission(reportPermission);
+  if (!allowed) throw new Error('Tài khoản chưa được cấp quyền xem dữ liệu chi tiết.');
+  return { user, tongHopPermission, reportPermission };
 }
 
 async function readPublicCategories() {
@@ -560,6 +621,97 @@ async function getDashboardDataFirebase(filter) {
   });
   const merged = mergeDerivedRangeRecords(records, categories, transferRaw, deathRaw, from, to);
   return { success: true, from, to, categories, records: merged, generatedAt: formatDateTime(new Date()) };
+}
+
+function journeyStatusLabel(value) {
+  const labels = {
+    DANG_THEO_DOI: 'Đang theo dõi',
+    TAI_KHAM: 'Tái khám',
+    DANG_DIEU_TRI: 'Đang điều trị',
+    CHUYEN_TIEP_BENH_VIEN_KHAC: 'Chuyển tiếp bệnh viện khác',
+    TU_VONG_TAI_BENH_VIEN: 'Tử vong tại bệnh viện',
+    TU_VONG_TAI_NOI_KHAC: 'Tử vong tại nơi khác',
+    DA_VE_TRUNG_TAM: 'Đã về Trung tâm'
+  };
+  return labels[String(value || '')] || 'Đang cập nhật';
+}
+
+function sourceCaseIdFromMarker(markerKey, kind) {
+  const key = String(markerKey || '');
+  if (!key) return '';
+  if (kind === 'death') {
+    if (/^CENTER_/i.test(key)) return '';
+    return key.replace(/^(HOSP_|OTHER_)/i, '');
+  }
+  return key;
+}
+
+async function getDerivedSourceDetailsFirebase(filter) {
+  await requireAnyYteViewer();
+  const kind = String(filter && filter.kind || '').toLowerCase();
+  const from = String(filter && filter.from || '');
+  const to = String(filter && filter.to || '');
+  if (!['transfer', 'death'].includes(kind)) throw new Error('Loại dữ liệu nguồn không hợp lệ.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) {
+    throw new Error('Khoảng thời gian không hợp lệ.');
+  }
+  const statsPath = kind === 'death' ? 'tuVongTheoNgay' : 'chuyenVienTheoNgay';
+  const statsQuery = query(ref(firebaseDatabase, `${PUBLIC_REPORT_STATS_ROOT}/${statsPath}`), orderByKey(), startAt(from), endAt(to));
+  const stats = snapshotObject(await get(statsQuery));
+  const markers = [];
+  Object.keys(stats).sort().forEach((date) => {
+    const day = stats[date] || {};
+    Object.keys(day).forEach((markerKey) => {
+      const active = day[markerKey] === true || day[markerKey] === 1 || day[markerKey] === '1';
+      if (!active) return;
+      const caseId = sourceCaseIdFromMarker(markerKey, kind);
+      if (!caseId) return;
+      markers.push({ date, markerKey, caseId });
+    });
+  });
+  const uniqueIds = Array.from(new Set(markers.map((item) => item.caseId)));
+  const casePairs = await Promise.all(uniqueIds.map(async (caseId) => {
+    try {
+      const snap = await get(ref(firebaseDatabase, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}`));
+      return [caseId, snap.exists() ? (snap.val() || {}) : null];
+    } catch (error) {
+      if (/PERMISSION_DENIED|permission_denied/i.test(String(error && error.message || error))) throw error;
+      console.warn('Không đọc được hồ sơ nguồn:', caseId, error);
+      return [caseId, null];
+    }
+  }));
+  const caseMap = new Map(casePairs);
+  const rows = markers.map((marker) => {
+    const raw = caseMap.get(marker.caseId) || {};
+    const info = raw.thongTin && typeof raw.thongTin === 'object' ? raw.thongTin : {};
+    if (!Object.keys(info).length) return null;
+    const stagesRaw = raw.chang && typeof raw.chang === 'object' ? raw.chang : {};
+    const stages = Object.keys(stagesRaw).map((id) => ({ id, ...(stagesRaw[id] || {}) }))
+      .sort((a, b) => Number(a.thuTu || 0) - Number(b.thuTu || 0));
+    const first = stages[0] || {};
+    const last = stages[stages.length - 1] || {};
+    const status = String(info.trangThaiHienTai || '');
+    const isOtherDeath = /^OTHER_/i.test(marker.markerKey) || status === 'TU_VONG_TAI_NOI_KHAC';
+    const isHospitalDeath = /^HOSP_/i.test(marker.markerKey) || status === 'TU_VONG_TAI_BENH_VIEN';
+    return {
+      id: marker.caseId,
+      markerKey: marker.markerKey,
+      kind,
+      name: String(info.doiTuong || 'Đối tượng'),
+      birthYear: info.namSinh == null ? '' : String(info.namSinh),
+      gender: String(info.gioiTinh || ''),
+      date: marker.date,
+      from: String(first.noiDi || info.noiDiBanDau || 'Trung tâm Bảo trợ xã hội Tân Hiệp'),
+      to: String(first.noiDen || info.noiHienTai || ''),
+      currentPlace: String(info.noiHienTai || last.noiDen || ''),
+      status,
+      statusLabel: journeyStatusLabel(status),
+      deathType: kind === 'death' ? (isOtherDeath ? 'Tử vong tại nơi khác' : isHospitalDeath ? 'Tử vong tại bệnh viện' : 'Tử vong') : '',
+      deathPlace: kind === 'death' ? String(info.noiTuVong || last.noiDen || info.noiHienTai || '') : ''
+    };
+  }).filter(Boolean);
+  rows.sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.name).localeCompare(String(b.name), 'vi'));
+  return { success: true, kind, from, to, rows };
 }
 
 async function getDailyDataFirebase(dateValue) {
@@ -1294,6 +1446,7 @@ async function firebaseCall(name, ...args) {
     case 'restoreSession': return restoreSessionFirebase();
     case 'googleLoginAccount': return loginGoogleFirebase();
     case 'logoutSession': return logoutFirebase();
+    case 'getDerivedSourceDetails': return getDerivedSourceDetailsFirebase(args[0]);
     case 'getDailyData': return getDailyDataFirebase(args[0]);
     case 'adjustDailyData': return adjustDailyDataFirebase(args[0]);
     case 'deleteDailyData': return deleteDailyDataFirebase(args[0]);
@@ -1451,13 +1604,14 @@ var AUTO_SYNC_MS = 300000;
       var parts=text.split(' ').filter(Boolean);
       return parts.length?parts[parts.length-1]:'bạn';
     }
-    function hasReportAccess(){return!!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(state.reportPermission.role)>=0)}
     function isTongHopAdmin(){return!!(state.user&&state.user.role==='Quản trị')}
-    function canInputTongHop(){return!!(state.user&&state.user.role!=='Xem')}
     function isReportAdmin(){return!!(state.reportPermission&&state.reportPermission.active===true&&state.reportPermission.role==='admin')}
     function isOwnerAdmin(){return!!(state.authUser&&normalizeEmail(state.authUser.email)===OWNER_EMAIL)}
     function isAnyAppAdmin(){return isOwnerAdmin()||isTongHopAdmin()||isReportAdmin()}
-    function canManageReportPermissionsUi(){return isOwnerAdmin()||isTongHopAdmin()||isReportAdmin()}
+    function hasReportAccess(){return isAnyAppAdmin()||!!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu','viewer'].indexOf(state.reportPermission.role)>=0)}
+    function canInputTongHop(){return isAnyAppAdmin()||!!(state.user&&state.user.role==='Nhập liệu')}
+    function canViewDerivedDetails(){return!!state.authUser&&(isAnyAppAdmin()||!!state.user||hasReportAccess())}
+    function canManageReportPermissionsUi(){return isAnyAppAdmin()}
 
     function defaultPrivateView(){
       if(state.user)return 'dashboard';
@@ -1534,11 +1688,41 @@ var AUTO_SYNC_MS = 300000;
       var recorded=recordedCodeMap();
       var categories=selectedCategories().filter(function(c){return !!recorded[c.code]||!!c.derivedKind});
       if(!categories.length){$('summaryCards').innerHTML='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có số liệu trong phạm vi này.</strong><span>Chọn thời gian khác hoặc nhập số liệu khi có phát sinh.</span></div>';return}
+      var canSeeSource=canViewDerivedDetails();
       $('summaryCards').innerHTML=categories.map(function(c){
         var value=Number(totals[c.code]||0);
         var chip=c.derivedKind?'<span class="status-chip is-auto" title="Số liệu được đồng bộ từ phân hệ Báo cáo và không sửa trực tiếp tại Tổng hợp">Tự động từ Báo cáo</span>':'';
-        return'<article class="summary-item summary-recorded-item'+(c.derivedKind?' is-auto-derived':'')+'">'+uiMetricIcon(c)+'<div class="summary-copy"><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+'</p></div><div class="summary-value"><span class="summary-number">'+value.toLocaleString('vi-VN')+'</span><span class="summary-unit">'+esc(c.unit)+'</span>'+chip+'</div></article>';
+        var detail=(c.derivedKind&&canSeeSource&&value>0)?'<button class="summary-source-detail-btn" data-source-kind="'+esc(c.derivedKind)+'" type="button"><span>Xem chi tiết</span><strong>'+value.toLocaleString('vi-VN')+' '+esc(c.unit)+'</strong><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>':'';
+        return'<article class="summary-item summary-recorded-item'+(c.derivedKind?' is-auto-derived':'')+'">'+uiMetricIcon(c)+'<div class="summary-copy"><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+'</p></div><div class="summary-value"><span class="summary-number">'+value.toLocaleString('vi-VN')+'</span><span class="summary-unit">'+esc(c.unit)+'</span>'+chip+'</div>'+detail+'</article>';
       }).join('');
+    }
+
+    function closeSourceDetail(){
+      var layer=$('sourceDetailLayer');if(!layer||layer.hidden)return;layer.hidden=true;document.body.style.overflow='';
+    }
+    function renderSourceDetailRows(kind,rows){
+      var list=$('sourceDetailList');if(!list)return;
+      if(!rows.length){list.innerHTML='<div class="source-detail-empty"><strong>Không có hồ sơ nguồn trong phạm vi này.</strong><span>Số liệu sẽ xuất hiện khi phân hệ Báo cáo có phát sinh hợp lệ.</span></div>';return}
+      list.innerHTML=rows.map(function(item,index){
+        var profile=[item.gender,item.birthYear?'Sinh '+item.birthYear:''].filter(Boolean).join(' · ');
+        var detail=kind==='death'
+          ? '<div class="source-detail-route is-death"><strong>'+esc(item.deathType||'Tử vong')+'</strong><span>'+esc(item.deathPlace||'Chưa ghi rõ nơi tử vong')+'</span></div>'
+          : '<div class="source-detail-route"><span>'+esc(item.from||'Trung tâm')+'</span><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg><strong>'+esc(item.to||item.currentPlace||'Chưa ghi rõ nơi đến')+'</strong></div>';
+        var current=(kind==='transfer'&&item.currentPlace&&item.currentPlace!==item.to)?'<div class="source-detail-status"><span>Hiện tại</span><strong>'+esc(item.currentPlace)+'</strong></div>':'';
+        return'<article class="source-detail-item"><div class="source-detail-index">'+(index+1)+'</div><div class="source-detail-main"><div class="source-detail-name-row"><div><h4>'+esc(item.name)+'</h4><p>'+esc(profile||'Thông tin đối tượng')+'</p></div><time>'+esc(fmtDate(item.date))+'</time></div>'+detail+current+'<div class="source-detail-status"><span>Trạng thái</span><strong>'+esc(item.statusLabel||'Đang cập nhật')+'</strong></div></div></article>';
+      }).join('');
+    }
+    async function openSourceDetail(kind){
+      if(!canViewDerivedDetails()){message('Vui lòng đăng nhập bằng tài khoản đã được cấp quyền để xem chi tiết.','err');return}
+      var range;try{range=getRange()}catch(error){message(error.message||String(error),'err');return}
+      var layer=$('sourceDetailLayer'),title=kind==='death'?'Chi tiết Tử vong':'Chi tiết Chuyển viện';
+      $('sourceDetailTitle').textContent=title;$('sourceDetailSubtitle').textContent=range.label;$('sourceDetailCount').textContent='Đang tải…';
+      $('sourceDetailState').hidden=false;$('sourceDetailState').className='inline-state';$('sourceDetailState').innerHTML='<span class="spinner"></span><span>Đang đọc dữ liệu nguồn từ Báo cáo…</span>';$('sourceDetailList').innerHTML='';
+      $('sourceDetailOpenReports').hidden=!hasReportAccess();layer.hidden=false;document.body.style.overflow='hidden';
+      try{
+        var result=await call('getDerivedSourceDetails',{kind:kind,from:range.from,to:range.to});
+        var rows=result.rows||[];$('sourceDetailCount').textContent=rows.length.toLocaleString('vi-VN')+' trường hợp';$('sourceDetailState').hidden=true;renderSourceDetailRows(kind,rows);
+      }catch(error){$('sourceDetailCount').textContent='Không tải được';$('sourceDetailState').hidden=false;$('sourceDetailState').className='inline-state err';$('sourceDetailState').textContent=error.message||'Không thể đọc dữ liệu nguồn.';}
     }
 
     function previewSummaryReport(){
@@ -1572,14 +1756,15 @@ var AUTO_SYNC_MS = 300000;
       if(!window.YTE_NOTIFICATIONS)return;
       var authenticated=!!state.authUser,hasReport=hasReportAccess(),hasAccess=!!state.user||hasReport;
       if(!authenticated||!hasAccess){window.YTE_NOTIFICATIONS.clearUser().catch(function(){});return;}
-      var tongHopRole=state.user?dbRole(state.user.role):'none';
-      var reportRole=(state.reportPermission&&state.reportPermission.active===true)?String(state.reportPermission.role||'none'):'none';
+      var globalAdmin=isAnyAppAdmin();
+      var tongHopRole=globalAdmin?'admin':state.user?dbRole(state.user.role):'none';
+      var reportRole=globalAdmin?'admin':(state.reportPermission&&state.reportPermission.active===true)?String(state.reportPermission.role||'none'):'none';
       window.YTE_NOTIFICATIONS.syncUser({uid:state.authUser.uid,tongHopRole:tongHopRole,reportRole:reportRole}).catch(function(error){console.warn('Đồng bộ thông báo:',error)});
     }
 
     function updateAuthUi(){
       var authenticated=!!state.authUser,loggedIn=!!state.user,isAdmin=isAnyAppAdmin(),canInput=canInputTongHop();
-      var tongHopAdmin=isTongHopAdmin()||isOwnerAdmin(),reportAdmin=canManageReportPermissionsUi();
+      var tongHopAdmin=isAnyAppAdmin(),reportAdmin=canManageReportPermissionsUi();
       var hasReport=hasReportAccess();
       var hasAnyAccess=loggedIn||hasReport;
       if($('mobileNavToggle'))$('mobileNavToggle').hidden=!hasAnyAccess;
@@ -1589,7 +1774,7 @@ var AUTO_SYNC_MS = 300000;
       var shortGreetingName=friendlyGivenName(fullGreetingName);
       if($('headerGreeting')){$('headerGreeting').hidden=!authenticated;$('headerGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('headerGreeting').title=fullGreetingName;}
       if($('mobileGreeting')){$('mobileGreeting').hidden=!authenticated;$('mobileGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('mobileGreeting').title=fullGreetingName;}
-      if($('mobileNavUser')){$('mobileNavUser').textContent=authenticated?fullGreetingName:'Menu chức năng';$('mobileNavUser').title=fullGreetingName;}
+      if($('mobileNavUser')){$('mobileNavUser').textContent=authenticated?fullGreetingName:'Tài khoản';$('mobileNavUser').title=fullGreetingName;}
       if($('btnSync'))$('btnSync').hidden=authenticated&&!loggedIn;
       if($('navDashboard'))$('navDashboard').hidden=authenticated&&!loggedIn&&!hasReport;
       $('navEntry').hidden=!canInput;$('navAdmin').hidden=!isAdmin;
@@ -2114,7 +2299,7 @@ var AUTO_SYNC_MS = 300000;
       state.adminPromise=(async function(){try{var result=await call('getAdminUsers',state.token);state.adminUsers=result.users||[];state.adminLoadedAt=Date.now();renderAdminUsers();$('adminLoadState').hidden=true;$('adminLoadState').textContent=''}catch(error){$('adminLoadState').hidden=false;$('adminLoadState').className='inline-state err';$('adminLoadState').textContent=error.message||String(error);$('adminUsers').innerHTML='<div class="empty">Không thể tải danh sách tài khoản. Vui lòng thử lại.</div>'}finally{state.adminPromise=null}})();return state.adminPromise;
     }
     function showAdminSection(name){
-      var canTongHop=isTongHopAdmin()||isOwnerAdmin(),canReport=canManageReportPermissionsUi();
+      var canTongHop=isAnyAppAdmin(),canReport=canManageReportPermissionsUi();
       if($('adminUsersTab'))$('adminUsersTab').hidden=!canTongHop;
       if($('adminCategoriesTab'))$('adminCategoriesTab').hidden=!canTongHop;
       if($('adminReportPermissionsTab'))$('adminReportPermissionsTab').hidden=!canReport;
@@ -2133,8 +2318,8 @@ var AUTO_SYNC_MS = 300000;
       $('adminReportCount').textContent=state.adminReportUsers.length+' tài khoản';
       if(!rows.length){$('adminReportUsers').innerHTML='<div class="empty">Không có tài khoản phù hợp.</div>';return}
       var currentUid=state.authUser&&state.authUser.uid?state.authUser.uid:'';
-      var canChangeSelf=isTongHopAdmin()||isOwnerAdmin();
-      var canDeleteAppUser=isTongHopAdmin()||isOwnerAdmin();
+      var canChangeSelf=isAnyAppAdmin();
+      var canDeleteAppUser=isAnyAppAdmin();
       var pendingRows=rows.filter(function(user){return!user.active});
       var grantedRows=rows.filter(function(user){return user.active});
       function avatarText(user){var name=String(user.name||user.email||'?').trim();return esc((name.charAt(0)||'?').toUpperCase())}
@@ -2275,18 +2460,20 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.9.1'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.9.2'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
       $('btnGoogleLogin').onclick=loginGoogle;
       if($('btnLoginClose'))$('btnLoginClose').onclick=function(){showView('dashboard')};
       if($('btnPreviewSummary'))$('btnPreviewSummary').onclick=previewSummaryReport;
+      if($('summaryCards'))$('summaryCards').addEventListener('click',function(event){var button=event.target.closest('.summary-source-detail-btn');if(button)openSourceDetail(button.getAttribute('data-source-kind'))});
+      if($('sourceDetailClose'))$('sourceDetailClose').onclick=closeSourceDetail;if($('sourceDetailCloseBottom'))$('sourceDetailCloseBottom').onclick=closeSourceDetail;if($('sourceDetailLayer'))$('sourceDetailLayer').addEventListener('click',function(event){if(event.target===$('sourceDetailLayer'))closeSourceDetail()});if($('sourceDetailOpenReports'))$('sourceDetailOpenReports').onclick=function(){closeSourceDetail();showView('reports')};
       $('confirmAccept').onclick=function(){closeConfirm(true)};$('confirmCancel').onclick=function(){closeConfirm(false)};$('confirmLayer').addEventListener('click',function(event){if(event.target===$('confirmLayer'))closeConfirm(false)});
       $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});$('reviewRequestCancel').onclick=closeReviewRequestDialog;$('reviewRequestCloseX').onclick=closeReviewRequestDialog;$('reviewRequestSend').onclick=submitReviewRequest;$('reviewRequestLayer').addEventListener('click',function(event){if(event.target===$('reviewRequestLayer'))closeReviewRequestDialog()});
       $('dataHistoryClose').onclick=closeDataHistoryDialog;$('dataHistoryFooterClose').onclick=closeDataHistoryDialog;$('dataHistoryLayer').addEventListener('click',function(event){if(event.target===$('dataHistoryLayer'))closeDataHistoryDialog()});$('deleteDailyCancel').onclick=closeDeleteDailyDialog;$('deleteDailyAccept').onclick=submitDeleteDaily;$('deleteDailyLayer').addEventListener('click',function(event){if(event.target===$('deleteDailyLayer'))closeDeleteDailyDialog()});
       $('categoryCancel').onclick=closeCategoryDialog;$('categorySave').onclick=submitCategory;$('categoryLayer').addEventListener('click',function(event){if(event.target===$('categoryLayer'))closeCategoryDialog()});
-      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if(!$('deleteDailyLayer').hidden)closeDeleteDailyDialog();else if(!$('dataHistoryLayer').hidden)closeDataHistoryDialog();else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('reviewRequestLayer').hidden)closeReviewRequestDialog();else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
+      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if($('sourceDetailLayer')&&!$('sourceDetailLayer').hidden)closeSourceDetail();else if(!$('deleteDailyLayer').hidden)closeDeleteDailyDialog();else if(!$('dataHistoryLayer').hidden)closeDataHistoryDialog();else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('reviewRequestLayer').hidden)closeReviewRequestDialog();else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
       window.addEventListener('beforeunload',function(event){if(!quickEntryDirty())return;event.preventDefault();event.returnValue=''});
       $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;
       $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openReviewRequestDialog(code);else openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(code&&!(category&&category.derivedKind))openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});

@@ -18,6 +18,7 @@ import { openReportPreview } from './report-preview.js';
 const CFG = window.YTE_APP_CONFIG || {};
 const OWNER_EMAIL = String(CFG.OWNER_EMAIL || '').trim().toLowerCase();
 const REPORT_ROOT = 'baoCaoYTe';
+const TONG_HOP_ROOT = 'tongHopYTe';
 const YTE_APP_ROOT = 'yTeApp';
 const REVIEW_ROOT = `${YTE_APP_ROOT}/yeuCauDoiSoat`;
 const CENTER_NAME = 'Trung tâm Bảo trợ xã hội Tân Hiệp';
@@ -34,6 +35,7 @@ const db = getDatabase(app);
 
 const state = {
   permission: null,
+  tongHopPermission: null,
   subView: 'tracking',
   openCases: [],
   closedCases: [],
@@ -101,7 +103,7 @@ function preferredName(uid, fallback) {
 function currentDisplayName() {
   const user = auth.currentUser;
   if (!user) return '—';
-  return preferredName(user.uid, (state.permission && state.permission.displayName) || user.displayName || user.email || '—');
+  return preferredName(user.uid, ((state.permission && state.permission.displayName) || (state.tongHopPermission && state.tongHopPermission.displayName)) || user.displayName || user.email || '—');
 }
 async function resolveCurrentDisplayName() {
   const user = auth.currentUser;
@@ -280,15 +282,27 @@ function isOwner() {
 function validPermission(permission) {
   return !!(permission && permission.active === true && ['admin', 'nhaplieu', 'viewer'].includes(permission.role));
 }
+function isTongHopAdmin() {
+  return !!(state.tongHopPermission && state.tongHopPermission.active === true && state.tongHopPermission.role === 'admin');
+}
+function isReportAdmin() {
+  return !!(validPermission(state.permission) && state.permission.role === 'admin');
+}
+function isGlobalAdmin() {
+  return isOwner() || isTongHopAdmin() || isReportAdmin();
+}
+function canView() {
+  return isGlobalAdmin() || validPermission(state.permission);
+}
 function canEdit() {
-  return isOwner() || (validPermission(state.permission) && ['admin', 'nhaplieu'].includes(state.permission.role));
+  return isGlobalAdmin() || (validPermission(state.permission) && ['admin', 'nhaplieu'].includes(state.permission.role));
 }
 function canDelete() {
-  return isOwner() || (validPermission(state.permission) && state.permission.role === 'admin');
+  return isGlobalAdmin();
 }
 function roleForLog() {
-  if (isOwner()) return 'admin';
-  return state.permission && ['admin', 'nhaplieu'].includes(state.permission.role) ? state.permission.role : 'nhaplieu';
+  if (isGlobalAdmin()) return 'admin';
+  return state.permission && state.permission.role === 'nhaplieu' ? 'nhaplieu' : 'viewer';
 }
 function showToast(text, type) {
   const box = $('toast');
@@ -461,10 +475,15 @@ async function refreshPermission() {
   const user = auth.currentUser;
   if (!user) {
     state.permission = null;
+    state.tongHopPermission = null;
     return null;
   }
-  const snap = await get(ref(db, `${REPORT_ROOT}/phanQuyen/${user.uid}`));
-  state.permission = snap.exists() ? snap.val() : null;
+  const [reportSnap, tongHopSnap] = await Promise.all([
+    get(ref(db, `${REPORT_ROOT}/phanQuyen/${user.uid}`)),
+    get(ref(db, `${TONG_HOP_ROOT}/phanQuyen/${user.uid}`))
+  ]);
+  state.permission = reportSnap.exists() ? reportSnap.val() : null;
+  state.tongHopPermission = tongHopSnap.exists() ? tongHopSnap.val() : null;
   return state.permission;
 }
 
@@ -534,7 +553,7 @@ function stopJourneyRealtime() {
 }
 
 function startJourneyRealtime() {
-  if (!validPermission(state.permission) && !isOwner()) {
+  if (!canView()) {
     stopJourneyRealtime();
     return;
   }
@@ -575,7 +594,7 @@ function startJourneyRealtime() {
 }
 
 async function loadJourneys(force) {
-  if (!validPermission(state.permission) && !isOwner()) return false;
+  if (!canView()) return false;
   startJourneyRealtime();
   if (!force && state.loadedAt) { renderTracking(); renderHistory(); return true; }
   if (state.loading && !force) return true;
@@ -774,23 +793,6 @@ function previewClinicalReport() {
 
 function renderHistory() {
   const rows = filteredHistoryRows();
-  const allRows = combinedHistoryRows();
-  const summary = $('journeyHistorySummary');
-  if (summary) {
-    const invalidRange = String($('journeyHistoryFrom')?.value || '').trim() && String($('journeyHistoryTo')?.value || '').trim() && String($('journeyHistoryFrom').value) > String($('journeyHistoryTo').value);
-    if (invalidRange) {
-      summary.textContent = 'Khoảng ngày không hợp lệ: Từ ngày phải nhỏ hơn hoặc bằng Đến ngày.';
-    } else {
-    const returned = rows.filter((item) => item.trangThaiHienTai === 'DA_VE_TRUNG_TAM').length;
-    const hospital = rows.filter((item) => item.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN').length;
-    const other = rows.filter((item) => item.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC').length;
-    const from = String($('journeyHistoryFrom')?.value || '').trim();
-    const to = String($('journeyHistoryTo')?.value || '').trim();
-    const rangeText = from || to ? ` · ${formatBusinessDate(from || to)}${from && to && from !== to ? ' – ' + formatBusinessDate(to) : ''}` : '';
-    summary.textContent = `${rows.length} trường hợp${rangeText} · Về Trung tâm: ${returned} · Tử vong BV: ${hospital} · Tử vong nơi khác: ${other}`;
-    }
-  }
-
   const box = $('journeyHistoryList');
   if (!box) return;
   if (!rows.length) {
@@ -1645,7 +1647,7 @@ function openHistoryFilter(options) {
 
 async function activate() {
   await refreshPermission();
-  if (!validPermission(state.permission) && !isOwner()) return;
+  if (!canView()) return;
   if ($('journeyCreateTab')) $('journeyCreateTab').hidden = !canEdit();
   renderReviewBadge();
   if (!state.createBaseline) resetCreateForm();
@@ -1662,6 +1664,8 @@ function setVisible(visible) {
 function initEvents() {
   if (state.initialized) return;
   state.initialized = true;
+  const advancedHistory = $('journeyHistoryAdvanced');
+  if (advancedHistory && window.matchMedia && window.matchMedia('(max-width: 760px)').matches) advancedHistory.open = false;
   initializeActionPopoverPositioning();
   document.querySelectorAll('.journey-subtab').forEach((button) => {
     button.addEventListener('click', () => requestSubView(button.getAttribute('data-journey-view')));
@@ -1748,6 +1752,7 @@ function start() {
     if (!user) {
       stopJourneyRealtime();
       state.permission = null;
+      state.tongHopPermission = null;
       state.openCases = [];
       state.closedCases = [];
       state.transferStatsToday = {};

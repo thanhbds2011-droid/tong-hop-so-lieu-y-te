@@ -1,5 +1,5 @@
 /**
- * Tổng hợp số liệu Phòng Y tế - Ứng dụng Phòng Y tế - Firebase production 9.9.1
+ * Tổng hợp số liệu Phòng Y tế - Ứng dụng Phòng Y tế - Firebase production 9.9.2
  *
  * Firebase Web config là thông tin cấu hình công khai của ứng dụng web,
  * không phải service-account secret. Tuyệt đối không đặt private key,
@@ -8,7 +8,7 @@
 window.YTE_APP_CONFIG = Object.freeze({
   APP_NAME: 'Ứng dụng Phòng Y tế',
   ORGANIZATION: 'Trung tâm Bảo trợ xã hội Tân Hiệp',
-  VERSION: '9.9.1',
+  VERSION: '9.9.2',
   OWNER_EMAIL: 'thanhbds2011@gmail.com',
   NOTIFICATION_GATEWAY_URL: 'https://script.google.com/macros/s/AKfycbyDGE9XyOFsl5FSuxT5fu9y-Km4NiZzqihKPnMVwgtsf7DmhKr3wAU7e-Rmxh5uQ3Nk/exec',
   ONESIGNAL: Object.freeze({
