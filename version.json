@@ -1,7 +1,7 @@
 {
-  "version": "9.9.2",
+  "version": "9.9.3",
   "releasedAt": "2026-08-19",
-  "title": "Source Detail & Professional Mobile UX 9.9.2",
+  "title": "Data Integrity & Person Detail 9.9.3",
   "businessBaseline": "Business Stable v1.0 / Source of Truth 9.9.0",
-  "message": "Bổ sung xem chi tiết nguồn Chuyển viện/Tử vong cho tài khoản được cấp quyền; ADMIN là quyền cao nhất toàn ứng dụng; tối ưu Tổng quan, Lịch sử, Quản trị và Notification Center dạng popover; giữ Source of Truth, audit, deep-link và Realtime Database."
+  "message": "Khôi phục danh mục dropdown và marker Chuyển viện/Tử vong khi bị thiếu; bỏ BHYT và trường Lý do khỏi UI chuyển viện; bổ sung danh sách Họ tên/Giới tính/Năm sinh cho Điều trị lao và Chuyển Trung tâm; sửa tràn viền Tổng quan PWA."
 }

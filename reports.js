@@ -527,7 +527,7 @@ function setReportFormReadonly(readonly) {
 }
 function populateReadonlyReportDetails(item) {
   if (!$('reportReadonlyView')) return;
-  const facts=[item.gioiTinh||'',item.namSinh?`Sinh năm ${item.namSinh}`:'',item.theBHYT?`BHYT ${item.theBHYT}`:''].filter(Boolean);
+  const facts=[item.gioiTinh||'',item.namSinh?`Sinh năm ${item.namSinh}`:''].filter(Boolean);
   $('reportDetailName').textContent=item.hoTenBenhNhan||'Chưa có họ tên';$('reportDetailFacts').textContent=facts.length?facts.join(' · '):'Chưa có thông tin nhân thân';
   $('reportDetailDate').textContent=fmtDate(item.ngayTuVong||item.ngayBaoCao||'');$('reportDetailPlace').textContent=item.noiTuVong||'Trung tâm Bảo trợ xã hội Tân Hiệp';$('reportDetailAddress').textContent=item.diaChi||'—';$('reportDetailCause').textContent=item.nguyenNhan||'—';
   const note=String(item.ghiChu||'').trim();$('reportDetailNote').textContent=note||'—';$('reportDetailNoteRow').hidden=!note;$('reportDetailReporter').textContent=item.createdByName||item.legacyNguoiNhap||'—';
@@ -611,7 +611,7 @@ function reportPayload() {
   const name = formatPersonName($('reportPatientName').value || '');
   const gender = $('reportGender').value;
   const birth = String($('reportBirthYear').value || '').trim();
-  const bhyt = normalizeBHYT($('reportBHYT')?.value || '');
+  const bhyt = '';
   const address = String($('reportAddress').value || '').trim();
   const note = String($('reportNote').value || '').trim();
   if (name.length < 2) throw new Error('Vui lòng nhập họ tên bệnh nhân.');
@@ -672,19 +672,8 @@ function comparePatientIdentity(source, payload) {
   const payloadGender = String(payload.gioiTinh || '');
   const sourceYear = Number(source.namSinh || 0);
   const payloadYear = Number(payload.namSinh || 0);
-  const sourceBhyt = normalizeBHYT(source.theBHYTNorm || source.theBHYT || '');
-  const payloadBhyt = normalizeBHYT(payload.theBHYT || '');
   const sameProfile = sourceName === payloadName && sourceGender === payloadGender && sourceYear === payloadYear;
-
-  if (sourceBhyt && payloadBhyt && sourceBhyt === payloadBhyt && !sameProfile) {
-    return { match: false, conflict: true, reason: 'Mã BHYT này đang gắn với họ tên/giới tính/năm sinh khác. Vui lòng kiểm tra lại thông tin.' };
-  }
-  if (sameProfile && sourceBhyt && payloadBhyt && sourceBhyt !== payloadBhyt) {
-    return { match: false, conflict: true, reason: 'Đối tượng cùng họ tên, giới tính và năm sinh đang có mã BHYT khác. Vui lòng kiểm tra lại trước khi ghi nhận.' };
-  }
-  if (!sameProfile) return { match: false, conflict: false };
-  if (!sourceBhyt || !payloadBhyt || sourceBhyt === payloadBhyt) return { match: true, conflict: false };
-  return { match: false, conflict: false };
+  return sameProfile ? { match: true, conflict: false } : { match: false, conflict: false };
 }
 
 async function findJourneyConflict(payload) {
