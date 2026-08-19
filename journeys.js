@@ -403,7 +403,7 @@ function formSignature(ids) {
   }).join('|');
 }
 const CREATE_FIELD_IDS = ['journeyPatient','journeyGender','journeyBirthYear','journeyTransferType','journeyTransferDate','journeyTransferTypeOther','journeyTo','journeyToOther','journeyDiagnosis','journeyNote'];
-const UPDATE_FIELD_IDS = ['journeyUpdateStatus','journeyUpdateDestination','journeyUpdateDestinationOther','journeyUpdateDiagnosis','journeyUpdateDeathDate','journeyUpdateDeathPlace','journeyReturnCondition','journeyUpdateNote'];
+const UPDATE_FIELD_IDS = ['journeyUpdateStatus','journeyUpdateBusinessDate','journeyUpdateDestination','journeyUpdateDestinationOther','journeyUpdateDiagnosis','journeyUpdateDeathPlace','journeyReturnCondition','journeyUpdateNote'];
 function isCreateDirty() { return !!state.createBaseline && formSignature(CREATE_FIELD_IDS) !== state.createBaseline; }
 function isUpdateDirty() { return !!state.updateBaseline && formSignature(UPDATE_FIELD_IDS) !== state.updateBaseline; }
 async function confirmInApp(options) {
@@ -478,10 +478,30 @@ function deathBusinessDate(item) {
   if (validIsoBusinessDate(eventDate)) return eventDate;
   return isoDateFromTimestamp(event && event.createdAt || item && item.updatedAt || 0);
 }
+function eventBusinessDate(event, item) {
+  if (!event) return '';
+  const direct = String(event.ngaySuKien || '').trim();
+  if (validIsoBusinessDate(direct)) return direct;
+  const transferDate = String(event.ngayChuyenVien || '').trim();
+  if (validIsoBusinessDate(transferDate)) return transferDate;
+  const deathDate = String(event.ngayTuVong || '').trim();
+  if (validIsoBusinessDate(deathDate)) return deathDate;
+  return isoDateFromTimestamp(event.createdAt || 0) || transferBusinessDate(item);
+}
+function latestBusinessEventDate(item) {
+  if (!item) return '';
+  const explicit = String(item.ngaySuKienHienTai || '').trim();
+  if (validIsoBusinessDate(explicit)) return explicit;
+  const events = Object.values(item.lichSu || {}).filter(Boolean)
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+  const latest = events.length ? eventBusinessDate(events[0], item) : '';
+  return validIsoBusinessDate(latest) ? latest : transferBusinessDate(item);
+}
 function historyBusinessDate(item) {
   if (!item) return '';
   if (item.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN' || item.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC') return deathBusinessDate(item);
-  if (item.trangThaiHienTai === 'DA_VE_TRUNG_TAM') return isoDateFromTimestamp(item.ngayGioVe || item.updatedAt || 0);
+  const latest = latestBusinessEventDate(item);
+  if (validIsoBusinessDate(latest)) return latest;
   return transferBusinessDate(item);
 }
 function scheduleStatisticsReconciliation() {
@@ -1005,6 +1025,7 @@ async function createJourney() {
       trangThaiHienTai: payload.trangThai,
       trangThaiKyThuat: 'OPEN',
       ngayChuyenVien: businessDate,
+      ngaySuKienHienTai: businessDate,
       // Giữ timestamp hệ thống để audit/ordering; không dùng làm ngày nghiệp vụ.
       ngayGioDi: ts,
       ngayGioVe: 0,
@@ -1035,6 +1056,7 @@ async function createJourney() {
       ghiChu: payload.ghiChu,
       trangThaiSauChang: payload.trangThai,
       ngayChuyenVien: businessDate,
+      ngaySuKien: businessDate,
       thoiDiem: ts,
       uid: user.uid,
       email,
@@ -1055,6 +1077,7 @@ async function createJourney() {
       ghiChu: payload.ghiChu,
       tinhTrangKhiVe: '',
       ngayChuyenVien: businessDate,
+      ngaySuKien: businessDate,
       uid: user.uid,
       email,
       displayName,
@@ -1177,8 +1200,10 @@ function openUpdateDialog(id, preset) {
   $('journeyUpdateDestinationOther').value = '';
   if ($('journeyUpdateReason')) $('journeyUpdateReason').value = '';
   $('journeyUpdateDiagnosis').value = '';
-  $('journeyUpdateDeathDate').value = todayIso();
-  $('journeyUpdateDeathDate').max = todayIso();
+  const previousBusinessDate = latestBusinessEventDate(item) || transferBusinessDate(item) || todayIso();
+  $('journeyUpdateBusinessDate').value = todayIso() < previousBusinessDate ? previousBusinessDate : todayIso();
+  $('journeyUpdateBusinessDate').min = previousBusinessDate;
+  $('journeyUpdateBusinessDate').max = todayIso();
   $('journeyUpdateDeathPlace').value = '';
   $('journeyReturnCondition').value = '';
   $('journeyUpdateNote').value = '';
@@ -1205,10 +1230,16 @@ function updateUpdateFields() {
   $('journeyUpdateReasonField').hidden = true;
   $('journeyUpdateDiagnosisField').hidden = returned;
   $('journeyReturnConditionField').hidden = !returned;
-  $('journeyUpdateDeathDateField').hidden = !death;
   $('journeyUpdateDeathPlaceField').hidden = !deathOther;
-  if (death && !$('journeyUpdateDeathDate').value) $('journeyUpdateDeathDate').value = todayIso();
-  $('journeyUpdateDeathDate').max = todayIso();
+  const dateLabel = death ? 'Ngày tử vong *'
+    : returned ? 'Ngày về Trung tâm *'
+    : transfer ? 'Ngày chuyển tiếp *'
+    : 'Ngày cập nhật *';
+  if ($('journeyUpdateBusinessDateLabel')) $('journeyUpdateBusinessDateLabel').textContent = dateLabel;
+  if (!$('journeyUpdateBusinessDate').value) $('journeyUpdateBusinessDate').value = todayIso();
+  $('journeyUpdateBusinessDate').max = todayIso();
+  const lastDate = latestBusinessEventDate(state.selectedCase);
+  if (validIsoBusinessDate(lastDate)) $('journeyUpdateBusinessDate').min = lastDate;
   if (!deathOther) $('journeyUpdateDeathPlace').value = '';
   if (!transfer) {
     $('journeyUpdateDestination').value = '';
@@ -1235,13 +1266,20 @@ function updatePayload() {
   if (!item) throw new Error('Không xác định được hành trình cần cập nhật.');
   const status = String($('journeyUpdateStatus').value || '');
   const ghiChu = String($('journeyUpdateNote').value || '').trim();
+  const ngaySuKien = String($('journeyUpdateBusinessDate').value || '').trim();
   if (!ALL_STATUSES.includes(status)) throw new Error('Trạng thái hiện tại chưa hợp lệ.');
   if (ghiChu.length > 2000) throw new Error('Ghi chú không được vượt quá 2.000 ký tự.');
+  if (!validIsoBusinessDate(ngaySuKien)) throw new Error('Vui lòng chọn ngày nghiệp vụ.');
+  if (ngaySuKien > todayIso()) throw new Error('Ngày nghiệp vụ không được lớn hơn ngày hiện tại.');
+  const previousBusinessDate = latestBusinessEventDate(item);
+  if (validIsoBusinessDate(previousBusinessDate) && ngaySuKien < previousBusinessDate) {
+    throw new Error('Ngày nghiệp vụ không được nhỏ hơn ngày của bước trước (' + formatBusinessDate(previousBusinessDate) + ').');
+  }
 
   if (status === 'DA_VE_TRUNG_TAM') {
     const tinhTrangKhiVe = String($('journeyReturnCondition').value || '').trim();
     if (!tinhTrangKhiVe || tinhTrangKhiVe.length > 1500) throw new Error('Vui lòng nhập Tình trạng khi về.');
-    return { status, tinhTrangKhiVe, lyDo: '', tinhTrang: '', noiDen: CENTER_NAME, ghiChu, ngayTuVong: '', noiTuVong: '' };
+    return { status, tinhTrangKhiVe, lyDo: '', tinhTrang: '', noiDen: CENTER_NAME, ghiChu, ngaySuKien, ngayTuVong: '', noiTuVong: '' };
   }
 
   const tinhTrang = String($('journeyUpdateDiagnosis').value || '').trim();
@@ -1258,9 +1296,7 @@ function updatePayload() {
   let ngayTuVong = '';
   let noiTuVong = '';
   if (status === 'TU_VONG_TAI_BENH_VIEN' || status === 'TU_VONG_TAI_NOI_KHAC') {
-    ngayTuVong = String($('journeyUpdateDeathDate').value || '').trim();
-    if (!validIsoBusinessDate(ngayTuVong)) throw new Error('Vui lòng chọn Ngày tử vong.');
-    if (ngayTuVong > todayIso()) throw new Error('Ngày tử vong không được lớn hơn ngày hiện tại.');
+    ngayTuVong = ngaySuKien;
     if (status === 'TU_VONG_TAI_NOI_KHAC') {
       noiTuVong = String($('journeyUpdateDeathPlace').value || '').trim();
       if (!noiTuVong || noiTuVong.length > 300) throw new Error('Vui lòng nhập Nơi tử vong.');
@@ -1269,7 +1305,7 @@ function updatePayload() {
     }
   }
 
-  return { status, tinhTrangKhiVe: '', lyDo, tinhTrang, noiDen, ghiChu, ngayTuVong, noiTuVong };
+  return { status, tinhTrangKhiVe: '', lyDo, tinhTrang, noiDen, ghiChu, ngaySuKien, ngayTuVong, noiTuVong };
 }
 
 async function saveJourneyUpdate() {
@@ -1289,8 +1325,7 @@ async function saveJourneyUpdate() {
     if (latest.trangThaiKyThuat !== 'OPEN') throw new Error('Hành trình này đã kết thúc và không thể cập nhật thêm.');
 
     const historyId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/lichSu`)).key;
-    const systemDate = await serverTodayIso();
-    const businessDate = payload.ngayTuVong || systemDate;
+    const businessDate = payload.ngaySuKien;
     const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${businessDate.slice(0, 7)}`)).key;
     const displayName = await resolveCurrentDisplayName();
     const email = normalizeEmail(user.email);
@@ -1314,6 +1349,7 @@ async function saveJourneyUpdate() {
       noiDiBanDau: latest.noiDiBanDau || CENTER_NAME,
       noiHienTai: isReturn ? CENTER_NAME : (isTransfer ? payload.noiDen : latest.noiHienTai),
       ngayChuyenVien: String(latest.ngayChuyenVien || transferBusinessDate(latest) || ''),
+      ngaySuKienHienTai: businessDate,
       ngayTuVong: isDeath ? payload.ngayTuVong : String(latest.ngayTuVong || ''),
       noiTuVong: isDeath ? payload.noiTuVong : String(latest.noiTuVong || ''),
       lyDoHienTai: isReturn ? latest.lyDoHienTai : payload.lyDo,
@@ -1348,6 +1384,7 @@ async function saveJourneyUpdate() {
       trangThaiSau: payload.status,
       noiTruoc: latest.noiHienTai || '',
       noiSau: isReturn ? CENTER_NAME : (isTransfer ? payload.noiDen : (isDeathOther ? payload.noiTuVong : latest.noiHienTai || '')),
+      ngaySuKien: businessDate,
       ngayTuVong: isDeath ? payload.ngayTuVong : '',
       noiTuVong: isDeath ? payload.noiTuVong : '',
       hinhThucChuyen: latest.hinhThucChuyen || inferLegacyTransferType(latest),
@@ -1375,6 +1412,7 @@ async function saveJourneyUpdate() {
         tinhTrangChanDoan: isReturn ? payload.tinhTrangKhiVe : payload.tinhTrang,
         ghiChu: payload.ghiChu,
         trangThaiSauChang: payload.status,
+        ngaySuKien: businessDate,
         thoiDiem: ts,
         uid: user.uid,
         email,
@@ -1459,7 +1497,7 @@ function openDetail(id) {
     return `<div class="journey-timeline-item">
       <div class="journey-timeline-dot"></div>
       <div class="journey-timeline-card">
-        <div class="journey-timeline-head"><strong>${esc(timelineTitle(event))}</strong><span>${esc(event.loaiSuKien === 'MO_HANH_TRINH' ? formatBusinessDate(event.ngayChuyenVien || transferBusinessDate(item)) : (event.loaiSuKien === 'TU_VONG_TAI_BENH_VIEN' || event.loaiSuKien === 'TU_VONG_TAI_NOI_KHAC') ? formatBusinessDate(event.ngayTuVong || historyBusinessDate(item)) : fmtDateTime(event.createdAt))}</span></div>
+        <div class="journey-timeline-head"><strong>${esc(timelineTitle(event))}</strong><span>${esc(formatBusinessDate(eventBusinessDate(event, item)))} <small class="journey-audit-time">· nhập ${esc(fmtDateTime(event.createdAt))}</small></span></div>
         <div class="journey-timeline-status ${statusClass(event.trangThaiSau)}">${esc(timelineBadge(event, item))}</div>
         ${lines.join('')}
         <div class="journey-timeline-by">${personLabel}: ${esc(preferredName(event.uid, event.displayName))}</div>

@@ -1,7 +1,7 @@
 {
-  "version": "9.9.3",
+  "version": "9.9.4",
   "releasedAt": "2026-08-19",
-  "title": "Data Integrity & Person Detail 9.9.3",
+  "title": "Business Event Date & Detail Permission Fix 9.9.4",
   "businessBaseline": "Business Stable v1.0 / Source of Truth 9.9.0",
-  "message": "Khôi phục danh mục dropdown và marker Chuyển viện/Tử vong khi bị thiếu; bỏ BHYT và trường Lý do khỏi UI chuyển viện; bổ sung danh sách Họ tên/Giới tính/Năm sinh cho Điều trị lao và Chuyển Trung tâm; sửa tràn viền Tổng quan PWA."
+  "message": "Cho phép chọn ngày nghiệp vụ cho từng bước hành trình chuyển viện; bổ sung Ngày điều trị/Ngày chuyển Trung tâm cho danh sách chi tiết; sửa quyền Firebase cho chiTietChiTieu và thông báo lỗi quyền thân thiện."
 }

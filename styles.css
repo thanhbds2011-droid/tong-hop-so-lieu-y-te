@@ -2519,7 +2519,7 @@ input:focus, select:focus, textarea:focus { border-color: #FF66B7; box-shadow: 0
   margin: 0 18px 12px;
   padding: 14px;
   display: grid;
-  grid-template-columns: minmax(0,1.6fr) minmax(130px,.7fr) minmax(130px,.7fr);
+  grid-template-columns: minmax(0,1.55fr) minmax(120px,.65fr) minmax(115px,.55fr) minmax(150px,.75fr);
   gap: 12px;
   border: 1px solid #eadfe7;
   border-radius: 15px;
@@ -2682,6 +2682,7 @@ body.notification-open { overflow: auto !important; }
   .person-detail-toolbar .btn { flex: 0 0 auto; }
   .person-detail-form { margin: 0 14px 11px; padding: 12px; grid-template-columns: 1fr 1fr; gap: 10px; }
   .person-detail-form .person-name-field { grid-column: 1 / -1; }
+  .person-detail-form .person-business-date-field { grid-column: 1 / -1; }
   .person-detail-list { padding: 0 14px 14px; }
   .person-detail-item { grid-template-columns: 28px minmax(0,1fr); gap: 9px; }
   .person-detail-item-actions { grid-column: 2; justify-content: flex-start; }
@@ -2775,4 +2776,20 @@ body.notification-open { overflow: auto !important; }
   .person-detail-form-actions .btn { flex: 1 1 0; min-width: 0; }
   .person-detail-toolbar { flex-direction: column; align-items: stretch; }
   .person-detail-toolbar .btn { width: 100%; }
+}
+
+
+/* Runtime 9.9.4 — explicit business-event dates and audit timestamps. */
+.journey-audit-time {
+  color: #8191a1;
+  font-size: 10.5px;
+  font-weight: 560;
+  white-space: nowrap;
+}
+#journeyUpdateBusinessDateField input,
+.person-business-date-field input {
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 760px) {
+  .journey-audit-time { display: block; margin-top: 2px; white-space: normal; }
 }

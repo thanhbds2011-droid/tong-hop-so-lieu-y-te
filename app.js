@@ -35,7 +35,7 @@ const YTE_APP_ROOT = 'yTeApp';
 const REVIEW_ROOT = `${YTE_APP_ROOT}/yeuCauDoiSoat`;
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '9.9.3';
+const APP_RUNTIME_VERSION = '9.9.4';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -184,6 +184,11 @@ function formatDateTime(value) {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit'
   }).format(date);
+}
+function todayIsoVietnam() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date());
 }
 function monthKey(dateIso) {
   return String(dateIso || '').slice(0, 7);
@@ -397,7 +402,7 @@ async function resolveApplicationAccess(user, profile) {
     (validModulePermission(permission) && permission.role === 'admin') ||
     (validModulePermission(reportPermission) && reportPermission.role === 'admin');
 
-  // v9.9.3: admin là quyền cao nhất toàn Ứng dụng Phòng Y tế.
+  // v9.9.4: admin là quyền cao nhất toàn Ứng dụng Phòng Y tế.
   // Không nhân bản quyền trong database: nếu admin chỉ tồn tại ở một phân hệ,
   // frontend tạo quyền hiệu lực (synthetic) cho phân hệ còn lại trong phiên hiện tại.
   if (globalAdmin) {
@@ -848,6 +853,7 @@ async function savePersonDetailFirebase(payload) {
   const user = await requireAppUser();
   const date = String(payload && payload.date || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Ngày không hợp lệ.');
+  if (date > todayIsoVietnam()) throw new Error('Ngày nghiệp vụ không được lớn hơn ngày hiện tại.');
   const category = await personDetailCategoryFirebase(payload && payload.code);
   const hoTen = formatPersonName(payload && payload.hoTen || '');
   const gioiTinh = String(payload && payload.gioiTinh || '').trim();
@@ -890,7 +896,7 @@ async function savePersonDetailFirebase(payload) {
   const logId = push(ref(firebaseDatabase, `${ROOT}/nhatKy/${date.slice(0,7)}`)).key;
   updates[`${ROOT}/nhatKy/${date.slice(0,7)}/${logId}`] = { action:editingId?'Cập nhật chi tiết chỉ tiêu':'Thêm chi tiết chỉ tiêu', content:`${category.name} · ${hoTen} · ${gioiTinh} · ${namSinh}`, uid:user.uid, email, displayName, role:user.appRole, createdAt:now };
   await update(ref(firebaseDatabase), updates);
-  return { success:true, id:detailId, message:editingId?'Đã cập nhật thông tin đối tượng.':'Đã thêm đối tượng vào danh sách.' };
+  return { success:true, id:detailId, date, message:editingId?'Đã cập nhật thông tin đối tượng.':'Đã thêm đối tượng vào danh sách.' };
 }
 async function deletePersonDetailFirebase(payload) {
   const user = await requireAppUser('admin');
@@ -1703,7 +1709,7 @@ var AUTO_SYNC_MS = 300000;
       adjustingCode:'',adjustSaving:false,quickEntrySaving:false,quickEntryBaseline:'',deleteDailyCode:'',deleteDailySaving:false,
       historyCode:'',historyLoading:false,displayNameEditUid:'',
       reviewRequestCode:'',reviewRequestSaving:false,
-      personManagerCode:'',personManagerRows:[],personManagerTotal:0,personManagerSaving:false,
+      personManagerCode:'',personManagerDate:'',personManagerRows:[],personManagerTotal:0,personManagerSaving:false,
       dashboardLiveUnsubscribe:null,dashboardTransferStatsUnsubscribe:null,dashboardDeathStatsUnsubscribe:null,categoryLiveUnsubscribe:null,entryLiveUnsubscribe:null,entryTransferStatsUnsubscribe:null,entryDeathStatsUnsubscribe:null,
       dashboardBaseRecords:[],dashboardTransferStats:{},dashboardDeathStats:{},entryBaseRecords:[],entryTransferStats:{},entryDeathStats:{},
       liveRangeKey:'',entryLiveDate:''
@@ -1742,7 +1748,7 @@ var AUTO_SYNC_MS = 300000;
       if(state.categoryLiveUnsubscribe)return;
       state.categoryLiveUnsubscribe=onValue(ref(firebaseDatabase,ROOT+'/congKhai/danhMucChiTieu'),function(snap){
         var publicList=publicCategoriesFromSnapshot(snap);
-        // v9.9.3: nếu mirror công khai bị dọn trong lúc bàn giao, tài khoản đã cấp quyền
+        // v9.9.4: nếu mirror công khai bị dọn trong lúc bàn giao, tài khoản đã cấp quyền
         // vẫn dùng danh mục private đã nạp từ session thay vì làm dropdown rỗng.
         if(publicList.length || !state.categories.length) {
           if(Object.keys(state.dashboardTransferStats||{}).some(function(date){return markerCount((state.dashboardTransferStats||{})[date]||{},'transfer')>0})&&!derivedCategory(publicList,'transfer')) publicList.push(decorateCategory({code:'CHUYEN_VIEN',name:'Chuyển viện',group:'Báo cáo',unit:'Lượt',order:9001,status:'Hoạt động'}));
@@ -1932,18 +1938,41 @@ var AUTO_SYNC_MS = 300000;
       }).join('');
     }
 
+    function personBusinessDateLabel(category){
+      var kind=category&&category.personDetailKind||'';
+      return kind==='tb'?'Ngày điều trị *':kind==='center'?'Ngày chuyển Trung tâm *':'Ngày nghiệp vụ *';
+    }
+    function personPermissionMessage(error){
+      var raw=String(error&&error.message||error||'');
+      if(/permission.?denied|permission_denied|PERMISSION_DENIED/i.test(raw)) return 'Không thể truy cập danh sách. Hãy kiểm tra tài khoản đã được cấp quyền và Firebase Rules v9.9.4 đã được Publish đúng 3 node Y tế.';
+      return raw||'Không thể xử lý danh sách đối tượng.';
+    }
+    function updatePersonManagerSubtitle(){
+      var category=state.categories.find(function(item){return item.code===state.personManagerCode});
+      var date=state.personManagerDate||$('entryDate').value;
+      if($('personDetailSubtitle'))$('personDetailSubtitle').textContent=(date?'Ngày '+fmtDate(date)+' · ':'')+'Số lượt tính tự động theo danh sách';
+      if($('personDetailBusinessDateLabel'))$('personDetailBusinessDateLabel').textContent=personBusinessDateLabel(category);
+    }
     function resetPersonManagerForm(){
       if($('personDetailId'))$('personDetailId').value='';
+      if($('personDetailOriginalDate'))$('personDetailOriginalDate').value='';
       if($('personDetailName'))$('personDetailName').value='';
       if($('personDetailGender'))$('personDetailGender').value='';
       if($('personDetailBirthYear'))$('personDetailBirthYear').value='';
+      if($('personDetailBusinessDate')){
+        $('personDetailBusinessDate').disabled=false;
+        $('personDetailBusinessDate').max=todayIsoVietnam();
+        $('personDetailBusinessDate').value=state.personManagerDate||$('entryDate').value||todayIsoVietnam();
+      }
       if($('personDetailError'))$('personDetailError').textContent='';
       if($('personDetailSave'))$('personDetailSave').textContent='Thêm vào danh sách';
       if($('personDetailReset'))$('personDetailReset').hidden=true;
+      updatePersonManagerSubtitle();
     }
     function setPersonManagerSaving(active){
       state.personManagerSaving=active===true;
       ['personDetailName','personDetailGender','personDetailBirthYear','personDetailSave','personDetailReset','personDetailNew'].forEach(function(id){var el=$(id);if(el)el.disabled=state.personManagerSaving});
+      if($('personDetailBusinessDate'))$('personDetailBusinessDate').disabled=state.personManagerSaving||!!($('personDetailId')&&$('personDetailId').value);
       if($('personDetailLayer'))$('personDetailLayer').setAttribute('aria-busy',state.personManagerSaving?'true':'false');
       if($('personDetailSave'))$('personDetailSave').textContent=state.personManagerSaving?'Đang lưu...':($('personDetailId')&&$('personDetailId').value?'Lưu thay đổi':'Thêm vào danh sách');
     }
@@ -1952,7 +1981,7 @@ var AUTO_SYNC_MS = 300000;
       var rows=state.personManagerRows||[],total=Number(state.personManagerTotal||rows.length);
       if($('personDetailCount'))$('personDetailCount').textContent=total===rows.length?rows.length.toLocaleString('vi-VN')+' người':rows.length.toLocaleString('vi-VN')+' người chi tiết · '+total.toLocaleString('vi-VN')+' lượt';
       if(!rows.length){
-        list.innerHTML='<div class="person-detail-empty"><strong>Chưa có đối tượng trong danh sách.</strong><span>Thêm Họ và tên, Giới tính và Năm sinh để số liệu được tổng hợp tự động.</span></div>';
+        list.innerHTML='<div class="person-detail-empty"><strong>Chưa có đối tượng trong danh sách.</strong><span>Thêm Họ và tên, Giới tính, Năm sinh và Ngày nghiệp vụ để số liệu được tổng hợp tự động.</span></div>';
         return;
       }
       var allowEdit=canInputTongHop(),allowDelete=isAnyAppAdmin();
@@ -1961,11 +1990,11 @@ var AUTO_SYNC_MS = 300000;
         if(allowEdit){
           actions='<div class="person-detail-item-actions"><button class="small-btn person-detail-action" data-kind="edit" data-id="'+esc(item.id)+'" type="button">Sửa</button>'+(allowDelete?'<button class="small-btn btn-danger person-detail-action" data-kind="delete" data-id="'+esc(item.id)+'" type="button">Xóa</button>':'')+'</div>';
         }
-        return '<article class="person-detail-item"><span class="person-detail-number">'+(index+1)+'</span><div class="person-detail-person"><strong>'+esc(item.hoTen||'Đối tượng')+'</strong><span>'+esc([item.gioiTinh,item.namSinh?'Sinh '+item.namSinh:''].filter(Boolean).join(' · '))+'</span></div>'+actions+'</article>';
+        return '<article class="person-detail-item"><span class="person-detail-number">'+(index+1)+'</span><div class="person-detail-person"><strong>'+esc(item.hoTen||'Đối tượng')+'</strong><span>'+esc([item.gioiTinh,item.namSinh?'Sinh '+item.namSinh:'',item.date?'Ngày '+fmtDate(item.date):''].filter(Boolean).join(' · '))+'</span></div>'+actions+'</article>';
       }).join('');
     }
     async function loadPersonManager(){
-      var code=state.personManagerCode,date=$('entryDate').value;
+      var code=state.personManagerCode,date=state.personManagerDate||$('entryDate').value;
       if(!code||!date)return;
       if($('personDetailState')){$('personDetailState').hidden=false;$('personDetailState').className='inline-state';$('personDetailState').innerHTML='<span class="spinner"></span><span>Đang tải danh sách…</span>'}
       try{
@@ -1979,17 +2008,17 @@ var AUTO_SYNC_MS = 300000;
         }
       }catch(error){
         state.personManagerRows=[];renderPersonManagerList();
-        if($('personDetailState')){$('personDetailState').hidden=false;$('personDetailState').className='inline-state err';$('personDetailState').textContent=error.message||'Không thể tải danh sách đối tượng.'}
+        if($('personDetailState')){$('personDetailState').hidden=false;$('personDetailState').className='inline-state err';$('personDetailState').textContent=personPermissionMessage(error)}
       }
     }
     function openPersonManager(code){
       var category=state.categories.find(function(item){return item.code===code});
       if(!category||!category.personDetailKind){toast('Chỉ tiêu này không sử dụng danh sách đối tượng.','warn');return}
       if(!canInputTongHop()){toast('Bạn chỉ có quyền xem, không thể cập nhật danh sách.','warn');return}
-      state.personManagerCode=code;state.personManagerRows=[];state.personManagerTotal=0;
+      state.personManagerCode=code;state.personManagerDate=$('entryDate').value||todayIsoVietnam();state.personManagerRows=[];state.personManagerTotal=0;
       resetPersonManagerForm();
       $('personDetailTitle').textContent=category.name;
-      $('personDetailSubtitle').textContent='Ngày '+fmtDate($('entryDate').value)+' · Số lượt tính tự động theo danh sách';
+      updatePersonManagerSubtitle();
       $('personDetailCount').textContent='Đang tải…';
       $('personDetailList').innerHTML='';
       $('personDetailLayer').hidden=false;document.body.style.overflow='hidden';
@@ -1999,32 +2028,35 @@ var AUTO_SYNC_MS = 300000;
     function closePersonManager(){
       if(state.personManagerSaving)return;
       if($('personDetailLayer'))$('personDetailLayer').hidden=true;
-      state.personManagerCode='';state.personManagerRows=[];state.personManagerTotal=0;
+      state.personManagerCode='';state.personManagerDate='';state.personManagerRows=[];state.personManagerTotal=0;
       resetPersonManagerForm();
       if($('sourceDetailLayer').hidden&&$('confirmLayer').hidden)document.body.style.overflow='';
     }
     function editPersonManagerEntry(id){
       var item=(state.personManagerRows||[]).find(function(row){return row.id===id});if(!item)return;
-      $('personDetailId').value=item.id||'';$('personDetailName').value=item.hoTen||'';$('personDetailGender').value=item.gioiTinh||'';$('personDetailBirthYear').value=item.namSinh||'';
+      $('personDetailId').value=item.id||'';$('personDetailOriginalDate').value=item.date||state.personManagerDate||'';$('personDetailName').value=item.hoTen||'';$('personDetailGender').value=item.gioiTinh||'';$('personDetailBirthYear').value=item.namSinh||'';$('personDetailBusinessDate').value=item.date||state.personManagerDate||$('entryDate').value;$('personDetailBusinessDate').disabled=true;
       $('personDetailSave').textContent='Lưu thay đổi';$('personDetailReset').hidden=false;$('personDetailError').textContent='';
       $('personDetailForm').scrollIntoView({behavior:'smooth',block:'nearest'});
       window.setTimeout(function(){$('personDetailName').focus();$('personDetailName').select()},80);
     }
     async function savePersonManagerEntry(event){
       if(event)event.preventDefault();if(state.personManagerSaving)return;
-      var code=state.personManagerCode,date=$('entryDate').value;
+      var code=state.personManagerCode,date=String($('personDetailBusinessDate').value||state.personManagerDate||$('entryDate').value||'');
       var payload={date:date,code:code,id:String($('personDetailId').value||''),hoTen:String($('personDetailName').value||'').trim(),gioiTinh:String($('personDetailGender').value||''),namSinh:Number($('personDetailBirthYear').value||0)};
       if(payload.hoTen.length<2){$('personDetailError').textContent='Vui lòng nhập Họ và tên.';return}
       if(!payload.gioiTinh){$('personDetailError').textContent='Vui lòng chọn Giới tính.';return}
       var yearNow=new Date().getFullYear();if(!Number.isInteger(payload.namSinh)||payload.namSinh<1900||payload.namSinh>yearNow){$('personDetailError').textContent='Năm sinh phải từ 1900 đến '+yearNow+'.';return}
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.date)){ $('personDetailError').textContent='Vui lòng chọn ngày nghiệp vụ.';return }
+      if(payload.date>todayIsoVietnam()){ $('personDetailError').textContent='Ngày nghiệp vụ không được lớn hơn ngày hiện tại.';return }
       $('personDetailError').textContent='';setPersonManagerSaving(true);
       try{
         var result=await call('savePersonDetail',payload);
+        state.personManagerDate=String(result&&result.date||payload.date);if($('entryDate'))$('entryDate').value=state.personManagerDate;updatePersonManagerSubtitle();
         resetPersonManagerForm();toast(result&&result.message||'Đã lưu đối tượng.','ok');
         await loadPersonManager();
         await loadDay({silent:true,force:true,notify:false});
         Promise.resolve(syncData(true,true)).catch(function(){});
-      }catch(error){$('personDetailError').textContent=error.message||'Không thể lưu đối tượng.'}
+      }catch(error){$('personDetailError').textContent=personPermissionMessage(error)}
       finally{setPersonManagerSaving(false)}
     }
     async function deletePersonManagerEntry(id){
@@ -2034,11 +2066,11 @@ var AUTO_SYNC_MS = 300000;
       if(!ok)return;
       setPersonManagerSaving(true);
       try{
-        var result=await call('deletePersonDetail',{date:$('entryDate').value,code:state.personManagerCode,id:id});
+        var result=await call('deletePersonDetail',{date:state.personManagerDate||$('entryDate').value,code:state.personManagerCode,id:id});
         toast(result&&result.message||'Đã xóa đối tượng.','ok');
         await loadPersonManager();await loadDay({silent:true,force:true,notify:false});
         Promise.resolve(syncData(true,true)).catch(function(){});
-      }catch(error){$('personDetailError').textContent=error.message||'Không thể xóa đối tượng.'}
+      }catch(error){$('personDetailError').textContent=personPermissionMessage(error)}
       finally{setPersonManagerSaving(false)}
     }
 
@@ -2821,7 +2853,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.9.3'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.9.4'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
