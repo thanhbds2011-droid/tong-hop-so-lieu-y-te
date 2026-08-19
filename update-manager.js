@@ -2,14 +2,17 @@
 
 (function () {
   const cfg = window.YTE_APP_CONFIG || {};
-  const currentVersion = String(cfg.VERSION || '9.9.4');
+  const currentVersion = String(cfg.VERSION || '9.9.5');
   const CHECK_INTERVAL_MS = 60000;
-  const DISMISS_TTL_MS = 15 * 60 * 1000;
+  const DEFER_RETRY_MS = 4000;
+  const UPDATE_CONTEXT_KEY = 'yte-update-context';
   let registration = null;
   let reloadOnControllerChange = false;
   let latestRelease = null;
   let checkTimer = null;
   let checking = false;
+  let deferredTimer = null;
+  let autoApplyInFlight = false;
 
   function compareVersions(a, b) {
     const pa = String(a || '').split('.').map((n) => Number(n) || 0);
@@ -24,21 +27,6 @@
     return 0;
   }
 
-  function dismissed(version) {
-    try {
-      const raw = sessionStorage.getItem('yte-update-dismissed');
-      if (!raw) return false;
-      const value = JSON.parse(raw);
-      return value && value.version === version && Date.now() - Number(value.at || 0) < DISMISS_TTL_MS;
-    } catch (_) { return false; }
-  }
-
-  function rememberDismiss(version) {
-    try {
-      sessionStorage.setItem('yte-update-dismissed', JSON.stringify({ version, at: Date.now() }));
-    } catch (_) {}
-  }
-
   function ensureBanner() {
     let banner = document.getElementById('appUpdateBanner');
     if (banner) return banner;
@@ -51,35 +39,27 @@
     banner.innerHTML = `
       <div class="app-update-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg></div>
       <div class="app-update-copy">
-        <strong id="appUpdateTitle">Có phiên bản mới</strong>
-        <span id="appUpdateMessage">Ứng dụng đã có bản cập nhật mới.</span>
+        <strong id="appUpdateTitle">Đang chuẩn bị bản cập nhật</strong>
+        <span id="appUpdateMessage">Ứng dụng sẽ tự cập nhật khi an toàn.</span>
       </div>
       <div class="app-update-actions">
-        <button id="appUpdateLater" class="btn btn-ghost app-update-later" type="button">Để sau</button>
         <button id="appUpdateNow" class="btn btn-primary app-update-now" type="button">Cập nhật ngay</button>
       </div>`;
     document.body.appendChild(banner);
-    banner.querySelector('#appUpdateLater').addEventListener('click', () => {
-      const version = banner.dataset.version || latestRelease?.version || '';
-      if (version) rememberDismiss(version);
-      banner.hidden = true;
-    });
-    banner.querySelector('#appUpdateNow').addEventListener('click', applyUpdate);
+    banner.querySelector('#appUpdateNow').addEventListener('click', () => applyUpdate({ userInitiated: true }));
     return banner;
   }
 
-  function showBanner(release, force) {
+  function showBanner(release, message, buttonText, disabled) {
     const version = String(release?.version || 'mới');
-    if (!force && dismissed(version)) return;
     latestRelease = release || { version };
     const banner = ensureBanner();
     banner.dataset.version = version;
     banner.querySelector('#appUpdateTitle').textContent = `Có phiên bản mới v${version}`;
-    banner.querySelector('#appUpdateMessage').textContent = String(
-      release?.message || 'Bản cập nhật đã sẵn sàng. Nhấn “Cập nhật ngay” để sử dụng phiên bản mới.'
-    );
-    banner.querySelector('#appUpdateNow').disabled = false;
-    banner.querySelector('#appUpdateNow').textContent = 'Cập nhật ngay';
+    banner.querySelector('#appUpdateMessage').textContent = String(message || release?.message || 'Ứng dụng sẽ tự cập nhật trong giây lát.');
+    const button = banner.querySelector('#appUpdateNow');
+    button.disabled = disabled === true;
+    button.textContent = buttonText || 'Cập nhật ngay';
     banner.hidden = false;
   }
 
@@ -101,52 +81,6 @@
     } catch (_) { return null; }
   }
 
-  function inspectRegistration(reg) {
-    if (!reg) return;
-    registration = reg;
-    if (reg.waiting && navigator.serviceWorker.controller) {
-      showBanner(latestRelease || { version: 'mới' });
-    }
-    if (reg.installing) watchInstalling(reg.installing);
-    reg.addEventListener('updatefound', () => {
-      if (reg.installing) watchInstalling(reg.installing);
-    });
-  }
-
-  function watchInstalling(worker) {
-    if (!worker || worker.__yteWatched) return;
-    worker.__yteWatched = true;
-    worker.addEventListener('statechange', () => {
-      if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-        const release = latestRelease || { version: 'mới' };
-        showBanner(release, true);
-      }
-    });
-  }
-
-  async function checkForUpdate() {
-    if (checking) return;
-    checking = true;
-    try {
-      const release = await fetchReleaseInfo();
-      if (release) latestRelease = release;
-      if (registration) {
-        try { await registration.update(); } catch (_) {}
-      }
-      if (registration?.waiting && navigator.serviceWorker.controller) {
-        showBanner(release || latestRelease || { version: 'mới' });
-        return;
-      }
-      if (release && compareVersions(release.version, currentVersion) > 0) {
-        showBanner(release);
-      } else if (release && compareVersions(release.version, currentVersion) <= 0 && !registration?.waiting) {
-        hideBanner();
-      }
-    } finally {
-      checking = false;
-    }
-  }
-
   function hasUnsavedChanges() {
     const guards = [
       window.YTE_APP_UI && window.YTE_APP_UI.hasUnsavedChanges,
@@ -159,27 +93,108 @@
     });
   }
 
-  async function applyUpdate() {
-    const banner = ensureBanner();
-    const button = banner.querySelector('#appUpdateNow');
-    if (hasUnsavedChanges()) {
-      const proceed = window.confirm('Bạn đang có dữ liệu chưa lưu. Nếu cập nhật ngay, nội dung đang nhập có thể bị mất. Bạn có muốn tiếp tục cập nhật?');
-      if (!proceed) return;
-    }
-    button.disabled = true;
-    button.textContent = 'Đang cập nhật...';
+  function captureUpdateContext() {
     try {
-      if (registration) {
-        await registration.update().catch(() => {});
-      }
-      const waiting = registration?.waiting;
-      if (waiting) {
-        reloadOnControllerChange = true;
-        waiting.postMessage({ type: 'SKIP_WAITING' });
+      const appContext = window.YTE_APP_UI && typeof window.YTE_APP_UI.captureUpdateContext === 'function'
+        ? window.YTE_APP_UI.captureUpdateContext()
+        : null;
+      const journeyContext = window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.captureUpdateContext === 'function'
+        ? window.YTE_JOURNEYS.captureUpdateContext()
+        : null;
+      sessionStorage.setItem(UPDATE_CONTEXT_KEY, JSON.stringify({
+        savedAt: Date.now(),
+        fromVersion: currentVersion,
+        app: appContext,
+        journeys: journeyContext
+      }));
+    } catch (_) {}
+  }
+
+  function scheduleDeferredUpdate(release) {
+    latestRelease = release || latestRelease;
+    showBanner(latestRelease || { version: 'mới' }, 'Bạn đang có nội dung chưa lưu. Ứng dụng sẽ tự cập nhật ngay sau khi lưu hoặc đóng biểu mẫu.', 'Đang chờ lưu dữ liệu', true);
+    clearTimeout(deferredTimer);
+    deferredTimer = setTimeout(async () => {
+      if (hasUnsavedChanges()) {
+        scheduleDeferredUpdate(latestRelease);
         return;
       }
-      // Nếu worker đang install, chờ tối đa 8 giây để chuyển sang waiting.
-      const deadline = Date.now() + 8000;
+      await applyUpdate({ automatic: true });
+    }, DEFER_RETRY_MS);
+  }
+
+  function inspectRegistration(reg) {
+    if (!reg) return;
+    registration = reg;
+    if (reg.waiting && navigator.serviceWorker.controller) requestAutomaticApply(latestRelease || { version: 'mới' });
+    if (reg.installing) watchInstalling(reg.installing);
+    reg.addEventListener('updatefound', () => {
+      if (reg.installing) watchInstalling(reg.installing);
+    });
+  }
+
+  function watchInstalling(worker) {
+    if (!worker || worker.__yteWatched) return;
+    worker.__yteWatched = true;
+    worker.addEventListener('statechange', () => {
+      if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+        requestAutomaticApply(latestRelease || { version: 'mới' });
+      }
+    });
+  }
+
+  function requestAutomaticApply(release) {
+    latestRelease = release || latestRelease;
+    if (hasUnsavedChanges()) {
+      scheduleDeferredUpdate(latestRelease);
+      return;
+    }
+    showBanner(latestRelease || { version: 'mới' }, 'Bản cập nhật đã sẵn sàng và sẽ được áp dụng tự động.', 'Đang cập nhật…', true);
+    window.setTimeout(() => applyUpdate({ automatic: true }), 350);
+  }
+
+  async function checkForUpdate() {
+    if (checking) return;
+    checking = true;
+    try {
+      const release = await fetchReleaseInfo();
+      if (release) latestRelease = release;
+      if (registration) {
+        try { await registration.update(); } catch (_) {}
+      }
+      if (registration?.waiting && navigator.serviceWorker.controller) {
+        requestAutomaticApply(release || latestRelease || { version: 'mới' });
+        return;
+      }
+      if (release && compareVersions(release.version, currentVersion) > 0) {
+        showBanner(release, 'Đã phát hiện phiên bản mới. Ứng dụng đang tải bản cập nhật và sẽ tự áp dụng khi an toàn.', 'Đang chuẩn bị…', true);
+        if (hasUnsavedChanges()) scheduleDeferredUpdate(release);
+      } else if (release && compareVersions(release.version, currentVersion) <= 0 && !registration?.waiting) {
+        hideBanner();
+      }
+    } finally {
+      checking = false;
+    }
+  }
+
+  async function applyUpdate(options) {
+    if (autoApplyInFlight) return;
+    if (hasUnsavedChanges()) {
+      scheduleDeferredUpdate(latestRelease);
+      return;
+    }
+    autoApplyInFlight = true;
+    clearTimeout(deferredTimer);
+    captureUpdateContext();
+    showBanner(latestRelease || { version: 'mới' }, 'Đang chuyển sang phiên bản mới. Vị trí làm việc hiện tại sẽ được khôi phục sau khi cập nhật.', 'Đang cập nhật…', true);
+    try {
+      if (registration) await registration.update().catch(() => {});
+      if (registration?.waiting) {
+        reloadOnControllerChange = true;
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        return;
+      }
+      const deadline = Date.now() + 10000;
       while (Date.now() < deadline && !registration?.waiting) {
         await new Promise((resolve) => setTimeout(resolve, 250));
       }
@@ -188,11 +203,13 @@
         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
         return;
       }
-      // Fallback an toàn: tải lại bằng network. Không xóa dữ liệu/cache thủ công.
+      // Fallback: navigation của service worker luôn network-first nên lần tải này nhận index mới.
       location.reload();
     } catch (_) {
-      button.disabled = false;
-      button.textContent = 'Cập nhật ngay';
+      autoApplyInFlight = false;
+      showBanner(latestRelease || { version: 'mới' }, 'Chưa thể hoàn tất cập nhật. Ứng dụng sẽ tự thử lại khi có kết nối ổn định.', 'Thử cập nhật', false);
+      clearTimeout(deferredTimer);
+      deferredTimer = setTimeout(checkForUpdate, DEFER_RETRY_MS);
     }
   }
 
@@ -213,7 +230,7 @@
       navigator.serviceWorker.addEventListener('message', (event) => {
         const data = event.data || {};
         if (data.type === 'YTE_SW_VERSION' && data.version && compareVersions(data.version, currentVersion) > 0) {
-          showBanner({ version: data.version, message: data.message || '' });
+          requestAutomaticApply({ version: data.version, message: data.message || '' });
         }
       });
       await checkForUpdate();
@@ -233,6 +250,7 @@
 
   window.YTE_UPDATE_MANAGER = Object.freeze({
     check: checkForUpdate,
+    apply: () => applyUpdate({ userInitiated: true }),
     currentVersion
   });
 

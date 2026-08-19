@@ -2793,3 +2793,116 @@ body.notification-open { overflow: auto !important; }
 @media (max-width: 760px) {
   .journey-audit-time { display: block; margin-top: 2px; white-space: normal; }
 }
+
+/* =========================================================
+   Runtime 9.9.5 — Realtime Sync, reliable delete stack,
+   responsive dashboard actions and automatic PWA updates.
+   ========================================================= */
+
+/* Confirmations that are opened from another dialog must always be top-most. */
+#confirmLayer {
+  z-index: 520 !important;
+}
+#deleteDailyLayer {
+  z-index: 510 !important;
+}
+.person-detail-layer,
+.source-detail-layer,
+.review-request-layer,
+.review-inbox-layer {
+  z-index: 240;
+}
+
+/* A disconnected device keeps its current screen; Firebase listeners reconnect automatically. */
+html[data-firebase-connected="false"] .page-sync-btn::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #d09a2f;
+}
+.page-sync-btn { position: relative; }
+
+/* Desktop dashboard uses only the fields that are actually visible. Hidden range fields
+   no longer reserve grid tracks and push "Xem báo cáo" outside the card. */
+@media (min-width: 761px) {
+  .dashboard-filter-panel .dashboard-range-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: flex-end !important;
+    gap: 10px !important;
+  }
+  .dashboard-primary-filters {
+    flex: 1 1 720px !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: flex-end !important;
+    gap: 9px !important;
+    grid-template-columns: none !important;
+  }
+  .dashboard-primary-filters > .field:not([hidden]) {
+    flex: 1 1 150px !important;
+    min-width: 138px !important;
+    max-width: 220px;
+  }
+  .dashboard-primary-filters > .field:first-child:not([hidden]) {
+    flex-basis: 145px !important;
+  }
+  .dashboard-primary-filters > .filter-apply-btn {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 146px;
+  }
+  .dashboard-secondary-actions {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .dashboard-secondary-actions .dashboard-more-filter,
+  .dashboard-secondary-actions .report-preview-trigger {
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1280px) {
+  .dashboard-primary-filters { flex-basis: 100% !important; }
+  .dashboard-secondary-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+}
+
+/* Keep action labels inside the dashboard card on narrow PWA screens. */
+@media (max-width: 760px) {
+  .dashboard-filter-panel,
+  .dashboard-secondary-actions,
+  .dashboard-secondary-actions > * { min-width: 0; max-width: 100%; }
+  .dashboard-secondary-actions .report-preview-trigger,
+  .dashboard-secondary-actions .dashboard-more-filter > summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #confirmLayer {
+    z-index: 520 !important;
+  }
+}
+
+/* Automatic update banner: one clear action, compact on installed PWA. */
+.app-update-banner {
+  grid-template-columns: auto minmax(0,1fr) auto;
+}
+.app-update-actions { justify-content: flex-end; }
+@media (max-width: 620px) {
+  .app-update-banner { grid-template-columns: auto minmax(0,1fr); }
+  .app-update-actions { grid-column: 1 / -1; }
+  .app-update-actions .btn { width: 100%; }
+}

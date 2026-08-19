@@ -35,7 +35,7 @@ const YTE_APP_ROOT = 'yTeApp';
 const REVIEW_ROOT = `${YTE_APP_ROOT}/yeuCauDoiSoat`;
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '9.9.4';
+const APP_RUNTIME_VERSION = '9.9.5';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -1710,7 +1710,10 @@ var AUTO_SYNC_MS = 300000;
       historyCode:'',historyLoading:false,displayNameEditUid:'',
       reviewRequestCode:'',reviewRequestSaving:false,
       personManagerCode:'',personManagerDate:'',personManagerRows:[],personManagerTotal:0,personManagerSaving:false,
+      personManagerLiveUnsubscribers:[],personManagerLiveRaw:{},personManagerLiveSummary:null,
+      sourceDetailLiveUnsubscribers:[],sourceDetailLiveContext:null,sourceDetailLiveRaw:{},sourceDetailLiveSummary:{},
       dashboardLiveUnsubscribe:null,dashboardTransferStatsUnsubscribe:null,dashboardDeathStatsUnsubscribe:null,categoryLiveUnsubscribe:null,entryLiveUnsubscribe:null,entryTransferStatsUnsubscribe:null,entryDeathStatsUnsubscribe:null,
+      adminRealtimeUnsubscribers:[],adminRealtimeTimer:null,ownPermissionUnsubscribers:[],ownPermissionUid:'',ownPermissionSignature:'',ownPermissionValues:{tong:null,report:null,tongReady:false,reportReady:false},connectionUnsubscribe:null,wasDisconnected:false,
       dashboardBaseRecords:[],dashboardTransferStats:{},dashboardDeathStats:{},entryBaseRecords:[],entryTransferStats:{},entryDeathStats:{},
       liveRangeKey:'',entryLiveDate:''
     };
@@ -1788,6 +1791,71 @@ var AUTO_SYNC_MS = 300000;
       state.entryTransferStatsUnsubscribe=onValue(ref(firebaseDatabase,PUBLIC_REPORT_STATS_ROOT+'/chuyenVienTheoNgay/'+date),function(snap){state.entryTransferStats=snapshotObject(snap);refreshEntry()},function(error){console.warn('Realtime chuyển viện ngày:',error)});
       state.entryDeathStatsUnsubscribe=onValue(ref(firebaseDatabase,PUBLIC_REPORT_STATS_ROOT+'/tuVongTheoNgay/'+date),function(snap){state.entryDeathStats=snapshotObject(snap);refreshEntry()},function(error){console.warn('Realtime tử vong ngày:',error)});
     }
+    function stopOwnPermissionRealtime(){
+      (state.ownPermissionUnsubscribers||[]).forEach(function(fn){if(typeof fn==='function')try{fn()}catch(_){}});
+      state.ownPermissionUnsubscribers=[];state.ownPermissionUid='';state.ownPermissionSignature='';state.ownPermissionValues={tong:null,report:null,tongReady:false,reportReady:false};
+    }
+    function startOwnPermissionRealtime(){
+      var uid=state.authUser&&state.authUser.uid;if(!uid){stopOwnPermissionRealtime();return}
+      if(state.ownPermissionUid===uid&&state.ownPermissionUnsubscribers.length)return;
+      stopOwnPermissionRealtime();state.ownPermissionUid=uid;
+      function accept(kind,snap){
+        var v=snap.exists()?snapshotObject(snap):null;
+        state.ownPermissionValues[kind]=v;state.ownPermissionValues[kind+'Ready']=true;
+        if(!state.ownPermissionValues.tongReady||!state.ownPermissionValues.reportReady)return;
+        var signature=JSON.stringify({tong:state.ownPermissionValues.tong||null,report:state.ownPermissionValues.report||null});
+        if(!state.ownPermissionSignature){state.ownPermissionSignature=signature;return}
+        if(signature===state.ownPermissionSignature)return;
+        state.ownPermissionSignature=signature;
+        window.clearTimeout(state._permissionRefreshTimer);
+        state._permissionRefreshTimer=window.setTimeout(function(){refreshCurrentSession().catch(function(){})},120);
+      }
+      state.ownPermissionUnsubscribers.push(onValue(ref(firebaseDatabase,ROOT+'/phanQuyen/'+uid),function(snap){accept('tong',snap)},function(error){console.warn('Realtime quyền Tổng hợp:',error)}));
+      state.ownPermissionUnsubscribers.push(onValue(ref(firebaseDatabase,REPORT_ROOT+'/phanQuyen/'+uid),function(snap){accept('report',snap)},function(error){console.warn('Realtime quyền Báo cáo:',error)}));
+    }
+    function stopAdminRealtime(){
+      (state.adminRealtimeUnsubscribers||[]).forEach(function(fn){if(typeof fn==='function')try{fn()}catch(_){}});
+      state.adminRealtimeUnsubscribers=[];window.clearTimeout(state.adminRealtimeTimer);state.adminRealtimeTimer=null;
+    }
+    function scheduleAdminRealtimeRefresh(kind){
+      if(kind==='users')state.adminLoadedAt=0;
+      if(kind==='reports')state.adminReportLoadedAt=0;
+      if(kind==='categories')state.categoryLoadedAt=0;
+      window.clearTimeout(state.adminRealtimeTimer);
+      state.adminRealtimeTimer=window.setTimeout(function(){
+        if(currentViewName()!=='admin')return;
+        if(state.adminSection==='users')loadAdminUsers(true).catch(function(){});
+        else if(state.adminSection==='categories')loadAdminCategories(true).catch(function(){});
+        else if(state.adminSection==='reportPermissions')loadAdminReportUsers(true).catch(function(){});
+      },280);
+    }
+    function startAdminRealtime(){
+      if(!isAnyAppAdmin()){stopAdminRealtime();return}
+      if(state.adminRealtimeUnsubscribers&&state.adminRealtimeUnsubscribers.length)return;
+      var targets=[
+        [ROOT+'/phanQuyen','users'],[ROOT+'/yeuCauDangKy','users'],[YTE_APP_ROOT+'/tenHienThi','users'],
+        [REPORT_ROOT+'/phanQuyen','reports'],[ROOT+'/danhMucChiTieu','categories']
+      ];
+      targets.forEach(function(item){
+        var first=true;
+        state.adminRealtimeUnsubscribers.push(onValue(ref(firebaseDatabase,item[0]),function(){if(first){first=false;return}scheduleAdminRealtimeRefresh(item[1])},function(error){console.warn('Realtime Quản trị '+item[0]+':',error)}));
+      });
+    }
+    function startConnectionRealtime(){
+      if(state.connectionUnsubscribe)return;
+      state.connectionUnsubscribe=onValue(ref(firebaseDatabase,'.info/connected'),function(snap){
+        var connected=snap.val()===true;
+        document.documentElement.dataset.firebaseConnected=connected?'true':'false';
+        document.body.classList.toggle('firebase-offline',!connected);
+        if(!connected){state.wasDisconnected=true;return}
+        if(state.wasDisconnected){
+          state.wasDisconnected=false;toast('Đã kết nối lại. Dữ liệu đang được đồng bộ tự động.','ok');
+          Promise.resolve(syncData(true,true)).catch(function(){});
+          if(currentViewName()==='entry'&&$('entryDate').value)loadDay({silent:true,force:true,notify:false}).catch(function(){});
+          if(!$('personDetailLayer').hidden&&state.personManagerCode)startPersonManagerRealtime(true);
+        }
+      },function(error){console.warn('Theo dõi kết nối Firebase:',error)});
+    }
     function call(name){
       var args=Array.prototype.slice.call(arguments,1);
       return firebaseCall.apply(null,[name].concat(args)).catch(function(error){
@@ -1824,7 +1892,7 @@ var AUTO_SYNC_MS = 300000;
     function message(text,type){type=type||'ok';if(type==='ok'){clearMessage();toast(text,'ok');return}$('message').innerHTML='<div class="message '+type+'">'+esc(text)+'</div>';window.scrollTo({top:0,behavior:'smooth'});toast(text,type)}
     function clearMessage(){$('message').innerHTML=''}
     var confirmResolver=null;
-    function closeConfirm(result){var layer=$('confirmLayer');if(layer.hidden)return;layer.hidden=true;document.body.style.overflow='';var resolver=confirmResolver;confirmResolver=null;if(resolver)resolver(!!result)}
+    function closeConfirm(result){var layer=$('confirmLayer');if(layer.hidden)return;layer.hidden=true;var anotherDialog=['personDetailLayer','sourceDetailLayer','reviewRequestLayer','reviewInboxLayer','dataHistoryLayer','categoryLayer'].some(function(id){var el=$(id);return el&&!el.hidden});document.body.style.overflow=anotherDialog?'hidden':'';var resolver=confirmResolver;confirmResolver=null;if(resolver)resolver(!!result)}
     function confirmAction(options){options=options||{};if(confirmResolver)closeConfirm(false);$('confirmTitle').textContent=options.title||'Xác nhận thao tác';$('confirmMessage').textContent=options.message||'';$('confirmAccept').textContent=options.confirmText||'Xác nhận';$('confirmCancel').textContent=options.cancelText||'Quay lại';$('confirmAccept').className='btn '+(options.danger?'btn-danger':'btn-primary');$('confirmLayer').classList.toggle('is-danger',!!options.danger);$('confirmLayer').hidden=false;document.body.style.overflow='hidden';window.setTimeout(function(){$('confirmAccept').focus()},0);return new Promise(function(resolve){confirmResolver=resolve})}
     function setBusy(active,text){state.busyCount=Math.max(0,state.busyCount+(active?1:-1));if(active&&text)$('loadingText').textContent=text;document.body.classList.toggle('is-busy',state.busyCount>0);if(state.busyCount===0)$('loadingText').textContent='Đang xử lý...'}
     function withTimeout(promise,timeoutMs,messageText){
@@ -2011,6 +2079,31 @@ var AUTO_SYNC_MS = 300000;
         if($('personDetailState')){$('personDetailState').hidden=false;$('personDetailState').className='inline-state err';$('personDetailState').textContent=personPermissionMessage(error)}
       }
     }
+    function stopPersonManagerRealtime(){
+      (state.personManagerLiveUnsubscribers||[]).forEach(function(fn){if(typeof fn==='function')try{fn()}catch(_){}});
+      state.personManagerLiveUnsubscribers=[];state.personManagerLiveRaw={};state.personManagerLiveSummary=null;
+    }
+    function refreshPersonManagerRealtimeUi(){
+      if(!state.personManagerCode||!state.personManagerDate||$('personDetailLayer').hidden)return;
+      var rows=activePersonRows(state.personManagerLiveRaw||{}).sort(function(a,b){return String(a.hoTen||'').localeCompare(String(b.hoTen||''),'vi')});
+      var total=state.personManagerLiveSummary==null?rows.length:Number(state.personManagerLiveSummary||0);
+      state.personManagerRows=rows;state.personManagerTotal=total;renderPersonManagerList();
+      if($('personDetailState')){
+        var unresolved=Math.max(0,total-rows.length);
+        if(unresolved>0){$('personDetailState').hidden=false;$('personDetailState').className='inline-state warn';$('personDetailState').textContent='Còn '+unresolved.toLocaleString('vi-VN')+' lượt dữ liệu cũ chưa có Họ tên/Giới tính/Năm sinh. Tổng số hiện tại được bảo toàn khi bổ sung dần danh sách.'}
+        else if(!$('personDetailState').classList.contains('err')){$('personDetailState').hidden=true;$('personDetailState').textContent=''}
+      }
+    }
+    function startPersonManagerRealtime(force){
+      var code=state.personManagerCode,date=state.personManagerDate||$('entryDate').value;
+      if(!code||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date))return;
+      if(!force&&state.personManagerLiveUnsubscribers&&state.personManagerLiveUnsubscribers.length)return;
+      stopPersonManagerRealtime();
+      var detailRef=ref(firebaseDatabase,PERSON_DETAIL_ROOT+'/'+date+'/'+code);
+      var summaryRef=ref(firebaseDatabase,ROOT+'/congKhai/soLieuTheoNgay/'+date+'/'+code+'/giaTri');
+      state.personManagerLiveUnsubscribers.push(onValue(detailRef,function(snap){state.personManagerLiveRaw=snapshotObject(snap);refreshPersonManagerRealtimeUi()},function(error){console.warn('Realtime danh sách đối tượng:',error);if($('personDetailState')){$('personDetailState').hidden=false;$('personDetailState').className='inline-state err';$('personDetailState').textContent=personPermissionMessage(error)}}));
+      state.personManagerLiveUnsubscribers.push(onValue(summaryRef,function(snap){state.personManagerLiveSummary=snap.exists()?Number(snap.val()||0):null;refreshPersonManagerRealtimeUi()},function(error){console.warn('Realtime tổng số chi tiết:',error)}));
+    }
     function openPersonManager(code){
       var category=state.categories.find(function(item){return item.code===code});
       if(!category||!category.personDetailKind){toast('Chỉ tiêu này không sử dụng danh sách đối tượng.','warn');return}
@@ -2022,11 +2115,12 @@ var AUTO_SYNC_MS = 300000;
       $('personDetailCount').textContent='Đang tải…';
       $('personDetailList').innerHTML='';
       $('personDetailLayer').hidden=false;document.body.style.overflow='hidden';
-      loadPersonManager();
+      loadPersonManager();startPersonManagerRealtime(true);
       window.setTimeout(function(){if(window.matchMedia&&window.matchMedia('(pointer:fine) and (min-width:761px)').matches)$('personDetailName').focus()},0);
     }
     function closePersonManager(){
       if(state.personManagerSaving)return;
+      stopPersonManagerRealtime();
       if($('personDetailLayer'))$('personDetailLayer').hidden=true;
       state.personManagerCode='';state.personManagerDate='';state.personManagerRows=[];state.personManagerTotal=0;
       resetPersonManagerForm();
@@ -2051,7 +2145,8 @@ var AUTO_SYNC_MS = 300000;
       $('personDetailError').textContent='';setPersonManagerSaving(true);
       try{
         var result=await call('savePersonDetail',payload);
-        state.personManagerDate=String(result&&result.date||payload.date);if($('entryDate'))$('entryDate').value=state.personManagerDate;updatePersonManagerSubtitle();
+        var previousManagerDate=state.personManagerDate;state.personManagerDate=String(result&&result.date||payload.date);if($('entryDate'))$('entryDate').value=state.personManagerDate;updatePersonManagerSubtitle();
+        if(previousManagerDate!==state.personManagerDate)startPersonManagerRealtime(true);
         resetPersonManagerForm();toast(result&&result.message||'Đã lưu đối tượng.','ok');
         await loadPersonManager();
         await loadDay({silent:true,force:true,notify:false});
@@ -2062,19 +2157,60 @@ var AUTO_SYNC_MS = 300000;
     async function deletePersonManagerEntry(id){
       if(!isAnyAppAdmin()){toast('Chỉ tài khoản Quản trị mới được xóa đối tượng.','warn');return}
       var item=(state.personManagerRows||[]).find(function(row){return row.id===id});if(!item)return;
-      var ok=await confirmAction({title:'Xóa khỏi danh sách?',message:'Xóa '+String(item.hoTen||'đối tượng')+' khỏi '+String($('personDetailTitle').textContent||'danh sách')+'. Số liệu tổng hợp sẽ tự giảm tương ứng.',confirmText:'Xóa đối tượng',cancelText:'Hủy',danger:true});
+      // v9.9.5: đóng băng toàn bộ khóa nghiệp vụ trước khi mở confirm. Confirm có thể
+      // thay đổi focus/stack dialog nhưng thao tác xóa không còn phụ thuộc state của popup.
+      var deletePayload={
+        id:String(item.id||id),
+        date:String(item.date||state.personManagerDate||$('entryDate').value||''),
+        code:String(state.personManagerCode||''),
+        hoTen:String(item.hoTen||'đối tượng'),
+        metricName:String($('personDetailTitle').textContent||'danh sách')
+      };
+      if(!deletePayload.code||!deletePayload.date){toast('Không xác định được chỉ tiêu hoặc ngày cần xóa. Vui lòng mở lại danh sách.','warn');return}
+      var ok=await confirmAction({title:'Xóa khỏi danh sách?',message:'Xóa '+deletePayload.hoTen+' khỏi '+deletePayload.metricName+'. Số liệu tổng hợp sẽ tự giảm tương ứng.',confirmText:'Xóa đối tượng',cancelText:'Hủy',danger:true});
       if(!ok)return;
       setPersonManagerSaving(true);
       try{
-        var result=await call('deletePersonDetail',{date:state.personManagerDate||$('entryDate').value,code:state.personManagerCode,id:id});
+        var result=await call('deletePersonDetail',{date:deletePayload.date,code:deletePayload.code,id:deletePayload.id});
         toast(result&&result.message||'Đã xóa đối tượng.','ok');
-        await loadPersonManager();await loadDay({silent:true,force:true,notify:false});
+        // Listener realtime sẽ tự cập nhật danh sách ở tất cả thiết bị; vẫn chủ động tải lại
+        // để bảo đảm thiết bị hiện tại phản hồi ngay cả khi mạng chập chờn.
+        if(state.personManagerCode===deletePayload.code&&state.personManagerDate===deletePayload.date)await loadPersonManager();
+        await loadDay({silent:true,force:true,notify:false});
         Promise.resolve(syncData(true,true)).catch(function(){});
       }catch(error){$('personDetailError').textContent=personPermissionMessage(error)}
       finally{setPersonManagerSaving(false)}
     }
 
+    function stopSourceDetailRealtime(){
+      (state.sourceDetailLiveUnsubscribers||[]).forEach(function(fn){if(typeof fn==='function')try{fn()}catch(_){}});
+      state.sourceDetailLiveUnsubscribers=[];state.sourceDetailLiveContext=null;state.sourceDetailLiveRaw={};state.sourceDetailLiveSummary={};
+    }
+    function refreshPersonSourceDetailRealtime(){
+      var ctx=state.sourceDetailLiveContext;if(!ctx||ctx.kind!=='person'||$('sourceDetailLayer').hidden)return;
+      var raw=state.sourceDetailLiveRaw||{},rows=[];
+      Object.keys(raw).sort().forEach(function(date){var day=raw[date]||{},group=day[ctx.code]||{};activePersonRows(group).forEach(function(item){rows.push(Object.assign({},item,{date:date}))})});
+      rows.sort(function(a,b){return String(b.date).localeCompare(String(a.date))||String(a.hoTen||'').localeCompare(String(b.hoTen||''),'vi')});
+      var summaryRaw=state.sourceDetailLiveSummary||{};
+      var total=Object.keys(summaryRaw).reduce(function(sum,date){return sum+Number((((summaryRaw[date]||{})[ctx.code]||{}).giaTri)||0)},0);
+      if(!Object.keys(summaryRaw).length)total=rows.length;
+      var unresolved=Math.max(0,total-rows.length);
+      $('sourceDetailCount').textContent=total!==rows.length?rows.length.toLocaleString('vi-VN')+' người chi tiết / '+total.toLocaleString('vi-VN')+' lượt':rows.length.toLocaleString('vi-VN')+' trường hợp';
+      if(unresolved>0){$('sourceDetailState').hidden=false;$('sourceDetailState').className='inline-state warn';$('sourceDetailState').textContent='Còn '+unresolved.toLocaleString('vi-VN')+' lượt dữ liệu cũ chưa có thông tin nhân thân chi tiết.'}
+      else if(!$('sourceDetailState').classList.contains('err')){$('sourceDetailState').hidden=true;$('sourceDetailState').textContent=''}
+      renderSourceDetailRows('person',rows);
+    }
+    function startPersonSourceDetailRealtime(code,range){
+      stopSourceDetailRealtime();
+      if(!code||!range)return;
+      state.sourceDetailLiveContext={kind:'person',code:code,from:range.from,to:range.to};
+      var detailQuery=query(ref(firebaseDatabase,PERSON_DETAIL_ROOT),orderByKey(),startAt(range.from),endAt(range.to));
+      var summaryQuery=query(ref(firebaseDatabase,ROOT+'/congKhai/soLieuTheoNgay'),orderByKey(),startAt(range.from),endAt(range.to));
+      state.sourceDetailLiveUnsubscribers.push(onValue(detailQuery,function(snap){state.sourceDetailLiveRaw=snapshotObject(snap);refreshPersonSourceDetailRealtime()},function(error){console.warn('Realtime chi tiết đối tượng:',error)}));
+      state.sourceDetailLiveUnsubscribers.push(onValue(summaryQuery,function(snap){state.sourceDetailLiveSummary=snapshotObject(snap);refreshPersonSourceDetailRealtime()},function(error){console.warn('Realtime tổng hợp chi tiết:',error)}));
+    }
     function closeSourceDetail(){
+      stopSourceDetailRealtime();
       var layer=$('sourceDetailLayer');if(!layer||layer.hidden)return;layer.hidden=true;document.body.style.overflow='';
     }
     function renderSourceDetailRows(kind,rows){
@@ -2107,6 +2243,7 @@ var AUTO_SYNC_MS = 300000;
         $('sourceDetailCount').textContent=(kind==='person'&&total!==rows.length)?rows.length.toLocaleString('vi-VN')+' người chi tiết / '+total.toLocaleString('vi-VN')+' lượt':rows.length.toLocaleString('vi-VN')+' trường hợp';
         if(unresolved>0){$('sourceDetailState').hidden=false;$('sourceDetailState').className='inline-state warn';$('sourceDetailState').textContent='Còn '+unresolved.toLocaleString('vi-VN')+' lượt dữ liệu cũ chưa có thông tin nhân thân chi tiết.'}else $('sourceDetailState').hidden=true;
         renderSourceDetailRows(kind,rows);
+        if(kind==='person')startPersonSourceDetailRealtime(code,range);else stopSourceDetailRealtime();
       }catch(error){$('sourceDetailCount').textContent='Không tải được';$('sourceDetailState').hidden=false;$('sourceDetailState').className='inline-state err';$('sourceDetailState').textContent=error.message||'Không thể đọc dữ liệu nguồn.';}
     }
 
@@ -2209,6 +2346,7 @@ var AUTO_SYNC_MS = 300000;
       state.categories=result.categories||state.categories;
       hydrateDailyFromResult(result);
       updateAuthUi();
+      startConnectionRealtime();startOwnPermissionRealtime();if(isAnyAppAdmin())startAdminRealtime();else stopAdminRealtime();
       if(isAnyAppAdmin()) call('ensurePublicCategoryMirror').then(function(){return syncData(true,true)}).catch(function(error){console.warn('Khôi phục mirror danh mục:',error)});
       if(isAnyAppAdmin()||(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu'].indexOf(state.reportPermission.role)>=0)) call('ensureReportStatisticsMarkers').then(function(){return syncData(true,true)}).catch(function(error){console.warn('Đối soát marker Báo cáo:',error)});
       var hasReport=hasReportAccess();
@@ -2218,11 +2356,40 @@ var AUTO_SYNC_MS = 300000;
     async function refreshCurrentSession(){
       try{var result=await call('restoreSession');applySessionResult(result);return result}catch(error){return null}
     }
+    function captureUpdateContext(){
+      var context={
+        view:currentViewName(),adminSection:state.adminSection||'users',
+        entryDate:$('entryDate')&&$('entryDate').value||'',rangeType:$('rangeType')&&$('rangeType').value||'day',
+        singleDate:$('singleDate')&&$('singleDate').value||'',fromDate:$('fromDate')&&$('fromDate').value||'',toDate:$('toDate')&&$('toDate').value||'',
+        monthValue:$('monthValue')&&$('monthValue').value||'',quarterValue:$('quarterValue')&&$('quarterValue').value||'',yearValue:$('yearValue')&&$('yearValue').value||'',
+        contentFilter:$('contentFilter')&&$('contentFilter').value||'all'
+      };
+      return context;
+    }
+    function restoreUpdateContext(){
+      var raw='';try{raw=sessionStorage.getItem('yte-update-context')||''}catch(_){}
+      if(!raw)return;
+      try{sessionStorage.removeItem('yte-update-context')}catch(_){}
+      try{
+        var saved=JSON.parse(raw),ctx=saved&&saved.app||{};
+        if(!saved||Date.now()-Number(saved.savedAt||0)>30*60*1000)return;
+        if(ctx.rangeType&&$('rangeType'))$('rangeType').value=ctx.rangeType;
+        ['singleDate','fromDate','toDate','monthValue','quarterValue','yearValue','entryDate'].forEach(function(id){if(ctx[id]&&$(id))$(id).value=ctx[id]});
+        updateRangeFields();
+        if(ctx.contentFilter&&$('contentFilter'))$('contentFilter').value=ctx.contentFilter;
+        if(ctx.adminSection)state.adminSection=ctx.adminSection;
+        var target=String(ctx.view||'');if(target&&['dashboard','entry','reports','admin'].indexOf(target)>=0)showView(target);
+        if(target==='dashboard'){startDashboardRealtime(true);Promise.resolve(syncData(true,true)).catch(function(){})}
+        if(target==='entry'&&$('entryDate').value){startEntryRealtime($('entryDate').value);loadDay({silent:true,force:true,notify:false}).catch(function(){})}
+        if(target==='reports'&&saved.journeys&&window.YTE_JOURNEYS&&typeof window.YTE_JOURNEYS.restoreUpdateContext==='function')window.setTimeout(function(){window.YTE_JOURNEYS.restoreUpdateContext(saved.journeys)},50);
+      }catch(error){console.warn('Không khôi phục được vị trí sau cập nhật:',error)}
+    }
     window.YTE_REFRESH_SESSION=refreshCurrentSession;
     window.YTE_APP_UI=Object.freeze({
-      hasUnsavedChanges:function(){return quickEntryDirty()},
+      hasUnsavedChanges:function(){return quickEntryDirty()||personManagerFormDirty()||!!(state.reviewRequestCode&&$('reviewRequestReason')&&String($('reviewRequestReason').value||'').trim())},
       openView:function(name){showView(String(name||''));},
       currentView:function(){return currentViewName();},
+      captureUpdateContext:captureUpdateContext,
       confirm:function(options){return confirmAction(options||{});}
     });
 
@@ -2230,6 +2397,7 @@ var AUTO_SYNC_MS = 300000;
       try{
         var result=await call('restoreSession');applySessionResult(result);
         if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.routeAfterRestore==='function')await window.YTE_REPORTS.routeAfterRestore(result);
+        restoreUpdateContext();
       }
       catch(error){state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi()}
     }
@@ -2394,6 +2562,10 @@ var AUTO_SYNC_MS = 300000;
       var code=String($('entryCategorySelect')&&$('entryCategorySelect').value||''),category=state.categories.find(function(item){return item.code===code});
       if(!category||category.derivedKind||category.personDetailKind)return false;
       return code+'|'+String($('entryQuickValue').value||'')!==state.quickEntryBaseline;
+    }
+    function personManagerFormDirty(){
+      if(!$('personDetailLayer')||$('personDetailLayer').hidden)return false;
+      return !!String($('personDetailId').value||'').trim()||!!String($('personDetailName').value||'').trim()||!!String($('personDetailGender').value||'').trim()||!!String($('personDetailBirthYear').value||'').trim();
     }
     function quickEntryPayload(){
       var code=String($('entryCategorySelect').value||''),category=state.categories.find(function(item){return item.code===code});
@@ -2853,7 +3025,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.9.4'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'9.9.5'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
@@ -2881,7 +3053,7 @@ var AUTO_SYNC_MS = 300000;
       // Public Dashboard phải có thể khởi động và nhận realtime độc lập với việc Firebase Auth
       // đang khôi phục session. Không await restore() ở startup để tránh khóa toàn bộ UI.
       startCategoryRealtime();startDashboardRealtime(false);updateAuthUi();
-      onAuthStateChanged(firebaseAuth,function(user){if(!user&&state.authUser){state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi()}});
+      onAuthStateChanged(firebaseAuth,function(user){if(!user&&state.authUser){stopOwnPermissionRealtime();stopAdminRealtime();stopPersonManagerRealtime();stopSourceDetailRealtime();state.authUser=null;state.user=null;state.reportPermission=null;updateAuthUi()}});
       Promise.resolve(restore()).catch(function(error){console.warn('Khôi phục phiên đăng nhập:',error)});
       Promise.resolve(syncData(false)).catch(function(error){console.warn('Đồng bộ Tổng quan ban đầu:',error)});
       state.syncTimer=setInterval(function(){if(!document.hidden)syncData(true)},AUTO_SYNC_MS);

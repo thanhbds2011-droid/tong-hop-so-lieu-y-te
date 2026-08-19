@@ -1751,6 +1751,8 @@ window.YTE_JOURNEYS = {
   openResource,
   openHistoryFilter,
   openReviewInbox,
+  captureUpdateContext: () => ({ subView: state.subView || 'tracking' }),
+  restoreUpdateContext: (ctx) => { if (ctx && ctx.subView) setSubView(ctx.subView); },
   hasUnsavedChanges: () => isCreateDirty() || (!($('journeyUpdateLayer')?.hidden) && isUpdateDirty())
 };
 

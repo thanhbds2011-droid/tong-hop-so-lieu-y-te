@@ -1,7 +1,7 @@
 {
-  "version": "9.9.4",
+  "version": "9.9.5",
   "releasedAt": "2026-08-19",
-  "title": "Business Event Date & Detail Permission Fix 9.9.4",
+  "title": "Realtime Sync & Automatic PWA Update 9.9.5",
   "businessBaseline": "Business Stable v1.0 / Source of Truth 9.9.0",
-  "message": "Cho phép chọn ngày nghiệp vụ cho từng bước hành trình chuyển viện; bổ sung Ngày điều trị/Ngày chuyển Trung tâm cho danh sách chi tiết; sửa quyền Firebase cho chiTietChiTieu và thông báo lỗi quyền thân thiện."
+  "message": "Bản v9.9.5 hoàn thiện realtime đa thiết bị, tự cập nhật PWA và sửa xóa/overflow Tổng quan."
 }
