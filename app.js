@@ -36,7 +36,7 @@ const YTE_APP_ROOT = 'yTeApp';
 const REVIEW_ROOT = `${YTE_APP_ROOT}/yeuCauDoiSoat`;
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '10.0.0';
+const APP_RUNTIME_VERSION = '10.0.1';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -44,7 +44,7 @@ const firebaseDatabase = getDatabase(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// v10.0.0 - kho quyền dùng chung cho toàn ứng dụng. Chỉ app.js duy trì
+// v10.0.1 - kho quyền dùng chung cho toàn ứng dụng. Chỉ app.js duy trì
 // 02 subscription realtime tới permission của user hiện tại; các module khác
 // nhận snapshot qua store này để tránh đọc/subscription trùng lặp.
 const permissionStoreState = { uid: '', tongHop: null, report: null, ready: false, listeners: new Set() };
@@ -396,7 +396,7 @@ async function getOwnPermission(user) {
 
 async function readOwnPermissionPair(user) {
   if (!user) return { permission: null, reportPermission: null };
-  // v10.0.0: sau khi 02 listener quyền trung tâm đã sẵn sàng, mọi nghiệp vụ
+  // v10.0.1: sau khi 02 listener quyền trung tâm đã sẵn sàng, mọi nghiệp vụ
   // dùng snapshot chung thay vì phát sinh thêm get() cho cùng UID. Khi bootstrap
   // chưa sẵn sàng mới đọc trực tiếp một lần để không làm chậm đăng nhập.
   const sharedStore = window.YTE_PERMISSION_STORE;
@@ -2087,8 +2087,8 @@ var AUTO_SYNC_MS = 300000;
         var personKind=c.personDetailKind||personDetailKindFromCategory(c);
         var chip=c.derivedKind?'<span class="status-chip is-auto" title="Số liệu được đồng bộ từ phân hệ Báo cáo và không sửa trực tiếp tại Tổng hợp">Tự động từ Báo cáo</span>':personKind?'<span class="status-chip is-auto">Theo danh sách đối tượng</span>':'';
         var detail='';
-        if(c.derivedKind&&canSeeSource&&value>0) detail='<button class="summary-source-detail-btn" data-source-kind="'+esc(c.derivedKind)+'" type="button"><span>Xem chi tiết</span><strong>'+value.toLocaleString('vi-VN')+' '+esc(c.unit)+'</strong><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
-        else if(personKind&&canSeeSource&&value>0) detail='<button class="summary-source-detail-btn" data-source-kind="person" data-code="'+esc(c.code)+'" type="button"><span>Xem chi tiết</span><strong>'+value.toLocaleString('vi-VN')+' '+esc(c.unit)+'</strong><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
+        if(c.derivedKind&&canSeeSource) detail='<button class="summary-source-detail-btn" data-source-kind="'+esc(c.derivedKind)+'" type="button"><span>Xem chi tiết</span><strong>'+value.toLocaleString('vi-VN')+' '+esc(c.unit)+'</strong><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
+        else if(personKind&&canSeeSource) detail='<button class="summary-source-detail-btn" data-source-kind="person" data-code="'+esc(c.code)+'" type="button"><span>Xem chi tiết</span><strong>'+value.toLocaleString('vi-VN')+' '+esc(c.unit)+'</strong><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
         return'<article class="summary-item summary-recorded-item'+((c.derivedKind||personKind)?' is-auto-derived':'')+'">'+uiMetricIcon(c)+'<div class="summary-copy"><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+'</p></div><div class="summary-value"><span class="summary-number">'+value.toLocaleString('vi-VN')+'</span><span class="summary-unit">'+esc(c.unit)+'</span>'+chip+'</div>'+detail+'</article>';
       }).join('');
     }
@@ -3203,7 +3203,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.0'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.1'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       setupProductionUiBindings();
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});

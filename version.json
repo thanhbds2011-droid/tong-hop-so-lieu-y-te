@@ -1,7 +1,7 @@
 {
-  "version": "10.0.0",
+  "version": "10.0.1",
   "releasedAt": "2026-09-16",
-  "title": "Giao diện production Desktop/Mobile và Đối soát 10.0.0",
+  "title": "Hiệu chỉnh giao diện Desktop/Mobile v10.0.1",
   "businessBaseline": "Business Stable v1.0 / Source of Truth preserved",
-  "message": "Bản v10.0.0 áp dụng giao diện Desktop/Mobile đã chốt, hoàn thiện Đối soát, quyền dùng chung và điều chỉnh sự kiện hành trình dành cho Quản trị mà không thay đổi Source of Truth."
+  "message": "Căn chỉnh KPI, thanh lọc, thống kê Nhập liệu, biểu đồ, popup Báo cáo và responsive theo hình chuẩn; giữ nguyên luồng dữ liệu, phân quyền, realtime và thông báo v10.0.0."
 }
