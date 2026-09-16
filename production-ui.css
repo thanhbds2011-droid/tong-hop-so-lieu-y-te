@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.1
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.2
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -136,6 +136,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .summary-recorded-item .summary-source-detail-btn > strong { display:none; }
 .summary-recorded-item .summary-source-detail-btn svg { width:16px; height:16px; }
 /* Trends and recent rows */
+
 .dashboard-insights { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(275px,.98fr); gap:13px!important; align-items:stretch; }
 .dashboard-insights > .workspace-panel { min-width:0; padding:14px 16px!important; margin:0!important; }
 .dashboard-trend-panel { grid-column:1; }
@@ -385,4 +386,61 @@ body > .notification-layer { z-index:1900!important; }
   #dashboardView .dashboard-filter-panel .dashboard-secondary-actions > * {
     min-width:0!important; flex:0 1 auto!important;
   }
+}
+
+/* v10.0.2: production chart is constructed from HTML bars, not an SVG.
+   Explicit dimensions are essential; previously the bars and donut had no layout. */
+.dashboard-trend-chart{display:block!important;overflow:hidden;min-width:0;padding:5px 0 0;}
+.trend-plot{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;align-items:start;width:100%;min-width:0;}
+.trend-axis{height:162px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;color:#6b7d91;font-size:11px;font-variant-numeric:tabular-nums;line-height:1.1;padding:1px 2px 0 0;}
+.trend-viewport{width:100%;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-inline:contain;padding-bottom:5px;}
+.trend-columns{display:grid;grid-template-columns:repeat(var(--trend-points),minmax(58px,1fr));gap:5px;min-width:max(100%,calc(var(--trend-points) * 59px));align-items:start;}
+.trend-day{display:grid;grid-template-rows:162px auto;gap:7px;min-width:0;align-items:start;}
+.trend-bars{height:162px;display:flex;align-items:flex-end;justify-content:center;gap:3px;border-bottom:1px solid #ccd8e5;background:repeating-linear-gradient(to top,#e8edf5 0,#e8edf5 1px,transparent 1px,transparent 40px);padding:0 5px;box-sizing:border-box;}
+.trend-bar{display:block;flex:1 1 0;min-width:0;max-width:19px;height:var(--bar-height);border-radius:4px 4px 0 0;transition:height .2s ease;}
+.trend-bar.is-pink{background:#f02e91;}.trend-bar.is-blue{background:#287bed;}.trend-bar.is-rose{background:#7d86ad;}.trend-bar.is-green{background:#12aa65;}
+.trend-bar[style*="--bar-height:0%"]{height:0;}
+.trend-day>span{display:block;text-align:center;color:#40566b;font-size:10.5px;font-weight:600;line-height:1.35;white-space:nowrap;}
+.dashboard-trend-chart .dashboard-chart-empty{min-height:175px;}
+/* Complete the real donut and keep both numeric values and labels separate. */
+.dashboard-state-content{display:grid!important;grid-template-columns:minmax(100px,145px) minmax(0,1fr);align-items:center;gap:16px;min-width:0;}
+.dashboard-donut{display:flex;align-items:center;justify-content:center;flex-direction:column;isolation:isolate;position:relative;width:min(100%,145px);aspect-ratio:1;margin:0 auto;border-radius:50%;background:conic-gradient(var(--donut));text-align:center;gap:1px;}
+.dashboard-donut::before{position:absolute;content:"";inset:23%;z-index:-1;border-radius:50%;background:#fff;}
+.dashboard-donut>strong{display:block;color:#102a43!important;font-size:23px!important;line-height:1.1;font-weight:850;font-variant-numeric:tabular-nums;}
+.dashboard-donut>span{display:block;color:#40566b;font-size:11px;line-height:1.3;}
+.dashboard-state-list{display:grid;gap:10px;min-width:0;}
+.dashboard-state-list>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-width:0;font-size:12px;line-height:1.45;}
+.dashboard-state-list>div>span{display:flex;align-items:center;gap:7px;min-width:0;overflow-wrap:break-word;}
+.dashboard-state-list>div>strong{display:block;font-size:14px!important;line-height:1.2;color:#102a43!important;text-align:right;font-variant-numeric:tabular-nums;}
+.dashboard-state-list .legend-dot{flex:0 0 9px;}
+/* Recent activity and notification content use real grid gaps, never adjacent text nodes. */
+.dashboard-recent-list,.dashboard-notification-list{display:grid;gap:0;min-width:0;}
+.dashboard-recent-item{display:grid;grid-template-columns:27px minmax(0,1fr) auto;gap:10px;align-items:center;min-width:0;padding:11px 2px;border-bottom:1px solid #edf0f4;line-height:1.45;}
+.dashboard-recent-item:last-child,.dashboard-notification-item:last-child{border-bottom:0;}
+.dashboard-recent-item>.recent-icon{display:grid;place-items:center;width:25px;height:25px;align-self:start;margin-top:2px;background:#fff0f8;color:#b92f77;border-radius:7px;font-size:13px;}
+.dashboard-recent-item>div{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.dashboard-recent-item>div>strong{display:block;color:#102a43!important;font-size:13px!important;line-height:1.4;overflow-wrap:break-word;}
+.dashboard-recent-item>div>small{display:block;color:#677e96;font-size:11.5px;line-height:1.4;}
+.dashboard-recent-item>b{display:block;color:#102a43!important;font-size:12.5px;font-weight:800;white-space:nowrap;text-align:right;padding-left:5px;font-variant-numeric:tabular-nums;}
+.dashboard-notification-item{display:grid;grid-template-columns:29px minmax(0,1fr);align-items:start;gap:9px;width:100%;padding:11px 2px;border:0;border-bottom:1px solid #edf0f4;background:transparent;text-align:left;color:#102a43;}
+.dashboard-notification-item>span{width:27px;height:27px;display:grid;place-items:center;background:#fff0f8;color:#b92f77;border-radius:8px;}
+.dashboard-notification-item>div{min-width:0;display:flex;flex-direction:column;gap:4px;}
+.dashboard-notification-item strong{font-size:12.5px;line-height:1.4;overflow-wrap:break-word;}
+.dashboard-notification-item small{font-size:11.5px;color:#60738a;line-height:1.45;overflow-wrap:break-word;}
+/* The oldest mobile rules hid two whole panels; retain the approved four-panel layout. */
+@media(max-width:820px){
+  .dashboard-insights>.dashboard-state-panel,.dashboard-insights>.dashboard-recent-panel{display:block!important;}
+  .dashboard-insights>.workspace-panel{min-width:0;}
+  .dashboard-donut{max-width:125px;}
+  .dashboard-recent-item{grid-template-columns:26px minmax(0,1fr) auto;gap:8px;}
+}
+@media(max-width:350px){
+  .dashboard-state-content{grid-template-columns:85px minmax(0,1fr)!important;gap:8px!important;}
+  .dashboard-state-list>div{gap:5px;font-size:11px;}
+  .dashboard-state-list>div>strong{font-size:12px!important;}
+  .dashboard-donut>strong{font-size:18px!important;}
+  .trend-plot{grid-template-columns:26px minmax(0,1fr);gap:4px;}
+  .trend-axis{font-size:10px;}
+  .dashboard-recent-item{grid-template-columns:22px minmax(0,1fr);gap:7px;}
+  .dashboard-recent-item>b{grid-column:2;text-align:left;padding:0;}
 }

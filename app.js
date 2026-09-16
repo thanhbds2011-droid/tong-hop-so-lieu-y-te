@@ -36,7 +36,7 @@ const YTE_APP_ROOT = 'yTeApp';
 const REVIEW_ROOT = `${YTE_APP_ROOT}/yeuCauDoiSoat`;
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '10.0.1';
+const APP_RUNTIME_VERSION = '10.0.2';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -1780,7 +1780,7 @@ var AUTO_SYNC_MS = 300000;
       editingCategoryCode:'',categorySaving:false,
       adjustingCode:'',adjustSaving:false,quickEntrySaving:false,quickEntryBaseline:'',deleteDailyCode:'',deleteDailySaving:false,
       historyCode:'',historyLoading:false,displayNameEditUid:'',
-      reviewRequestCode:'',reviewRequestSaving:false,
+      reviewRequestCode:'',reviewRequestSaving:false,reviewRequestAttempt:null,
       personManagerCode:'',personManagerDate:'',personManagerRows:[],personManagerTotal:0,personManagerSaving:false,
       personManagerLiveUnsubscribers:[],personManagerLiveRaw:{},personManagerLiveSummary:null,
       sourceDetailLiveUnsubscribers:[],sourceDetailLiveContext:null,sourceDetailLiveRaw:{},sourceDetailLiveSummary:{},
@@ -2106,24 +2106,57 @@ var AUTO_SYNC_MS = 300000;
       if(person==='tb')return 'blue';if(person==='center')return 'green';
       return ['pink','blue','rose','green'][index%4];
     }
+    // Pure calendar bucketing over the selected range. A missing date is a real
+    // zero after the public range has loaded; a historical month is never called a day.
+    function buildDashboardTrendBuckets(from,to,categories,records){
+      var dayMs=86400000,start=Date.parse(from+'T00:00:00Z'),end=Date.parse(to+'T00:00:00Z');
+      if(!Number.isFinite(start)||!Number.isFinite(end)||end<start)return{period:'Theo phạm vi',buckets:[],max:0,hasRecords:false};
+      var span=Math.floor((end-start)/dayMs)+1;
+      var mode=span<=14?'day':span<=98?'week':span<=730?'month':span<=2920?'quarter':'year';
+      var buckets=[],lookup=new Map(),codes=new Map(categories.map(function(c,i){return[c.code,i]}));
+      function dateIso(ms){return new Date(ms).toISOString().slice(0,10)}
+      function make(key,label,description){if(!lookup.has(key)){lookup.set(key,buckets.length);buckets.push({key:key,label:label,description:description,values:categories.map(function(){return 0})})}}
+      if(mode==='day'||mode==='week'){
+        var step=(mode==='day'?1:7)*dayMs;
+        for(var tick=start;tick<=end;tick+=step){var iso=dateIso(tick),last=dateIso(Math.min(end,tick+step-dayMs));make(mode==='day'?iso:String(Math.floor((tick-start)/step)),mode==='day'?fmtDate(iso).slice(0,5):fmtDate(iso).slice(0,5),mode==='day'?fmtDate(iso):fmtDate(iso)+' – '+fmtDate(last))}
+      }else if(mode==='month'){
+        for(var year=Number(from.slice(0,4)),month=Number(from.slice(5,7));year*12+month<=Number(to.slice(0,4))*12+Number(to.slice(5,7));month++){if(month>12){year++;month=1}var mm=String(month).padStart(2,'0');make(year+'-'+mm,mm+'/'+year,'Tháng '+mm+'/'+year)}
+      }else if(mode==='quarter'){
+        for(var yr=Number(from.slice(0,4)),q=Math.ceil(Number(from.slice(5,7))/3);yr*4+q<=Number(to.slice(0,4))*4+Math.ceil(Number(to.slice(5,7))/3);q++){if(q>4){yr++;q=1}make(yr+'-Q'+q,'Q'+q+'/'+yr,'Quý '+q+'/'+yr)}
+      }else{
+        for(var y=Number(from.slice(0,4));y<=Number(to.slice(0,4));y++)make(String(y),String(y),'Năm '+y)
+      }
+      var hasRecords=false,max=0;
+      (records||[]).forEach(function(r){
+        if(!r||r.date<from||r.date>to||!codes.has(r.code))return;
+        var value=Number(r.value);if(!Number.isFinite(value)||value<0)return;
+        var key=mode==='day'?r.date:mode==='week'?String(Math.floor((Date.parse(r.date+'T00:00:00Z')-start)/(7*dayMs))):mode==='month'?r.date.slice(0,7):mode==='quarter'?r.date.slice(0,4)+'-Q'+Math.ceil(Number(r.date.slice(5,7))/3):r.date.slice(0,4);
+        var index=lookup.get(key);if(index===undefined)return;
+        buckets[index].values[codes.get(r.code)]+=value;hasRecords=true;
+      });
+      buckets.forEach(function(bucket){bucket.values.forEach(function(value){max=Math.max(max,value)})});
+      var names={day:'ngày',week:'tuần',month:'tháng',quarter:'quý',year:'năm'};
+      return{period:buckets.length+' '+names[mode],buckets:buckets,max:max,hasRecords:hasRecords};
+    }
     function renderProductionDashboardExtras(){
       var categories=keyDashboardCategories(), totals=aggregate();
       var records=(state.records||[]).slice().sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''))||Number(a.updatedAt||0)-Number(b.updatedAt||0)});
-      var dates=Array.from(new Set(records.map(function(r){return r.date}).filter(Boolean))).sort().slice(-7);
-      if($('dashboardTrendPeriod'))$('dashboardTrendPeriod').textContent=dates.length>1?dates.length+' ngày':'Theo phạm vi';
+      var trend=buildDashboardTrendBuckets(state.from,state.to,categories,records);
+      if($('dashboardTrendPeriod'))$('dashboardTrendPeriod').textContent=trend.period;
       if($('dashboardChartLegend'))$('dashboardChartLegend').innerHTML=categories.map(function(c,i){return '<span><i class="legend-dot is-'+metricAccent(c,i)+'"></i>'+esc(c.name)+'</span>'}).join('');
       if($('dashboardTrendChart')){
-        if(!dates.length||!categories.length){$('dashboardTrendChart').innerHTML='<div class="dashboard-chart-empty">Chưa có dữ liệu để hiển thị biểu đồ.</div>'}
+        if(!trend.buckets.length||!categories.length){$('dashboardTrendChart').innerHTML='<div class="dashboard-chart-empty">Chưa có dữ liệu để hiển thị biểu đồ.</div>'}
+        else if(!trend.hasRecords||trend.max===0){$('dashboardTrendChart').innerHTML='<div class="dashboard-chart-empty">Không có phát sinh của các chỉ tiêu trong phạm vi đang xem.</div>'}
         else{
-          var max=1;var matrix=dates.map(function(date){return categories.map(function(c){var sum=records.filter(function(r){return r.date===date&&r.code===c.code}).reduce(function(t,r){return t+Number(r.value||0)},0);max=Math.max(max,sum);return sum})});
-          $('dashboardTrendChart').innerHTML='<div class="trend-plot">'+dates.map(function(date,di){return '<div class="trend-day"><div class="trend-bars">'+matrix[di].map(function(v,ci){return '<i class="trend-bar is-'+metricAccent(categories[ci],ci)+'" title="'+esc(categories[ci].name)+': '+v.toLocaleString('vi-VN')+'" style="--bar-height:'+Math.max(v?8:2,Math.round(v/max*100))+'%"></i>'}).join('')+'</div><span>'+esc(fmtDate(date).slice(0,5))+'</span></div>'}).join('')+'</div>';
+          var max=trend.max,half=Math.round(max/2);
+          $('dashboardTrendChart').innerHTML='<div class="trend-plot" role="img" aria-label="Biểu đồ xu hướng '+esc(trend.period)+'; số liệu theo ngày nghiệp vụ trong phạm vi đã chọn"><div class="trend-axis" aria-hidden="true"><span>'+max.toLocaleString('vi-VN')+'</span><span>'+half.toLocaleString('vi-VN')+'</span><span>0</span></div><div class="trend-viewport"><div class="trend-columns" style="--trend-points:'+trend.buckets.length+'">'+trend.buckets.map(function(bucket){return '<div class="trend-day"><div class="trend-bars">'+bucket.values.map(function(value,ci){return '<i class="trend-bar is-'+metricAccent(categories[ci],ci)+'" title="'+esc(bucket.description+' · '+categories[ci].name+': '+value.toLocaleString('vi-VN')+' '+(categories[ci].unit||''))+'" style="--bar-height:'+(value?Math.max(2,Math.round(value/max*100)):0)+'%"></i>'}).join('')+'</div><span title="'+esc(bucket.description)+'">'+esc(bucket.label)+'</span></div>'}).join('')+'</div></div></div>';
         }
       }
       if($('dashboardCurrentState')){
         var values=categories.map(function(c){return Number(totals[c.code]||0)}),total=values.reduce(function(a,b){return a+b},0);
         if(!total){$('dashboardCurrentState').innerHTML='<div class="dashboard-chart-empty">Chưa có dữ liệu trong phạm vi đang xem.</div>'}
         else{
-          var stops=[],cursor=0,colors=['#ff3b93','#2f80ed','#7a86b8','#18b96f'];values.forEach(function(v,i){var next=cursor+(v/total*100);stops.push(colors[i%colors.length]+' '+cursor.toFixed(2)+'% '+next.toFixed(2)+'%');cursor=next});
+          var stops=[],cursor=0,colors=['#f02e91','#287bed','#7d86ad','#12aa65'];values.forEach(function(v,i){var next=cursor+(v/total*100);stops.push(colors[i%colors.length]+' '+cursor.toFixed(2)+'% '+next.toFixed(2)+'%');cursor=next});
           $('dashboardCurrentState').innerHTML='<div class="dashboard-donut" style="--donut:'+stops.join(',')+'"><strong>'+total.toLocaleString('vi-VN')+'</strong><span>Tổng</span></div><div class="dashboard-state-list">'+categories.map(function(c,i){return '<div><span><i class="legend-dot is-'+metricAccent(c,i)+'"></i>'+esc(c.name)+'</span><strong>'+values[i].toLocaleString('vi-VN')+'</strong></div>'}).join('')+'</div>';
         }
       }
@@ -2690,6 +2723,10 @@ var AUTO_SYNC_MS = 300000;
       $('reviewRequestDate').textContent=fmtDate(date);
       $('reviewRequestCurrent').textContent=current.toLocaleString('vi-VN')+' '+(category.unit||'Lượt');
       $('reviewRequestExpected').value='';$('reviewRequestReason').value='';$('reviewRequestError').textContent='';
+      if(state.reviewRequestAttempt){
+        $('reviewRequestError').textContent='Nếu lần gửi trước chưa có kết quả, vui lòng kiểm tra mục Đối soát trước khi gửi lại cùng một yêu cầu.';
+      }
+      $('reviewRequestSend').disabled=false;
       $('reviewRequestLayer').hidden=false;document.body.style.overflow='hidden';
       window.setTimeout(function(){if(window.matchMedia&&window.matchMedia('(pointer:fine) and (min-width:761px)').matches)$('reviewRequestExpected').focus()},0);
     }
@@ -2714,20 +2751,82 @@ var AUTO_SYNC_MS = 300000;
       if(expectedProvided&&(!isFinite(expectedValue)||expectedValue<0||Math.floor(expectedValue)!==expectedValue)){$('reviewRequestError').textContent='Số liệu đề nghị phải là số nguyên không âm.';return}
       var user=firebaseAuth.currentUser;if(!user){$('reviewRequestError').textContent='Vui lòng đăng nhập lại.';return}
       var record=state.dailyByCode[code]||null,currentValue=Number(record?record.autoValue!=null?record.autoValue:record.value||0:0),date=$('entryDate').value;
-      state.reviewRequestSaving=true;$('reviewRequestSend').disabled=true;$('reviewRequestSend').textContent='Đang gửi...';$('reviewRequestError').textContent='';
+      var signature=JSON.stringify([user.uid,code,date,currentValue,expectedProvided,expectedValue,reason]);
+      // A different form is an intentionally new request. Only keep the
+      // original ID when its full business signature matches this retry.
+      if(state.reviewRequestAttempt&&state.reviewRequestAttempt.signature!==signature){
+        state.reviewRequestAttempt=null;
+      }
+      if(state.reviewRequestAttempt&&state.reviewRequestAttempt.unknown){
+        $('reviewRequestError').textContent='Chưa xác định được kết quả lần gửi trước. Vui lòng kiểm tra danh sách Đối soát trước khi gửi lại nội dung này.';
+        return;
+      }
+      state.reviewRequestSaving=true;
+      $('reviewRequestLayer').setAttribute('aria-busy','true');
+      ['reviewRequestSend','reviewRequestExpected','reviewRequestReason','reviewRequestCancel','reviewRequestCloseX'].forEach(function(id){$(id).disabled=true});
+      $('reviewRequestSend').textContent='Đang gửi…';$('reviewRequestError').textContent='';
+      var saved=false,attempt=state.reviewRequestAttempt;
       try{
-        var requestRef=push(ref(firebaseDatabase,REVIEW_ROOT)),id=requestRef.key;
-        var displayName=await preferredDisplayNameForUid(user.uid,(state.authUser&&state.authUser.name)||user.displayName||user.email||'');
-        await set(requestRef,{
-          id:id,metricType:category.derivedKind==='death'?'DEATH':'TRANSFER',metricCode:category.code,metricName:category.name||category.code,date:date,
-          currentValue:currentValue,expectedValueProvided:expectedProvided,expectedValue:expectedValue,reason:reason,status:'PENDING',
-          requestedByUid:user.uid,requestedByEmail:normalizeEmail(user.email),requestedByName:displayName,requestedAt:serverTimestamp(),
-          resolvedByUid:'',resolvedByEmail:'',resolvedByName:'',resolvedAt:0,resolutionNote:'',finalValue:currentValue,updatedAt:serverTimestamp()
-        });
-        notifyBusinessEvent('REPORT_REVIEW_REQUESTED',id);
-        closeReviewRequestDialog();toast('Đã gửi yêu cầu kiểm tra đến người phụ trách Báo cáo.','ok');
-      }catch(error){$('reviewRequestError').textContent=error.message||'Không thể gửi yêu cầu kiểm tra.'}
-      finally{state.reviewRequestSaving=false;$('reviewRequestSend').disabled=false;$('reviewRequestSend').textContent='Gửi yêu cầu'}
+        // Reuse a single request ID for retries. Never overwrite an existing
+        // request which another user may already have started processing.
+        if(attempt){
+          var prior=await get(attempt.ref);
+          if(prior.exists()){
+            if(prior.val()&&prior.val().requestedByUid===user.uid){saved=true}
+            else throw new Error('Mã yêu cầu đã được sử dụng. Vui lòng liên hệ người quản trị.');
+          }
+        }
+        if(!saved){
+          if(!attempt){
+            var requestRef=push(ref(firebaseDatabase,REVIEW_ROOT)),id=requestRef.key;
+            var displayName=await preferredDisplayNameForUid(user.uid,(state.authUser&&state.authUser.name)||user.displayName||user.email||'');
+            attempt={ref:requestRef,id:id,signature:signature,uid:user.uid,payload:{
+              id:id,metricType:category.derivedKind==='death'?'DEATH':'TRANSFER',metricCode:category.code,metricName:category.name||category.code,date:date,
+              currentValue:currentValue,expectedValueProvided:expectedProvided,expectedValue:expectedValue,reason:reason,status:'PENDING',
+              requestedByUid:user.uid,requestedByEmail:normalizeEmail(user.email),requestedByName:displayName,requestedAt:serverTimestamp(),
+              resolvedByUid:'',resolvedByEmail:'',resolvedByName:'',resolvedAt:0,resolutionNote:'',finalValue:currentValue,updatedAt:serverTimestamp()
+            }};
+            state.reviewRequestAttempt=attempt;
+          }
+          await withTimeout(set(attempt.ref,attempt.payload),15000,'Kết nối đang chậm; chưa xác định được kết quả gửi yêu cầu.');
+          saved=true;
+          // Notification is best effort and never changes the business result.
+          try{notifyBusinessEvent('REPORT_REVIEW_REQUESTED',attempt.id)}catch(pushError){console.warn('Không gửi được thông báo đối soát:',pushError)}
+        }
+      }catch(error){
+        if(attempt&&(/permission.?denied/i.test(String(error.code||'')+' '+String(error.message||'')))){
+          state.reviewRequestAttempt=null;
+          $('reviewRequestError').textContent='Bạn chưa được cấp quyền gửi yêu cầu kiểm tra.';
+        }else if(attempt){
+          try{
+            var check=await withTimeout(get(attempt.ref),6000,'Chưa thể kiểm tra trạng thái yêu cầu.');
+            if(check.exists()&&check.val()&&check.val().requestedByUid===user.uid){
+              // A local RTDB snapshot may contain a queued, unacknowledged write.
+              // Only a resolved set() is sufficient to confirm server persistence.
+              state.reviewRequestAttempt.unknown=true;
+              $('reviewRequestError').textContent='Yêu cầu có thể đã được ghi nhận. Vui lòng kiểm tra danh sách Đối soát trước khi gửi lại.';
+            }
+            else if(!check.exists())$('reviewRequestError').textContent='Chưa gửi được yêu cầu. Bạn có thể thử lại; hệ thống sẽ dùng lại mã yêu cầu cũ.';
+            else $('reviewRequestError').textContent='Không thể xác minh yêu cầu. Vui lòng liên hệ người quản trị.';
+          }catch(checkError){
+            $('reviewRequestError').textContent='Chưa xác định được yêu cầu đã lưu hay chưa. Vui lòng kiểm tra mục Đối soát trước khi thử lại.';
+            // Disable uncertain retries to avoid overwriting a request already processed.
+            state.reviewRequestAttempt.unknown=true;
+          }
+        }else $('reviewRequestError').textContent='Không thể gửi yêu cầu kiểm tra. Vui lòng kiểm tra kết nối và thử lại.';
+      }finally{
+        state.reviewRequestSaving=false;$('reviewRequestLayer').setAttribute('aria-busy','false');
+        ['reviewRequestSend','reviewRequestExpected','reviewRequestReason','reviewRequestCancel','reviewRequestCloseX'].forEach(function(id){$(id).disabled=false});
+        $('reviewRequestSend').textContent='Gửi yêu cầu';
+      }
+      if(saved){
+        state.reviewRequestAttempt=null;
+        $('reviewRequestSend').textContent='Đã gửi';
+        closeReviewRequestDialog();
+        toast('Đã gửi yêu cầu kiểm tra thành công. Bạn có thể theo dõi tại mục Đối soát.','ok');
+      }else if(state.reviewRequestAttempt&&state.reviewRequestAttempt.unknown){
+        $('reviewRequestSend').disabled=true;
+      }
     }
 
     function setQuickEntrySaving(active){
@@ -3203,7 +3302,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.1'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.2'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       setupProductionUiBindings();
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});

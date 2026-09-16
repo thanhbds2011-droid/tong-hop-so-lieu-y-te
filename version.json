@@ -1,7 +1,7 @@
 {
-  "version": "10.0.1",
+  "version": "10.0.2",
   "releasedAt": "2026-09-16",
-  "title": "Hiệu chỉnh giao diện Desktop/Mobile v10.0.1",
+  "title": "Biểu đồ xu hướng và đối soát v10.0.2",
   "businessBaseline": "Business Stable v1.0 / Source of Truth preserved",
-  "message": "Căn chỉnh KPI, thanh lọc, thống kê Nhập liệu, biểu đồ, popup Báo cáo và responsive theo hình chuẩn; giữ nguyên luồng dữ liệu, phân quyền, realtime và thông báo v10.0.0."
+  "message": "Hiển thị biểu đồ theo phạm vi ngày, tách rõ số liệu/chú giải và xác nhận gửi đối soát sau khi lưu; giữ nguyên dữ liệu nguồn, quyền, realtime, Push và HSBA."
 }

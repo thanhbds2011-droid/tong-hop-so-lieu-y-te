@@ -2,7 +2,7 @@
 
 (function () {
   const cfg = window.YTE_APP_CONFIG || {};
-  const currentVersion = String(cfg.VERSION || '10.0.1');
+  const currentVersion = String(cfg.VERSION || '10.0.2');
   const CHECK_INTERVAL_MS = 60000;
   const DEFER_RETRY_MS = 4000;
   const UPDATE_CONTEXT_KEY = 'yte-update-context';
