@@ -1,7 +1,7 @@
 {
-  "version": "9.9.5",
-  "releasedAt": "2026-08-19",
-  "title": "Realtime Sync & Automatic PWA Update 9.9.5",
-  "businessBaseline": "Business Stable v1.0 / Source of Truth 9.9.0",
-  "message": "Bản v9.9.5 hoàn thiện realtime đa thiết bị, tự cập nhật PWA và sửa xóa/overflow Tổng quan."
+  "version": "10.0.0",
+  "releasedAt": "2026-09-16",
+  "title": "Giao diện production Desktop/Mobile và Đối soát 10.0.0",
+  "businessBaseline": "Business Stable v1.0 / Source of Truth preserved",
+  "message": "Bản v10.0.0 áp dụng giao diện Desktop/Mobile đã chốt, hoàn thiện Đối soát, quyền dùng chung và điều chỉnh sự kiện hành trình dành cho Quản trị mà không thay đổi Source of Truth."
 }

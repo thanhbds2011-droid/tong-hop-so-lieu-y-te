@@ -224,13 +224,46 @@ async function refreshAccess() {
     return;
   }
   await ensureOwnerPermission(user);
-  const [reportSnap, tongHopSnap] = await Promise.all([
+  const store = window.YTE_PERMISSION_STORE;
+  const shared = store && typeof store.getSnapshot === 'function' ? store.getSnapshot(user.uid) : null;
+  if (shared && shared.ready === true && shared.uid === user.uid) {
+    reportState.permission = shared.reportPermission || null;
+    reportState.tongHopPermission = shared.tongHopPermission || null;
+    updateModuleUi();
+    return;
+  }
+  // Bootstrap fallback: một permission read lỗi không làm mất quyền hợp lệ ở module còn lại.
+  const settled = await Promise.allSettled([
     get(ref(db, `${REPORT_ROOT}/phanQuyen/${user.uid}`)),
     get(ref(db, `${TONG_HOP_ROOT}/phanQuyen/${user.uid}`))
   ]);
-  reportState.permission = reportSnap.exists() ? reportSnap.val() : null;
-  reportState.tongHopPermission = tongHopSnap.exists() ? tongHopSnap.val() : null;
+  const reportSnap = settled[0].status === 'fulfilled' ? settled[0].value : null;
+  const tongHopSnap = settled[1].status === 'fulfilled' ? settled[1].value : null;
+  if (settled[0].status === 'rejected') console.warn('Quyền Báo cáo:', settled[0].reason);
+  if (settled[1].status === 'rejected') console.warn('Quyền Tổng hợp:', settled[1].reason);
+  reportState.permission = reportSnap && reportSnap.exists() ? reportSnap.val() : null;
+  reportState.tongHopPermission = tongHopSnap && tongHopSnap.exists() ? tongHopSnap.val() : null;
   updateModuleUi();
+}
+
+window.addEventListener('yte:permissions-changed', function (event) {
+  const user = auth.currentUser;
+  const detail = event && event.detail || {};
+  if (!user || !detail.ready || detail.uid !== user.uid) return;
+  reportState.permission = detail.reportPermission || null;
+  reportState.tongHopPermission = detail.tongHopPermission || null;
+  updateModuleUi();
+});
+
+function userFacingReportError(error, fallback) {
+  const raw = String(error && error.message ? error.message : error || '').trim();
+  if (/permission[_ -]?denied|client doesn't have permission|firebase.*permission/i.test(raw)) {
+    return 'Bạn chưa được cấp quyền sử dụng chức năng này. Vui lòng liên hệ người quản trị.';
+  }
+  if (/network|failed to fetch|unavailable|offline|timeout/i.test(raw)) {
+    return 'Không thể kết nối dữ liệu lúc này. Vui lòng kiểm tra Internet và thử lại.';
+  }
+  return raw || fallback || 'Không thể thực hiện thao tác. Vui lòng thử lại.';
 }
 
 function friendlyGivenName(value) {
@@ -246,7 +279,10 @@ function updateModuleUi(external) {
     reportState.user = auth.currentUser || null;
   }
   if (external && Object.prototype.hasOwnProperty.call(external, 'reportPermission')) {
-    reportState.permission = external.reportPermission || reportState.permission;
+    reportState.permission = external.reportPermission || null;
+  }
+  if (external && Object.prototype.hasOwnProperty.call(external, 'tongHopPermission')) {
+    reportState.tongHopPermission = external.tongHopPermission || null;
   }
 
   const authenticated = !!(reportState.user || auth.currentUser);
@@ -372,7 +408,7 @@ async function loadReports(force) {
   if (!force && reportState.reports.length) { renderReports(); return; }
   if (reportState.loading && !force) return;
   try { reportFilterValues(); }
-  catch (error) { showInlineState('reportLoadState', error.message, 'err', false); return; }
+  catch (error) { showInlineState('reportLoadState', userFacingReportError(error, 'Khoảng thời gian không hợp lệ.'), 'err', false); return; }
 
   reportState.loading = true;
   showInlineState('reportLoadState', 'Đang tải báo cáo...', '', true);
@@ -381,7 +417,7 @@ async function loadReports(force) {
     applyReportSnapshot(snap);
   } catch (error) {
     console.error(error);
-    showInlineState('reportLoadState', error.message || String(error), 'err', false);
+    showInlineState('reportLoadState', userFacingReportError(error, 'Không thể tải dữ liệu báo cáo.'), 'err', false);
     $('reportList').innerHTML = '<div class="empty">Không thể tải dữ liệu báo cáo.</div>';
   } finally {
     reportState.loading = false;
@@ -538,8 +574,8 @@ async function openCenterDeathForm() {
   if (!canEditReport()) return;
   reportState.type = 'TU_VONG';
   resetReportForm('TU_VONG');
-  $('reportDialogTitle').textContent = 'Ghi nhận tử vong tại Trung tâm';
-  $('reportDialogBadge').textContent = 'TỬ VONG TẠI TRUNG TÂM';
+  $('reportDialogTitle').textContent = 'Dữ liệu tử vong lưu trữ';
+  $('reportDialogBadge').textContent = 'DỮ LIỆU LƯU TRỮ';
   $('reportReporter').textContent = await preferredDisplayName(reportState.user || auth.currentUser, reportState.permission && reportState.permission.displayName);
   setReportFormReadonly(false);
   reportState.formBaseline = reportFormSignature();
@@ -547,7 +583,7 @@ async function openCenterDeathForm() {
   document.body.style.overflow = 'hidden';
   setTimeout(() => $('reportPatientName').focus(), 0);
 }
-function openNewReport() { return openCenterDeathForm(); }
+function openNewReport() { showToast('Nghiệp vụ này đã ngừng tạo mới. Tử vong được cập nhật từ hành trình Chuyển viện.', 'info'); return false; }
 function openReportById(id) {
   const item = reportState.reports.find((row) => row.id === id);
   if (!item) return;
@@ -580,7 +616,7 @@ function populateReportForm(item, readonly) {
   $('reportReporter').textContent = item.createdByName || item.legacyNguoiNhap || '—';
   preferredDisplayNameByUid(item.createdByUid, item.createdByName || item.legacyNguoiNhap || '—').then((name) => { if (reportState.editingId === item.id && $('reportReporter')) $('reportReporter').textContent = name; });
   if (readonly) populateReadonlyReportDetails(item);
-  $('reportDialogTitle').textContent = reportState.type === 'TU_VONG' ? ((readonly ? 'Chi tiết' : 'Chỉnh sửa') + ' tử vong tại Trung tâm') : ((readonly ? 'Chi tiết ' : 'Chỉnh sửa ') + typeLabel(reportState.type).toLowerCase());
+  $('reportDialogTitle').textContent = reportState.type === 'TU_VONG' ? ((readonly ? 'Chi tiết' : 'Chỉnh sửa') + ' dữ liệu tử vong lưu trữ') : ((readonly ? 'Chi tiết ' : 'Chỉnh sửa ') + typeLabel(reportState.type).toLowerCase());
   $('reportFormError').textContent = '';
   setReportFormReadonly(readonly);
   $('reportLayer').hidden = false;
@@ -708,7 +744,7 @@ async function saveReport() {
   if (!canEditReport() || reportState.readonly) return;
   let payload;
   try { payload = reportPayload(); }
-  catch (error) { $('reportFormError').textContent = error.message || String(error); return; }
+  catch (error) { $('reportFormError').textContent = userFacingReportError(error, 'Không thể lưu báo cáo.'); return; }
 
   const user = auth.currentUser;
   if (!user) { $('reportFormError').textContent = 'Vui lòng đăng nhập lại.'; return; }
@@ -718,6 +754,7 @@ async function saveReport() {
     const existing = reportState.editingId
       ? reportState.reports.find((item) => item.id === reportState.editingId) || null
       : null;
+    if (!existing) throw new Error('Nghiệp vụ này đã ngừng tạo mới. Tử vong được cập nhật từ hành trình Chuyển viện.');
     if (existing && existing.trangThai === 'deleted') throw new Error('Báo cáo đã bị xóa và không thể chỉnh sửa.');
 
     if (payload.loaiBaoCao === 'TU_VONG') {
@@ -782,21 +819,20 @@ async function saveReport() {
       role: effectiveReportRole(),
       createdAt: now
     };
+    // Legacy CENTER_DEATH records remain editable for data stewardship only.
+    // They no longer create public statistics or business events. Remove any old marker when touched.
     if (record.loaiBaoCao === 'TU_VONG' && record.source === 'CENTER_DEATH') {
-      if (existing && existing.ngayBaoCao && existing.ngayBaoCao !== record.ngayBaoCao) updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${existing.ngayBaoCao}/CENTER_${generated}`] = null;
-      updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${record.ngayBaoCao}/CENTER_${generated}`] = true;
+      if (existing && existing.ngayBaoCao) updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${existing.ngayBaoCao}/CENTER_${generated}`] = null;
+      if (record.ngayBaoCao) updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${record.ngayBaoCao}/CENTER_${generated}`] = null;
     }
     await update(ref(db), updates);
-    if (!existing && record.loaiBaoCao === 'TU_VONG' && record.source === 'CENTER_DEATH') {
-      notifyBusinessEvent('DEATH_CENTER', generated);
-    }
     closeReportForm(true);
     showToast(existing ? 'Đã cập nhật báo cáo.' : 'Đã lưu báo cáo.', 'ok');
     await loadReports(true);
     if (window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.setSubView === 'function') window.YTE_JOURNEYS.setSubView('history');
   } catch (error) {
     console.error(error);
-    $('reportFormError').textContent = error.message || String(error);
+    $('reportFormError').textContent = userFacingReportError(error, 'Không thể lưu báo cáo.');
   } finally {
     $('reportSave').disabled = false;
     $('reportSave').textContent = 'Lưu báo cáo';
@@ -862,9 +898,7 @@ async function softDeleteReport(id) {
     updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${item.ngayBaoCao}/CENTER_${id}`] = null;
   }
   await update(ref(db), updates);
-  if (item.loaiBaoCao === 'TU_VONG' && (item.source === 'CENTER_DEATH' || normalizeSearch(item.noiTuVong) === normalizeSearch('Trung tâm Bảo trợ xã hội Tân Hiệp'))) {
-    notifyBusinessEvent('DEATH_CENTER_DELETED', id);
-  }
+  // Legacy center-death cleanup is silent: no new business event is emitted.
   showToast('Đã xóa báo cáo khỏi danh sách.', 'ok');
   await loadReports(true);
 }
@@ -896,7 +930,7 @@ async function loadReportUsers(force) {
     showInlineState('reportUserLoadState', '', '', false);
   } catch (error) {
     console.error(error);
-    showInlineState('reportUserLoadState', error.message || String(error), 'err', false);
+    showInlineState('reportUserLoadState', userFacingReportError(error, 'Không thể tải danh sách tài khoản.'), 'err', false);
   }
 }
 
@@ -997,7 +1031,7 @@ function initEvents() {
     if (kind === 'edit') populateReportForm(item, false);
     if (kind === 'delete') {
       try { await softDeleteReport(id); }
-      catch (error) { showToast(error.message || String(error), 'err'); }
+      catch (error) { showToast(userFacingReportError(error), 'err'); }
     }
   });
 
@@ -1021,7 +1055,7 @@ function initEvents() {
       if (kind === 'role') await setReportUserPermission(uid, value, true);
       if (kind === 'revoke') await revokeReportUser(uid);
     } catch (error) {
-      showToast(error.message || String(error), 'err');
+      showToast(userFacingReportError(error), 'err');
     }
   });
 

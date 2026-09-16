@@ -529,6 +529,7 @@
     signOut: clearUser,
     open: openPanel,
     addLocal: function (title, body, data) { addHistory({ title:title, body:body, data:data || {}, at:nowIso() }, false); },
+    getHistory: function () { return readHistory().slice(); },
     consumePendingRoute: consumePendingRoute,
     getAppId: function () { return appId; },
     sendBusinessEvent: sendBusinessEvent,

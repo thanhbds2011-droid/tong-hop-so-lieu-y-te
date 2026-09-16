@@ -26,6 +26,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
 
 import { openReportPreview } from './report-preview.js';
+import { downloadXlsx } from './excel-export.js';
 
 const APP_CONFIG = window.YTE_APP_CONFIG || {};
 const OWNER_EMAIL = String(APP_CONFIG.OWNER_EMAIL || '').trim().toLowerCase();
@@ -35,13 +36,48 @@ const YTE_APP_ROOT = 'yTeApp';
 const REVIEW_ROOT = `${YTE_APP_ROOT}/yeuCauDoiSoat`;
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '9.9.5';
+const APP_RUNTIME_VERSION = '10.0.0';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
 const firebaseDatabase = getDatabase(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+// v10.0.0 - kho quyền dùng chung cho toàn ứng dụng. Chỉ app.js duy trì
+// 02 subscription realtime tới permission của user hiện tại; các module khác
+// nhận snapshot qua store này để tránh đọc/subscription trùng lặp.
+const permissionStoreState = { uid: '', tongHop: null, report: null, ready: false, listeners: new Set() };
+function emitPermissionStore() {
+  const snapshot = Object.freeze({
+    uid: permissionStoreState.uid,
+    tongHopPermission: permissionStoreState.tongHop,
+    reportPermission: permissionStoreState.report,
+    ready: permissionStoreState.ready === true
+  });
+  permissionStoreState.listeners.forEach((fn) => { try { fn(snapshot); } catch (error) { console.warn('Permission subscriber:', error); } });
+  try { window.dispatchEvent(new CustomEvent('yte:permissions-changed', { detail: snapshot })); } catch (_) {}
+}
+function publishPermissionStore(uid, tongHop, report, ready) {
+  permissionStoreState.uid = String(uid || '');
+  permissionStoreState.tongHop = tongHop || null;
+  permissionStoreState.report = report || null;
+  permissionStoreState.ready = ready === true;
+  emitPermissionStore();
+}
+function resetPermissionStore() { publishPermissionStore('', null, null, false); }
+window.YTE_PERMISSION_STORE = Object.freeze({
+  getSnapshot: function (uid) {
+    if (uid && permissionStoreState.uid && String(uid) !== permissionStoreState.uid) return { uid: String(uid), tongHopPermission: null, reportPermission: null, ready: false };
+    return { uid: permissionStoreState.uid, tongHopPermission: permissionStoreState.tongHop, reportPermission: permissionStoreState.report, ready: permissionStoreState.ready === true };
+  },
+  subscribe: function (listener) {
+    if (typeof listener !== 'function') return function () {};
+    permissionStoreState.listeners.add(listener);
+    try { listener(this.getSnapshot()); } catch (_) {}
+    return function () { permissionStoreState.listeners.delete(listener); };
+  }
+});
 
 const authPersistenceReady = setPersistence(firebaseAuth, browserLocalPersistence).catch((error) => {
   console.warn('Không thiết lập được Firebase Auth persistence:', error);
@@ -358,6 +394,37 @@ async function getOwnPermission(user) {
   return snap.exists() ? snap.val() : null;
 }
 
+async function readOwnPermissionPair(user) {
+  if (!user) return { permission: null, reportPermission: null };
+  // v10.0.0: sau khi 02 listener quyền trung tâm đã sẵn sàng, mọi nghiệp vụ
+  // dùng snapshot chung thay vì phát sinh thêm get() cho cùng UID. Khi bootstrap
+  // chưa sẵn sàng mới đọc trực tiếp một lần để không làm chậm đăng nhập.
+  const sharedStore = window.YTE_PERMISSION_STORE;
+  const shared = sharedStore && typeof sharedStore.getSnapshot === 'function'
+    ? sharedStore.getSnapshot(user.uid)
+    : null;
+  if (shared && shared.ready === true && shared.uid === user.uid) {
+    return {
+      permission: shared.tongHopPermission || null,
+      reportPermission: shared.reportPermission || null
+    };
+  }
+  if (ownerUser(user)) {
+    await Promise.allSettled([ensureOwnerPermission(user), ensureReportOwnerPermission(user)]);
+  }
+  const results = await Promise.allSettled([
+    get(ref(firebaseDatabase, `${ROOT}/phanQuyen/${user.uid}`)),
+    get(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen/${user.uid}`))
+  ]);
+  function valueAt(index, label) {
+    const result = results[index];
+    if (result.status === 'fulfilled') return result.value && result.value.exists() ? result.value.val() : null;
+    console.warn('Không đọc được quyền ' + label + ':', result.reason);
+    return null;
+  }
+  return { permission: valueAt(0, 'Tổng hợp'), reportPermission: valueAt(1, 'Báo cáo') };
+}
+
 function permissionToUser(user, permission) {
   return {
     id: user.uid,
@@ -389,10 +456,9 @@ async function resolveApplicationAccess(user, profile) {
 
   await ensureYteUserProfile(user);
 
-  const [permission, reportPermission] = await Promise.all([
-    getOwnPermission(user),
-    getOwnReportPermission(user)
-  ]);
+  const permissionPair = await readOwnPermissionPair(user);
+  const permission = permissionPair.permission;
+  const reportPermission = permissionPair.reportPermission;
 
   const preferredName = await preferredDisplayNameForUid(user.uid, (permission && permission.displayName) || (reportPermission && reportPermission.displayName) || user.displayName || user.email || '');
   if (permission) permission.displayName = preferredName;
@@ -553,7 +619,9 @@ async function requireAppUser(requiredRole) {
   await authReady;
   const user = firebaseAuth.currentUser;
   if (!user) throw new Error('Vui lòng đăng nhập.');
-  const [permission, reportPermission] = await Promise.all([getOwnPermission(user), getOwnReportPermission(user)]);
+  const permissionPair = await readOwnPermissionPair(user);
+  const permission = permissionPair.permission;
+  const reportPermission = permissionPair.reportPermission;
   const globalAdmin = ownerUser(user) ||
     (validModulePermission(permission) && permission.role === 'admin') ||
     (validModulePermission(reportPermission) && reportPermission.role === 'admin');
@@ -577,7 +645,9 @@ async function requireAnyYteViewer() {
   await authReady;
   const user = firebaseAuth.currentUser;
   if (!user) throw new Error('Vui lòng đăng nhập để xem dữ liệu chi tiết.');
-  const [tongHopPermission, reportPermission] = await Promise.all([getOwnPermission(user), getOwnReportPermission(user)]);
+  const permissionPair = await readOwnPermissionPair(user);
+  const tongHopPermission = permissionPair.permission;
+  const reportPermission = permissionPair.reportPermission;
   const allowed = ownerUser(user) || validModulePermission(tongHopPermission) || validModulePermission(reportPermission);
   if (!allowed) throw new Error('Tài khoản chưa được cấp quyền xem dữ liệu chi tiết.');
   return { user, tongHopPermission, reportPermission };
@@ -626,7 +696,8 @@ async function getDashboardDataFirebase(filter) {
   let categories = await readPublicCategories();
   if (!categories.length && firebaseAuth.currentUser) {
     try {
-      const [tp, rp] = await Promise.all([getOwnPermission(firebaseAuth.currentUser), getOwnReportPermission(firebaseAuth.currentUser)]);
+      const pair = await readOwnPermissionPair(firebaseAuth.currentUser);
+      const tp = pair.permission, rp = pair.reportPermission;
       if (ownerUser(firebaseAuth.currentUser) || validModulePermission(tp) || validModulePermission(rp)) categories = await readPrivateCategories(true);
     } catch (_) {}
   }
@@ -769,7 +840,8 @@ async function ensureReportStatisticsMarkersFirebase() {
   await authReady;
   const user = firebaseAuth.currentUser;
   if (!user) return { success:false, repaired:0 };
-  const [tp, rp] = await Promise.all([getOwnPermission(user), getOwnReportPermission(user)]);
+  const pair = await readOwnPermissionPair(user);
+  const tp = pair.permission, rp = pair.reportPermission;
   const globalAdmin = ownerUser(user) || (validModulePermission(tp) && tp.role === 'admin') || (validModulePermission(rp) && rp.role === 'admin');
   const reportEditor = validModulePermission(rp) && ['admin','nhaplieu'].includes(rp.role);
   if (!globalAdmin && !reportEditor) return { success:false, repaired:0 };
@@ -1793,7 +1865,7 @@ var AUTO_SYNC_MS = 300000;
     }
     function stopOwnPermissionRealtime(){
       (state.ownPermissionUnsubscribers||[]).forEach(function(fn){if(typeof fn==='function')try{fn()}catch(_){}});
-      state.ownPermissionUnsubscribers=[];state.ownPermissionUid='';state.ownPermissionSignature='';state.ownPermissionValues={tong:null,report:null,tongReady:false,reportReady:false};
+      state.ownPermissionUnsubscribers=[];state.ownPermissionUid='';state.ownPermissionSignature='';state.ownPermissionValues={tong:null,report:null,tongReady:false,reportReady:false};resetPermissionStore();
     }
     function startOwnPermissionRealtime(){
       var uid=state.authUser&&state.authUser.uid;if(!uid){stopOwnPermissionRealtime();return}
@@ -1803,6 +1875,7 @@ var AUTO_SYNC_MS = 300000;
         var v=snap.exists()?snapshotObject(snap):null;
         state.ownPermissionValues[kind]=v;state.ownPermissionValues[kind+'Ready']=true;
         if(!state.ownPermissionValues.tongReady||!state.ownPermissionValues.reportReady)return;
+        publishPermissionStore(uid,state.ownPermissionValues.tong,state.ownPermissionValues.report,true);
         var signature=JSON.stringify({tong:state.ownPermissionValues.tong||null,report:state.ownPermissionValues.report||null});
         if(!state.ownPermissionSignature){state.ownPermissionSignature=signature;return}
         if(signature===state.ownPermissionSignature)return;
@@ -1847,6 +1920,8 @@ var AUTO_SYNC_MS = 300000;
         var connected=snap.val()===true;
         document.documentElement.dataset.firebaseConnected=connected?'true':'false';
         document.body.classList.toggle('firebase-offline',!connected);
+        if($('sidebarConnectionDot')) $('sidebarConnectionDot').classList.toggle('is-offline',!connected);
+        if($('sidebarConnectionText')) $('sidebarConnectionText').textContent=connected?'Đã kết nối':(navigator.onLine?'Đang kết nối lại':'Mất kết nối Internet');
         if(!connected){state.wasDisconnected=true;return}
         if(state.wasDisconnected){
           state.wasDisconnected=false;toast('Đã kết nối lại. Dữ liệu đang được đồng bộ tự động.','ok');
@@ -1918,6 +1993,9 @@ var AUTO_SYNC_MS = 300000;
     function canInputTongHop(){return isAnyAppAdmin()||!!(state.user&&state.user.role==='Nhập liệu')}
     function canViewDerivedDetails(){return!!state.authUser&&(isAnyAppAdmin()||!!state.user||hasReportAccess())}
     function canManageReportPermissionsUi(){return isAnyAppAdmin()}
+    function canUseReconciliation(){
+      return isAnyAppAdmin() || canInputTongHop() || !!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu'].indexOf(state.reportPermission.role)>=0);
+    }
 
     function defaultPrivateView(){
       if(state.user)return 'dashboard';
@@ -1933,6 +2011,7 @@ var AUTO_SYNC_MS = 300000;
       if(name==='dashboard'&&state.authUser&&!hasTongHop&&!hasReport)name=defaultPrivateView();
       if(name==='entry'&&!canInput)name=state.authUser?defaultPrivateView():'auth';
       if(name==='reports'&&!hasReport){name=state.authUser?defaultPrivateView():'auth';message('Tài khoản chưa được cấp quyền Báo cáo.','err')}
+      if(name==='reconciliation'&&!canUseReconciliation()){name=state.authUser?defaultPrivateView():'auth';message('Bạn chưa được cấp quyền xử lý đối soát.','err')}
       if(name==='home'){
         if(!state.authUser)name='dashboard';
         else if(hasTongHop||hasReport)name=defaultPrivateView();
@@ -1943,7 +2022,9 @@ var AUTO_SYNC_MS = 300000;
       window.scrollTo({top:0,behavior:'smooth'});
       if(name==='entry')activateEntryView();
       if(name==='admin')showAdminSection(state.adminSection||'users');
+      if(name==='reconciliation'&&window.YTE_JOURNEYS&&typeof window.YTE_JOURNEYS.activateReconciliation==='function')window.YTE_JOURNEYS.activateReconciliation();
       if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.onViewChanged==='function')window.YTE_REPORTS.onViewChanged(name);
+      document.querySelectorAll('.mobile-bottom-item').forEach(function(button){var active=button.getAttribute('data-view')===name;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false')});
     }
 
     function setupDates(){
@@ -1989,10 +2070,16 @@ var AUTO_SYNC_MS = 300000;
     }
     function aggregate(){var totals={};state.records.forEach(function(record){totals[record.code]=(totals[record.code]||0)+Number(record.value||0)});return totals}
     function recordedCodeMap(){var map={};state.records.forEach(function(record){map[record.code]=true});return map}
-    function renderAll(){renderSummary(aggregate())}
+    function renderAll(){renderSummary(aggregate());renderProductionDashboardExtras();}
     function renderSummary(totals){
       var recorded=recordedCodeMap();
-      var categories=selectedCategories().filter(function(c){return !!recorded[c.code]||!!c.derivedKind});
+      var categories=selectedCategories().filter(function(c){return !!recorded[c.code]||!!c.derivedKind||!!c.personDetailKind});
+      if(($('contentFilter').value||'all')==='all'){
+        var rank=function(c){if(c.derivedKind==='transfer')return 0;if((c.personDetailKind||personDetailKindFromCategory(c))==='tb')return 1;if(c.derivedKind==='death')return 2;if((c.personDetailKind||personDetailKindFromCategory(c))==='center')return 3;return 99};
+        categories=categories.slice().sort(function(a,b){return rank(a)-rank(b)||Number(a.order||9999)-Number(b.order||9999)});
+        var primary=categories.filter(function(c){return rank(c)<99});
+        categories=primary.length?primary.slice(0,4):categories.slice(0,4);
+      }
       if(!categories.length){$('summaryCards').innerHTML='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có số liệu trong phạm vi này.</strong><span>Chọn thời gian khác hoặc nhập số liệu khi có phát sinh.</span></div>';return}
       var canSeeSource=canViewDerivedDetails();
       $('summaryCards').innerHTML=categories.map(function(c){
@@ -2006,13 +2093,82 @@ var AUTO_SYNC_MS = 300000;
       }).join('');
     }
 
+    function keyDashboardCategories(){
+      function rank(c){if(c.derivedKind==='transfer')return 0;if((c.personDetailKind||personDetailKindFromCategory(c))==='tb')return 1;if(c.derivedKind==='death')return 2;if((c.personDetailKind||personDetailKindFromCategory(c))==='center')return 3;return 99}
+      var all=(state.categories||[]).slice().sort(function(a,b){return rank(a)-rank(b)||Number(a.order||9999)-Number(b.order||9999)});
+      var primary=all.filter(function(c){return rank(c)<99});
+      return (primary.length?primary:all).slice(0,4);
+    }
+    function metricAccent(category,index){
+      if(category&&category.derivedKind==='transfer')return 'pink';
+      if(category&&category.derivedKind==='death')return 'rose';
+      var person=category&&(category.personDetailKind||personDetailKindFromCategory(category));
+      if(person==='tb')return 'blue';if(person==='center')return 'green';
+      return ['pink','blue','rose','green'][index%4];
+    }
+    function renderProductionDashboardExtras(){
+      var categories=keyDashboardCategories(), totals=aggregate();
+      var records=(state.records||[]).slice().sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''))||Number(a.updatedAt||0)-Number(b.updatedAt||0)});
+      var dates=Array.from(new Set(records.map(function(r){return r.date}).filter(Boolean))).sort().slice(-7);
+      if($('dashboardTrendPeriod'))$('dashboardTrendPeriod').textContent=dates.length>1?dates.length+' ngày':'Theo phạm vi';
+      if($('dashboardChartLegend'))$('dashboardChartLegend').innerHTML=categories.map(function(c,i){return '<span><i class="legend-dot is-'+metricAccent(c,i)+'"></i>'+esc(c.name)+'</span>'}).join('');
+      if($('dashboardTrendChart')){
+        if(!dates.length||!categories.length){$('dashboardTrendChart').innerHTML='<div class="dashboard-chart-empty">Chưa có dữ liệu để hiển thị biểu đồ.</div>'}
+        else{
+          var max=1;var matrix=dates.map(function(date){return categories.map(function(c){var sum=records.filter(function(r){return r.date===date&&r.code===c.code}).reduce(function(t,r){return t+Number(r.value||0)},0);max=Math.max(max,sum);return sum})});
+          $('dashboardTrendChart').innerHTML='<div class="trend-plot">'+dates.map(function(date,di){return '<div class="trend-day"><div class="trend-bars">'+matrix[di].map(function(v,ci){return '<i class="trend-bar is-'+metricAccent(categories[ci],ci)+'" title="'+esc(categories[ci].name)+': '+v.toLocaleString('vi-VN')+'" style="--bar-height:'+Math.max(v?8:2,Math.round(v/max*100))+'%"></i>'}).join('')+'</div><span>'+esc(fmtDate(date).slice(0,5))+'</span></div>'}).join('')+'</div>';
+        }
+      }
+      if($('dashboardCurrentState')){
+        var values=categories.map(function(c){return Number(totals[c.code]||0)}),total=values.reduce(function(a,b){return a+b},0);
+        if(!total){$('dashboardCurrentState').innerHTML='<div class="dashboard-chart-empty">Chưa có dữ liệu trong phạm vi đang xem.</div>'}
+        else{
+          var stops=[],cursor=0,colors=['#ff3b93','#2f80ed','#7a86b8','#18b96f'];values.forEach(function(v,i){var next=cursor+(v/total*100);stops.push(colors[i%colors.length]+' '+cursor.toFixed(2)+'% '+next.toFixed(2)+'%');cursor=next});
+          $('dashboardCurrentState').innerHTML='<div class="dashboard-donut" style="--donut:'+stops.join(',')+'"><strong>'+total.toLocaleString('vi-VN')+'</strong><span>Tổng</span></div><div class="dashboard-state-list">'+categories.map(function(c,i){return '<div><span><i class="legend-dot is-'+metricAccent(c,i)+'"></i>'+esc(c.name)+'</span><strong>'+values[i].toLocaleString('vi-VN')+'</strong></div>'}).join('')+'</div>';
+        }
+      }
+      if($('dashboardRecentList')){
+        var recent=records.slice().sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''))||Number(b.updatedAt||0)-Number(a.updatedAt||0)}).slice(0,5);
+        $('dashboardRecentList').innerHTML=recent.length?recent.map(function(r){var c=(state.categories||[]).find(function(x){return x.code===r.code})||{name:r.name||r.code,unit:'Lượt'};return '<div class="dashboard-recent-item"><span class="recent-icon">▣</span><div><strong>'+esc(c.name)+'</strong><small>'+esc(fmtDate(r.date))+'</small></div><b>'+Number(r.value||0).toLocaleString('vi-VN')+' '+esc(c.unit||'')+'</b></div>'}).join(''):'<div class="dashboard-chart-empty">Chưa có dữ liệu gần đây.</div>';
+      }
+      renderDashboardNotificationPreview();
+    }
+    function renderDashboardNotificationPreview(){
+      if(!$('dashboardNotificationPreview'))return;
+      var api=window.YTE_NOTIFICATIONS,rows=api&&typeof api.getHistory==='function'?api.getHistory().slice(0,5):[];
+      $('dashboardNotificationPreview').innerHTML=rows.length?rows.map(function(n){return '<button class="dashboard-notification-item" type="button"><span>◉</span><div><strong>'+esc(n.title||'Thông báo')+'</strong><small>'+esc(n.body||'')+'</small></div></button>'}).join(''):'<div class="dashboard-chart-empty">Thông báo mới sẽ xuất hiện tại đây.</div>';
+    }
+    function renderEntrySideExtras(){
+      var categories=keyDashboardCategories();
+      if($('entryTodaySummary')){
+        $('entryTodaySummary').innerHTML=categories.map(function(c,i){var r=state.dailyByCode&&state.dailyByCode[c.code];return '<div class="entry-today-item is-'+metricAccent(c,i)+'"><span>'+esc(c.name)+'</span><strong>'+Number(r&&r.value||0).toLocaleString('vi-VN')+'</strong><small>'+esc(c.unit||'')+'</small></div>'}).join('');
+      }
+      if($('entryRecentList')){
+        var rows=Object.keys(state.dailyByCode||{}).map(function(code){return state.dailyByCode[code]}).filter(Boolean).sort(function(a,b){return Number(b.updatedAt||0)-Number(a.updatedAt||0)}).slice(0,5);
+        $('entryRecentList').innerHTML=rows.length?rows.map(function(r){var c=(state.categories||[]).find(function(x){return x.code===r.code})||{name:r.name||r.code,unit:'Lượt'};return '<div class="entry-recent-item"><div><strong>'+esc(c.name)+'</strong><small>'+esc(r.updatedBy||'Đã ghi nhận')+'</small></div><span>'+Number(r.value||0).toLocaleString('vi-VN')+' '+esc(c.unit||'')+'</span></div>'}).join(''):'<div class="dashboard-chart-empty">Chưa có dữ liệu trong ngày này.</div>';
+      }
+    }
+    function exportDashboardExcel(){
+      try{
+        var range=getRange(),cats=new Map((state.categories||[]).map(function(c){return[c.code,c]}));
+        downloadXlsx({filename:'Bao-cao-Y-te_'+range.from+'_'+range.to+'.xlsx',sheetName:'Tong hop',title:'TỔNG HỢP SỐ LIỆU PHÒNG Y TẾ',subtitle:range.label,columns:[{key:'date',label:'Ngày',width:14},{key:'name',label:'Chỉ tiêu',width:32},{key:'value',label:'Giá trị',width:12},{key:'unit',label:'Đơn vị',width:12}],rows:(state.records||[]).map(function(r){var c=cats.get(r.code)||{};return{date:fmtDate(r.date),name:c.name||r.name||r.code,value:Number(r.value||0),unit:c.unit||''}})});
+      }catch(error){toast(error.message||'Không thể xuất Excel.','err')}
+    }
+    function setupProductionUiBindings(){
+      document.querySelectorAll('.mobile-bottom-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
+      if($('mobileNavLogout'))$('mobileNavLogout').addEventListener('click',logout);
+      if($('btnDashboardExport'))$('btnDashboardExport').addEventListener('click',exportDashboardExcel);
+      if($('dashboardOpenNotifications'))$('dashboardOpenNotifications').addEventListener('click',function(){if(window.YTE_NOTIFICATIONS&&window.YTE_NOTIFICATIONS.open)window.YTE_NOTIFICATIONS.open()});
+      if($('globalSearch'))$('globalSearch').addEventListener('input',function(){var q=$('globalSearch').value||'',view=currentViewName(),target=view==='admin'?'adminSearch':view==='reports'?'reportSearch':view==='reconciliation'?'reconciliationSearch':'';if(target&&$(target)){ $(target).value=q;$(target).dispatchEvent(new Event('input',{bubbles:true})) }});
+    }
+
     function personBusinessDateLabel(category){
       var kind=category&&category.personDetailKind||'';
       return kind==='tb'?'Ngày điều trị *':kind==='center'?'Ngày chuyển Trung tâm *':'Ngày nghiệp vụ *';
     }
     function personPermissionMessage(error){
       var raw=String(error&&error.message||error||'');
-      if(/permission.?denied|permission_denied|PERMISSION_DENIED/i.test(raw)) return 'Không thể truy cập danh sách. Hãy kiểm tra tài khoản đã được cấp quyền và Firebase Rules v9.9.4 đã được Publish đúng 3 node Y tế.';
+      if(/permission.?denied|permission_denied|PERMISSION_DENIED/i.test(raw)) return 'Không thể truy cập danh sách. Hãy kiểm tra tài khoản đã được cấp quyền sử dụng chức năng này.';
       return raw||'Không thể xử lý danh sách đối tượng.';
     }
     function updatePersonManagerSubtitle(){
@@ -2157,7 +2313,7 @@ var AUTO_SYNC_MS = 300000;
     async function deletePersonManagerEntry(id){
       if(!isAnyAppAdmin()){toast('Chỉ tài khoản Quản trị mới được xóa đối tượng.','warn');return}
       var item=(state.personManagerRows||[]).find(function(row){return row.id===id});if(!item)return;
-      // v9.9.5: đóng băng toàn bộ khóa nghiệp vụ trước khi mở confirm. Confirm có thể
+      // Production invariant: đóng băng toàn bộ khóa nghiệp vụ trước khi mở confirm. Confirm có thể
       // thay đổi focus/stack dialog nhưng thao tác xóa không còn phụ thuộc state của popup.
       var deletePayload={
         id:String(item.id||id),
@@ -2297,10 +2453,31 @@ var AUTO_SYNC_MS = 300000;
       if($('headerGreeting')){$('headerGreeting').hidden=!authenticated;$('headerGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('headerGreeting').title=fullGreetingName;}
       if($('mobileGreeting')){$('mobileGreeting').hidden=!authenticated;$('mobileGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('mobileGreeting').title=fullGreetingName;}
       if($('mobileNavUser')){$('mobileNavUser').textContent=authenticated?fullGreetingName:'Tài khoản';$('mobileNavUser').title=fullGreetingName;}
+      if($('headerUserSummary')){
+        $('headerUserSummary').hidden=!authenticated;
+        if(authenticated){
+          var initials=fullGreetingName.split(/\s+/).filter(Boolean).slice(-2).map(function(part){return part.charAt(0).toUpperCase()}).join('')||'YT';
+          $('headerUserAvatar').textContent=initials;
+          $('headerUserName').textContent=fullGreetingName;
+          var roleText=isAdmin?'Quản trị hệ thống':(loggedIn&&state.user?String(state.user.role||''):(state.reportPermission&&state.reportPermission.active?uiReportRole(state.reportPermission.role):'Chờ cấp quyền'));
+          $('headerUserRole').textContent=roleText;
+        }
+      }
+      if($('mobileBottomNav'))$('mobileBottomNav').hidden=!hasAnyAccess;
+      document.querySelectorAll('.mobile-bottom-item').forEach(function(button){
+        var view=button.getAttribute('data-view'),visible=true;
+        if(view==='dashboard')visible=hasAnyAccess;
+        else if(view==='entry')visible=canInput;
+        else if(view==='reports')visible=hasReport;
+        else if(view==='reconciliation')visible=canUseReconciliation();
+        else if(view==='admin')visible=isAdmin;
+        button.hidden=!visible;
+      });
       if($('btnSync'))$('btnSync').hidden=authenticated&&!loggedIn;
       if($('navDashboard'))$('navDashboard').hidden=authenticated&&!loggedIn&&!hasReport;
       $('navEntry').hidden=!canInput;$('navAdmin').hidden=!isAdmin;
       if($('navReports'))$('navReports').hidden=!hasReport;
+      if($('navReconciliation'))$('navReconciliation').hidden=!canUseReconciliation();
       if($('adminUsersTab'))$('adminUsersTab').hidden=!tongHopAdmin;
       if($('adminCategoriesTab'))$('adminCategoriesTab').hidden=!tongHopAdmin;
       if($('adminReportPermissionsTab'))$('adminReportPermissionsTab').hidden=!reportAdmin;
@@ -2314,6 +2491,7 @@ var AUTO_SYNC_MS = 300000;
           tongHopActive:loggedIn,
           tongHopRole:loggedIn?state.user.role:'',
           reportPermission:state.reportPermission,
+          tongHopPermission:(window.YTE_PERMISSION_STORE&&window.YTE_PERMISSION_STORE.getSnapshot&&state.authUser)?window.YTE_PERMISSION_STORE.getSnapshot(state.authUser.uid).tongHopPermission:null,
           authUser:state.authUser
         });
       }
@@ -2378,7 +2556,7 @@ var AUTO_SYNC_MS = 300000;
         updateRangeFields();
         if(ctx.contentFilter&&$('contentFilter'))$('contentFilter').value=ctx.contentFilter;
         if(ctx.adminSection)state.adminSection=ctx.adminSection;
-        var target=String(ctx.view||'');if(target&&['dashboard','entry','reports','admin'].indexOf(target)>=0)showView(target);
+        var target=String(ctx.view||'');if(target&&['dashboard','entry','reports','reconciliation','admin'].indexOf(target)>=0)showView(target);
         if(target==='dashboard'){startDashboardRealtime(true);Promise.resolve(syncData(true,true)).catch(function(){})}
         if(target==='entry'&&$('entryDate').value){startEntryRealtime($('entryDate').value);loadDay({silent:true,force:true,notify:false}).catch(function(){})}
         if(target==='reports'&&saved.journeys&&window.YTE_JOURNEYS&&typeof window.YTE_JOURNEYS.restoreUpdateContext==='function')window.setTimeout(function(){window.YTE_JOURNEYS.restoreUpdateContext(saved.journeys)},50);
@@ -2589,7 +2767,7 @@ var AUTO_SYNC_MS = 300000;
         $('rangeType').value='day';updateRangeFields();$('singleDate').value=payload.date;Promise.resolve(syncData(true,true)).catch(function(){});
       }catch(error){$('entryQuickError').textContent=error.message||String(error);setQuickEntrySaving(false)}
     }
-    function renderIndicators(){renderEntryCategoryOptions()}
+    function renderIndicators(){renderEntryCategoryOptions();renderEntrySideExtras()}
     async function loadDay(options){
       options=options||{};if(!state.user)return
       var date=$('entryDate').value;if(!date){if(options.notify)message('Vui lòng chọn ngày nhập số liệu.','err');return}
@@ -3025,8 +3203,9 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'9.9.5'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.0'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
+      setupProductionUiBindings();
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
       $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
       $('btnGoogleLogin').onclick=loginGoogle;
