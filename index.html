@@ -12,20 +12,20 @@
 <link href="./manifest.webmanifest" rel="manifest"/>
 <link href="./assets/favicon-32.png" rel="icon" sizes="32x32" type="image/png"/>
 <link href="./assets/apple-touch-icon.png" rel="apple-touch-icon"/>
-<link href="./styles.css?v=10.0.2" rel="stylesheet"/>
+<link href="./styles.css?v=10.0.3" rel="stylesheet"/>
 
-<link href="./reports.css?v=10.0.2" rel="stylesheet"/>
-<link href="./journeys.css?v=10.0.2" rel="stylesheet"/>
-<link href="./production-ui.css?v=10.0.2" rel="stylesheet"/>
+<link href="./reports.css?v=10.0.3" rel="stylesheet"/>
+<link href="./journeys.css?v=10.0.3" rel="stylesheet"/>
+<link href="./production-ui.css?v=10.0.3" rel="stylesheet"/>
 
-<script src="./app-config.js?v=10.0.2"></script>
-<script defer src="./ui.js?v=10.0.2"></script>
-<script defer src="./update-manager.js?v=10.0.2"></script>
+<script src="./app-config.js?v=10.0.3"></script>
+<script defer src="./ui.js?v=10.0.3"></script>
+<script defer src="./update-manager.js?v=10.0.3"></script>
 <script defer src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"></script>
-<script defer src="./notifications.js?v=10.0.2"></script>
-<script src="./app.js?v=10.0.2" type="module"></script>
-<script src="./reports.js?v=10.0.2" type="module"></script>
-<script src="./journeys.js?v=10.0.2" type="module"></script>
+<script defer src="./notifications.js?v=10.0.3"></script>
+<script src="./app.js?v=10.0.3" type="module"></script>
+<script src="./reports.js?v=10.0.3" type="module"></script>
+<script src="./journeys.js?v=10.0.3" type="module"></script>
 
 </head>
 <body>
@@ -34,7 +34,7 @@
 <button aria-controls="appNav" aria-expanded="false" aria-label="Mở menu" class="mobile-nav-toggle" hidden id="mobileNavToggle" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
 <div class="brand">
 <div aria-hidden="true" class="brand-mark brand-mark-logo">
-<img alt="" src="./assets/icon-192.png?v=10.0.2"/>
+<img alt="" src="./assets/icon-192.png?v=10.0.3"/>
 </div>
 <div class="brand-copy">
 <strong class="brand-org brand-desktop">Trung tâm Bảo trợ xã hội Tân Hiệp</strong>
@@ -52,7 +52,7 @@
 <button aria-controls="notificationLayer" aria-expanded="false" aria-haspopup="true" aria-label="Thông báo" class="notification-bell-button" hidden id="btnNotificationCenter" title="Thông báo" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg><span class="notification-badge" hidden id="notificationBadge">0</span></button>
 <button class="btn btn-light btn-top" id="btnAccount" type="button">Đăng nhập</button>
 <div class="header-user-summary" hidden id="headerUserSummary">
-<span class="header-user-avatar" id="headerUserAvatar">YT</span>
+<span class="header-user-avatar" id="headerUserAvatar" aria-label="Ảnh đại diện tài khoản Google">YT</span>
 <span class="header-user-copy"><strong id="headerUserName">Người dùng</strong><small id="headerUserRole">Phòng Y tế</small></span>
 </div>
 <button class="btn btn-light btn-top header-logout-button" hidden id="btnTopLogout" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17l5-5-5-5"></path><path d="M15 12H3"></path><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path></svg><span>Đăng xuất</span></button>
@@ -63,7 +63,7 @@
 <div aria-live="polite" id="message"></div>
 <nav aria-label="Điều hướng chính" class="nav" id="appNav">
 <div class="mobile-nav-head">
-  <div class="mobile-nav-identity"><img alt="" src="./assets/icon-192.png?v=10.0.2"/><div><strong>Phòng Y tế</strong><span id="mobileNavUser">Tài khoản</span></div></div>
+  <div class="mobile-nav-identity"><img alt="" src="./assets/icon-192.png?v=10.0.3"/><div><strong>Phòng Y tế</strong><span id="mobileNavUser">Tài khoản</span></div></div>
   <button aria-label="Đóng menu" class="mobile-nav-close" id="mobileNavClose" type="button">×</button>
 </div>
 <button class="nav-item active" data-view="dashboard" id="navDashboard" type="button">
@@ -82,7 +82,7 @@
 <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.15.38.36.72.66 1 .29.26.68.4 1.07.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"></path></svg><span>Quản trị</span>
 </button>
 <div class="nav-footer" aria-label="Thông tin ứng dụng">
-<div><strong id="sidebarVersion">Phiên bản v10.0.2</strong><span class="connection-pill"><i id="sidebarConnectionDot"></i><span id="sidebarConnectionText">Đang kết nối</span></span></div>
+<div><strong id="sidebarVersion">Phiên bản v10.0.3</strong><span class="connection-pill"><i id="sidebarConnectionDot"></i><span id="sidebarConnectionText">Đang kết nối</span></span></div>
 <button class="nav-drawer-logout" hidden id="mobileNavLogout" type="button">Đăng xuất</button>
 </div>
 </nav>
@@ -135,17 +135,14 @@
 <div class="dashboard-trend-chart" id="dashboardTrendChart"><div class="dashboard-chart-empty">Chưa có dữ liệu để hiển thị biểu đồ.</div></div>
 </article>
 <article class="workspace-panel dashboard-state-panel">
-<div class="section-head"><div class="section-title-with-icon"><span class="section-icon" aria-hidden="true">◉</span><div><h3>Tình trạng hiện tại</h3></div></div></div>
+<div class="section-head"><div class="section-title-with-icon"><span class="section-icon" aria-hidden="true">◉</span><div><h3>Cơ cấu số liệu theo chỉ tiêu</h3><p class="section-caption">Mỗi chỉ tiêu giữ nguyên đơn vị riêng, không cộng gộp thành một tổng.</p></div></div></div>
 <div class="dashboard-state-content" id="dashboardCurrentState"><div class="dashboard-chart-empty">Chưa có dữ liệu trong phạm vi đang xem.</div></div>
 </article>
 <article class="workspace-panel dashboard-recent-panel">
 <div class="section-head"><div class="section-title-with-icon"><span class="section-icon" aria-hidden="true">▣</span><div><h3>Dữ liệu gần đây</h3></div></div></div>
 <div class="dashboard-recent-list" id="dashboardRecentList"></div>
 </article>
-<article class="workspace-panel dashboard-notification-panel">
-<div class="section-head"><div class="section-title-with-icon"><span class="section-icon" aria-hidden="true">♢</span><div><h3>Nhắc nhở &amp; thông báo</h3></div></div><button class="text-action" id="dashboardOpenNotifications" type="button">Xem tất cả →</button></div>
-<div class="dashboard-notification-list" id="dashboardNotificationPreview"><div class="dashboard-chart-empty">Thông báo mới sẽ xuất hiện tại đây.</div></div>
-</article>
+
 </section>
 </section>
 <section class="view" id="homeView">
@@ -164,7 +161,7 @@
 <div class="login-stage">
 <div class="login-shell">
 <button aria-label="Đóng đăng nhập" class="login-close" id="btnLoginClose" type="button">×</button>
-<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=10.0.2"/></div>
+<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=10.0.3"/></div>
 <div class="auth-panel active" id="loginPanel">
 <div class="login-action-copy">
 <h2>Ứng dụng Phòng Y tế</h2>

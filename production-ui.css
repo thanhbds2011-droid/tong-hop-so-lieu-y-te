@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.2
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.3
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -388,7 +388,7 @@ body > .notification-layer { z-index:1900!important; }
   }
 }
 
-/* v10.0.2: production chart is constructed from HTML bars, not an SVG.
+/* v10.0.3: production chart is constructed from HTML bars, not an SVG.
    Explicit dimensions are essential; previously the bars and donut had no layout. */
 .dashboard-trend-chart{display:block!important;overflow:hidden;min-width:0;padding:5px 0 0;}
 .trend-plot{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;align-items:start;width:100%;min-width:0;}
@@ -444,3 +444,24 @@ body > .notification-layer { z-index:1900!important; }
   .dashboard-recent-item{grid-template-columns:22px minmax(0,1fr);gap:7px;}
   .dashboard-recent-item>b{grid-column:2;text-align:left;padding:0;}
 }
+
+
+/* ============================================================
+   v10.0.3 — UI simplification, Google avatar, accurate dashboard
+   ============================================================ */
+.header-user-avatar{overflow:hidden;position:relative}
+.header-user-avatar>img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.header-user-avatar.has-photo{background:#fff;box-shadow:inset 0 0 0 1px rgba(16,42,67,.08)}
+.section-caption{margin:2px 0 0;color:#74849a;font-size:11px;font-weight:500;line-height:1.4}
+.dashboard-recent-panel{grid-column:1/-1}
+.dashboard-state-content{display:block!important;min-height:185px}
+.dashboard-metric-breakdown{display:grid;gap:15px;width:100%;padding:4px 0}
+.dashboard-metric-breakdown-row{display:grid;gap:7px;min-width:0}
+.dashboard-metric-breakdown-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;color:#40566b;font-size:12px}
+.dashboard-metric-breakdown-head>span{display:flex;align-items:center;gap:7px;min-width:0;font-weight:700;color:#304d6a}
+.dashboard-metric-breakdown-head>strong{color:#102a43;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dashboard-metric-breakdown-head>strong small{font-size:10px;font-weight:600;color:#7b899a}
+.dashboard-metric-track{height:8px;border-radius:999px;background:#eef2f7;overflow:hidden}
+.dashboard-metric-track>i{display:block;width:var(--metric-width);height:100%;min-width:0;border-radius:inherit;transition:width .2s ease}
+.dashboard-metric-track>i.is-pink{background:#f02e91}.dashboard-metric-track>i.is-blue{background:#287bed}.dashboard-metric-track>i.is-rose{background:#7d86ad}.dashboard-metric-track>i.is-green{background:#12aa65}
+@media(max-width:900px){.section-caption{font-size:10px}.dashboard-metric-breakdown{gap:12px}}

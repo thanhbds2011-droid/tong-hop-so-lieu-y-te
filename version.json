@@ -1,7 +1,7 @@
 {
-  "version": "10.0.2",
-  "releasedAt": "2026-09-16",
-  "title": "Biểu đồ xu hướng và đối soát v10.0.2",
+  "version": "10.0.3",
+  "releasedAt": "2026-09-17",
+  "title": "Tinh giản Tổng quan và ảnh đại diện Google v10.0.3",
   "businessBaseline": "Business Stable v1.0 / Source of Truth preserved",
-  "message": "Hiển thị biểu đồ theo phạm vi ngày, tách rõ số liệu/chú giải và xác nhận gửi đối soát sau khi lưu; giữ nguyên dữ liệu nguồn, quyền, realtime, Push và HSBA."
+  "message": "Hiển thị ảnh đại diện Google khi đăng nhập, bỏ khối thông báo trùng ở Tổng quan và thay biểu đồ cộng gộp khác đơn vị bằng so sánh từng chỉ tiêu; giữ nguyên dữ liệu nguồn, quyền, realtime, Push, audit và HSBA."
 }
