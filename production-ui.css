@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.3
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.5
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -388,7 +388,7 @@ body > .notification-layer { z-index:1900!important; }
   }
 }
 
-/* v10.0.3: production chart is constructed from HTML bars, not an SVG.
+/* v10.0.5: production chart is constructed from HTML bars, not an SVG.
    Explicit dimensions are essential; previously the bars and donut had no layout. */
 .dashboard-trend-chart{display:block!important;overflow:hidden;min-width:0;padding:5px 0 0;}
 .trend-plot{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;align-items:start;width:100%;min-width:0;}
@@ -447,7 +447,7 @@ body > .notification-layer { z-index:1900!important; }
 
 
 /* ============================================================
-   v10.0.3 — UI simplification, Google avatar, accurate dashboard
+   v10.0.5 — UI simplification, Google avatar, accurate dashboard
    ============================================================ */
 .header-user-avatar{overflow:hidden;position:relative}
 .header-user-avatar>img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
@@ -465,3 +465,75 @@ body > .notification-layer { z-index:1900!important; }
 .dashboard-metric-track>i{display:block;width:var(--metric-width);height:100%;min-width:0;border-radius:inherit;transition:width .2s ease}
 .dashboard-metric-track>i.is-pink{background:#f02e91}.dashboard-metric-track>i.is-blue{background:#287bed}.dashboard-metric-track>i.is-rose{background:#7d86ad}.dashboard-metric-track>i.is-green{background:#12aa65}
 @media(max-width:900px){.section-caption{font-size:10px}.dashboard-metric-breakdown{gap:12px}}
+
+/* ====================================================================
+   v10.0.5 — Approved UI, four functional modules, dynamic indicators
+   Only presentation: Firebase authorization and business logic stay in JS.
+   ==================================================================== */
+.header-actions{position:relative;}
+.header-user-summary{appearance:none;border:1px solid transparent;border-radius:16px;padding:5px 10px!important;background:#f6f8fd;color:var(--ui-navy);cursor:pointer;min-height:48px;max-width:265px;display:flex;align-items:center;gap:10px;text-align:left;}
+.header-user-summary:hover,.header-user-summary[aria-expanded="true"]{border-color:#f9cbe4;background:#fff3fa;}
+.header-user-summary:focus-visible,.header-account-action:focus-visible{outline:3px solid #fa9bd0;outline-offset:2px;}
+.header-user-avatar{overflow:hidden;flex:none;position:relative;}
+.header-user-avatar img{width:100%;height:100%;border-radius:inherit;object-fit:cover;display:block;}
+.header-user-copy{min-width:0;}
+.header-user-summary .account-chevron{width:15px;height:15px;stroke:var(--ui-muted);stroke-width:2;fill:none;flex:none;margin-left:2px;}
+.header-account-menu:not([hidden]){display:grid;}
+.header-account-menu{position:absolute;right:0;top:calc(100% + 13px);min-width:245px;width:max-content;max-width:calc(100vw - 20px);padding:7px;background:#fff;box-shadow:0 18px 45px rgba(16,42,67,.15);border:1px solid #e8dce7;border-radius:15px;z-index:1250;}
+.header-account-action{appearance:none;cursor:pointer;text-align:left;border:0;background:transparent;min-height:44px;padding:11px 13px;font-size:13px;font-weight:700;border-radius:9px;color:var(--ui-navy);white-space:nowrap;}
+.header-account-action:hover{background:var(--ui-pink-soft);color:var(--ui-pink-strong);}
+.header-account-action.is-logout{color:#b53051;border-top:1px solid #f0e7ef;border-radius:0 0 9px 9px;}
+#dashboardIndicatorCaption{color:#596e83;margin:0 0 12px;font-size:12px;font-weight:600;}
+#summaryCards>.dashboard-other-metrics{grid-column:1 / -1;min-width:0;border:1px solid #f2d4e7;border-radius:14px;background:#fff;margin-top:1px;overflow:hidden;}
+.dashboard-other-metrics>summary{display:flex;align-items:center;gap:10px;cursor:pointer;padding:13px 16px;list-style:none;color:#8c285e;font-size:13px;font-weight:750;background:#fff6fb;}
+.dashboard-other-metrics>summary::-webkit-details-marker{display:none;}
+.dashboard-other-metrics>summary strong{margin-left:auto;padding:3px 10px;border-radius:40px;color:var(--ui-pink-strong);background:#fff;font-size:12px;}
+.dashboard-other-metrics>summary span:last-child{font-size:19px;transition:transform .2s;}
+.dashboard-other-metrics[open]>summary span:last-child{transform:rotate(180deg);}
+.dashboard-other-metrics .summary-grid-secondary{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important;padding:12px!important;margin:0!important;}
+.summary-unrecorded{display:block;font-size:12px;font-weight:650;color:var(--ui-muted);white-space:normal;}
+.summary-item.is-unrecorded .summary-value{color:#748398;}
+.dashboard-chart-scope{font-size:11px;color:#6b7e91;margin:0 0 10px;line-height:1.45;}
+.report-summary-header{margin-bottom:18px!important;}
+.report-summary-workspace{padding:20px 22px;min-width:0;}
+.report-summary-heading{display:flex;justify-content:space-between;align-items:start;gap:15px;margin-bottom:13px;}
+.report-summary-heading h3{font-size:18px;color:var(--ui-navy);margin:0;}
+.report-summary-heading p{font-size:12px;color:#6b7e91;margin:6px 0 0;}
+.report-summary-heading .summary-pill{white-space:nowrap;color:var(--ui-pink-strong);background:var(--ui-pink-soft);}
+.report-summary-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 14px;}
+.report-summary-actions .btn{min-height:42px;}
+.report-summary-notice{padding:11px 13px;color:#496179;background:#f6f9ff;border:1px solid #e6edf8;border-radius:10px;font-size:12px;line-height:1.6;margin:0 0 16px;}
+.report-summary-table-wrap{overflow-x:auto;max-width:100%;border:1px solid #ecedf2;border-radius:12px;}
+.report-summary-table{border-collapse:collapse;width:100%;min-width:620px;text-align:left;background:white;font-size:13px;}
+.report-summary-table thead{background:#fff5fb;color:#7a2753;}
+.report-summary-table th,.report-summary-table td{padding:13px 14px;border-bottom:1px solid #f0ecf1;vertical-align:middle;}
+.report-summary-table tr:last-child td{border-bottom:0;}
+.report-summary-table th:first-child,.report-summary-table td:first-child{width:58px;text-align:center;color:#728093;}
+.report-summary-table td strong{color:var(--ui-navy);display:block;font-size:13px;}
+.report-summary-table td small{display:block;color:#789;margin-top:3px;}
+.report-summary-number{font-size:17px;font-weight:800;color:var(--ui-pink-strong);font-variant-numeric:tabular-nums;}
+.report-summary-status{display:inline-block;padding:5px 9px;border-radius:30px;background:#f6f7fb;color:#536680;font-size:11px;font-weight:650;}
+#journeyView .unified-care-head{margin-bottom:16px;}
+#journeyView .report-workspace{max-width:100%;min-width:0;}
+/* The report preview belongs to the summary page; the journey uses its own sourced clinical report. */
+@media (max-width:1180px){.dashboard-other-metrics .summary-grid-secondary{grid-template-columns:repeat(2,minmax(0,1fr))!important;}.header-user-summary{max-width:195px;}}
+@media (max-width:1023px){
+  .header-inner{gap:8px!important;}
+  .header-user-summary:not([hidden]){display:flex!important;width:40px;min-width:40px;max-width:40px;height:40px;min-height:40px;padding:0!important;background:transparent;border:0;}
+  .header-user-summary .header-user-avatar{width:36px;height:36px;}
+  .header-user-summary .header-user-copy,.header-user-summary .account-chevron{display:none!important;}
+  .header-account-menu{top:calc(100% + 12px);right:0;}
+  .header-actions{order:3;flex:none;}
+  .mobile-nav-toggle{order:4!important;}
+  .summary-grid-secondary{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .dashboard-other-metrics .summary-grid-secondary{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;padding:9px!important;}
+  .report-summary-workspace{padding:14px;}
+  .report-summary-actions .btn{flex:1 1 120px;}
+}
+@media (max-width:375px){
+  .header-inner{padding:0 9px!important;gap:5px!important;}
+  .header-user-summary:not([hidden]){width:35px;min-width:35px;max-width:35px;height:35px;min-height:35px;}
+  .header-user-summary .header-user-avatar{width:33px;height:33px;}
+  .report-summary-heading{flex-wrap:wrap;}
+  .dashboard-other-metrics .summary-grid-secondary{grid-template-columns:1fr!important;}
+}

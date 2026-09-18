@@ -1,7 +1,7 @@
 {
-  "version": "10.0.3",
-  "releasedAt": "2026-09-17",
-  "title": "Tinh giản Tổng quan và ảnh đại diện Google v10.0.3",
+  "version": "10.0.5",
+  "releasedAt": "2026-09-18",
+  "title": "Dynamic Dashboard, Four-Module Navigation & Approved UI",
   "businessBaseline": "Business Stable v1.0 / Source of Truth preserved",
-  "message": "Hiển thị ảnh đại diện Google khi đăng nhập, bỏ khối thông báo trùng ở Tổng quan và thay biểu đồ cộng gộp khác đơn vị bằng so sánh từng chỉ tiêu; giữ nguyên dữ liệu nguồn, quyền, realtime, Push, audit và HSBA."
+  "message": "Tổng quan hiển thị động toàn bộ chỉ tiêu, tách Báo cáo và Chuyển viện thành hai phân hệ, Quản trị ở menu tài khoản; ngừng toàn bộ luồng tạo/xử lý Đối soát, giữ dữ liệu lịch sử; bảo toàn Source of Truth, Realtime Database và PWA."
 }

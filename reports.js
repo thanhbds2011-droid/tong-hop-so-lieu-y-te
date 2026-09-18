@@ -294,6 +294,7 @@ function updateModuleUi(external) {
   const reportActive = globalAdmin || validPermission(reportState.permission);
 
   if ($('navReports')) $('navReports').hidden = !reportActive;
+  if ($('navJourney')) $('navJourney').hidden = !reportActive;
   if ($('moduleTongHopCard')) $('moduleTongHopCard').hidden = !tongHopActive;
   if ($('moduleReportCard')) $('moduleReportCard').hidden = !reportActive;
   if ($('noModuleAccess')) $('noModuleAccess').hidden = !authenticated || tongHopActive || reportActive;
@@ -347,7 +348,7 @@ function onLogout() {
 
 function onViewChanged(name) {
   if (name === 'home') updateModuleUi();
-  if (name === 'reports') activateReportsView();
+  if (name === 'journey') activateReportsView();
 }
 
 window.YTE_REPORTS = {
@@ -495,8 +496,8 @@ function setReportType() {
   if ($('reportModeRow')) $('reportModeRow').hidden = true;
   if ($('btnNewReport')) $('btnNewReport').hidden = true;
   if ($('reportPageTitle')) $('reportPageTitle').textContent = 'Chuyển viện & tử vong';
-  if ($('reportPageSubtitle')) $('reportPageSubtitle').textContent = 'Theo dõi hành trình, lượt chuyển viện và tử vong tại bệnh viện.';
-  if (window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.setVisible === 'function') window.YTE_JOURNEYS.setVisible(true);
+  if ($('reportPageSubtitle')) $('reportPageSubtitle').textContent = 'Theo dõi hành trình, lượt chuyển viện và tử vong ngoài Trung tâm.';
+  if (window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.setVisible === 'function') window.YTE_JOURNEYS.setVisible(!!$('journeyView')?.classList.contains('active'));
 }
 
 function setReportMode(mode) {

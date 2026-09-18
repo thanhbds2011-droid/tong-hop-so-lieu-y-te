@@ -20,7 +20,6 @@ const OWNER_EMAIL = String(CFG.OWNER_EMAIL || '').trim().toLowerCase();
 const REPORT_ROOT = 'baoCaoYTe';
 const TONG_HOP_ROOT = 'tongHopYTe';
 const YTE_APP_ROOT = 'yTeApp';
-const REVIEW_ROOT = `${YTE_APP_ROOT}/yeuCauDoiSoat`;
 const CENTER_NAME = 'Trung tâm Bảo trợ xã hội Tân Hiệp';
 const OPEN_STATUSES = ['DANG_THEO_DOI', 'TAI_KHAM', 'DANG_DIEU_TRI', 'CHUYEN_TIEP_BENH_VIEN_KHAC'];
 // TAI_KHAM vẫn được giữ trong OPEN_STATUSES/label để đọc dữ liệu legacy, nhưng không còn là hình thức được phép tạo mới.
@@ -55,10 +54,6 @@ const state = {
   transferStatsToday: {},
   deathStatsToday: {},
   displayNames: {},
-  reviewRequests: [],
-  reviewUnsubscribe: null,
-  reviewFocusId: '',
-  reconciliationSelectedId: '',
   correctionCaseId: '',
   correctionEventId: '',
   correctionEvent: null,
@@ -509,9 +504,7 @@ window.addEventListener('yte:permissions-changed', function (event) {
   if (!user || !detail.ready || detail.uid !== user.uid) return;
   state.permission = detail.reportPermission || null;
   state.tongHopPermission = detail.tongHopPermission || null;
-  renderReviewBadge();
-  if (typeof startReviewRealtime === 'function') startReviewRealtime();
-  if (typeof renderReconciliationView === 'function') renderReconciliationView();
+
 });
 
 function latestDeathEvent(item) {
@@ -593,7 +586,7 @@ function applyJourneySnapshot(journeySnap) {
 }
 
 function stopJourneyRealtime() {
-  ['liveUnsubscribe','transferStatsUnsubscribe','deathStatsUnsubscribe','displayNamesUnsubscribe','reviewUnsubscribe'].forEach((key) => {
+  ['liveUnsubscribe','transferStatsUnsubscribe','deathStatsUnsubscribe','displayNamesUnsubscribe'].forEach((key) => {
     if (typeof state[key] === 'function') state[key]();
     state[key] = null;
   });
@@ -630,7 +623,6 @@ function startJourneyRealtime() {
       if ($('journeyUpdateReporter') && auth.currentUser && !$('journeyUpdateLayer')?.hidden) $('journeyUpdateReporter').textContent = currentDisplayName();
     }, (error) => console.warn('Realtime tên hiển thị:', error));
   }
-  startReviewRealtime();
 }
 
 async function loadJourneys(force) {
@@ -1767,255 +1759,10 @@ function closeDetail() {
   restoreFocus();
 }
 
-function reviewMetricLabel(type) {
-  return String(type || '').toUpperCase() === 'DEATH' ? 'Tử vong' : 'Chuyển viện';
-}
-function reviewStatusLabel(status) {
-  const map = { PENDING: 'Chờ xử lý', PROCESSING: 'Đang xử lý', RESOLVED: 'Đã xử lý' };
-  return map[String(status || '').toUpperCase()] || status || '—';
-}
-function pendingReviewCount() {
-  return state.reviewRequests.filter((item) => item && item.status !== 'RESOLVED').length;
-}
-function renderReviewBadge() {
-  const button = $('btnReviewRequests');
-  const badge = $('reviewRequestBadge');
-  const visible = canEdit();
-  if (button) button.hidden = !visible;
-  if (!badge) return;
-  const count = pendingReviewCount();
-  badge.hidden = count < 1;
-  badge.textContent = count > 99 ? '99+' : String(count);
-}
-function renderReviewInbox() {
-  const list = $('reviewInboxList');
-  if (!list) return;
-  const rows = state.reviewRequests.slice().sort((a, b) => {
-    const rank = { PENDING: 0, PROCESSING: 1, RESOLVED: 2 };
-    return (rank[a.status] ?? 9) - (rank[b.status] ?? 9) || Number(b.requestedAt || 0) - Number(a.requestedAt || 0);
-  });
-  if (!rows.length) {
-    list.innerHTML = '<div class="journey-empty"><strong>Chưa có yêu cầu đối soát.</strong></div>';
-    return;
-  }
-  list.innerHTML = rows.map((item) => {
-    const expected = item.expectedValueProvided === true ? `${Number(item.expectedValue || 0).toLocaleString('vi-VN')} lượt` : 'Không nêu số cụ thể';
-    const isResolved = item.status === 'RESOLVED';
-    const isFocused = state.reviewFocusId && state.reviewFocusId === item.id;
-    return `<article class="review-request-item${isFocused ? ' is-focused' : ''}" data-review-id="${esc(item.id)}">
-      <div class="review-request-item-head">
-        <div><strong>${esc(reviewMetricLabel(item.metricType))} · ${esc(formatBusinessDate(item.date))}</strong><span class="status-chip ${isResolved ? 'is-complete' : 'is-auto'}">${esc(reviewStatusLabel(item.status))}</span></div>
-        <small>${esc(item.requestedByName || item.requestedByEmail || 'Người tổng hợp')}</small>
-      </div>
-      <div class="review-request-item-grid">
-        <div><span>Hệ thống ghi nhận</span><strong>${Number(item.currentValue || 0).toLocaleString('vi-VN')} lượt</strong></div>
-        <div><span>Đề nghị kiểm tra</span><strong>${esc(expected)}</strong></div>
-      </div>
-      <p class="review-request-reason"><b>Lý do:</b> ${esc(item.reason || '—')}</p>
-      ${isResolved ? `<div class="review-resolution"><b>Kết quả:</b> ${esc(item.resolutionNote || 'Đã xử lý')} · Số liệu sau xử lý: ${Number(item.finalValue || 0).toLocaleString('vi-VN')} lượt</div>` : `<div class="field"><label>Kết quả xử lý<textarea class="review-resolution-note" maxlength="500" rows="2" placeholder="Ví dụ: Đã xóa 01 trường hợp nhập trùng."></textarea></label></div><div class="review-request-actions"><button class="btn btn-primary review-action" data-kind="resolve" data-id="${esc(item.id)}" type="button">Xác nhận đã xử lý</button></div>`}
-    </article>`;
-  }).join('');
-  if (state.reviewFocusId) {
-    window.setTimeout(() => {
-      const target = list.querySelector(`[data-review-id="${CSS.escape(state.reviewFocusId)}"]`);
-      if (target) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }, 60);
-  }
-}
-function openReviewInbox(requestId) {
-  if (!canEdit()) return;
-  state.reviewFocusId = String(requestId || '');
-  renderReviewInbox();
-  const layer = $('reviewInboxLayer');
-  if (layer) layer.hidden = false;
-  setBodyModalState(true);
-  window.setTimeout(() => $('reviewInboxClose')?.focus(), 0);
-}
-function closeReviewInbox() {
-  const layer = $('reviewInboxLayer');
-  if (layer) layer.hidden = true;
-  state.reviewFocusId = '';
-  setBodyModalState(false);
-}
-async function resolveReviewRequest(id) {
-  if (!canEdit()) return;
-  const request = state.reviewRequests.find((item) => item.id === id);
-  if (!request || request.status === 'RESOLVED') return;
-  const card = $('reviewInboxList')?.querySelector(`[data-review-id="${CSS.escape(id)}"]`);
-  const note = String(card?.querySelector('.review-resolution-note')?.value || '').trim();
-  if (!note) {
-    showToast('Vui lòng ghi kết quả xử lý trước khi xác nhận.', 'warn');
-    return;
-  }
-  const user = auth.currentUser;
-  if (!user) return;
-  try {
-    const statsPath = request.metricType === 'DEATH'
-      ? `${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${request.date}`
-      : `${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${request.date}`;
-    const statsSnap = await get(ref(db, statsPath));
-    const finalValue = markerCount(snapshotObject(statsSnap), request.metricType === 'DEATH' ? 'death' : 'transfer');
-    const displayName = await resolveCurrentDisplayName();
-    const updates = {};
-    updates[`${REVIEW_ROOT}/${id}/status`] = 'RESOLVED';
-    updates[`${REVIEW_ROOT}/${id}/resolutionNote`] = note.slice(0, 500);
-    updates[`${REVIEW_ROOT}/${id}/finalValue`] = finalValue;
-    updates[`${REVIEW_ROOT}/${id}/resolvedByUid`] = user.uid;
-    updates[`${REVIEW_ROOT}/${id}/resolvedByEmail`] = normalizeEmail(user.email);
-    updates[`${REVIEW_ROOT}/${id}/resolvedByName`] = displayName;
-    updates[`${REVIEW_ROOT}/${id}/resolvedAt`] = serverTimestamp();
-    updates[`${REVIEW_ROOT}/${id}/updatedAt`] = serverTimestamp();
-    await update(ref(db), updates);
-    notifyBusinessEvent('REPORT_REVIEW_RESOLVED', id);
-    showToast('Đã xác nhận xử lý yêu cầu đối soát.', 'ok');
-  } catch (error) {
-    console.error(error);
-    showToast(friendlyError(error, 'Không thể cập nhật yêu cầu đối soát.'), 'err');
-  }
-}
-
-function canReconcile() {
-  const tongHopEditor = !!(state.tongHopPermission && state.tongHopPermission.active === true && ['admin','nhaplieu'].includes(state.tongHopPermission.role));
-  return isGlobalAdmin() || tongHopEditor || canEdit();
-}
-function canResolveReconciliation() {
-  return isGlobalAdmin() || (state.permission && state.permission.active === true && ['admin','nhaplieu'].includes(state.permission.role));
-}
-function reviewDateText(item) { return formatBusinessDate(String(item && item.date || '')); }
-function filteredReconciliationRows() {
-  const q = normalizeText($('reconciliationSearch')?.value || '');
-  const from = String($('reconciliationFrom')?.value || '');
-  const to = String($('reconciliationTo')?.value || '');
-  const metric = String($('reconciliationMetric')?.value || 'all');
-  const status = String($('reconciliationStatus')?.value || 'all');
-  return state.reviewRequests.filter((item) => {
-    const date = String(item.date || '');
-    if (from && date < from) return false;
-    if (to && date > to) return false;
-    if (metric !== 'all' && String(item.metricType || '') !== metric) return false;
-    if (status !== 'all' && String(item.status || '') !== status) return false;
-    if (q) {
-      const hay = normalizeText([item.metricName, reviewMetricLabel(item.metricType), item.requestedByName, item.requestedByEmail, item.reason, item.id].join(' '));
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  }).sort((a,b) => Number(b.requestedAt || 0) - Number(a.requestedAt || 0));
-}
-function renderReconciliationDetail(item) {
-  const box = $('reconciliationDetail');
-  if (!box) return;
-  if (!item) {
-    box.innerHTML = '<div class="reconciliation-empty"><strong>Chọn một đề nghị để xem chi tiết</strong><span>Nội dung xử lý sẽ hiển thị tại đây.</span></div>';
-    return;
-  }
-  const expected = item.expectedValueProvided === true ? Number(item.expectedValue || 0).toLocaleString('vi-VN') : 'Không nêu';
-  const difference = item.expectedValueProvided === true ? Number(item.expectedValue || 0) - Number(item.currentValue || 0) : null;
-  const resolved = item.status === 'RESOLVED';
-  const canResolve = canResolveReconciliation();
-  box.innerHTML = `<div class="reconciliation-detail-head"><div><h3>Chi tiết đề nghị đối soát</h3><span class="status-chip ${resolved ? 'is-complete' : item.status === 'PROCESSING' ? 'is-auto' : 'is-pending'}">${esc(reviewStatusLabel(item.status))}</span></div></div>
-    <section class="reconciliation-detail-section"><h4>Thông tin chung</h4><dl class="reconciliation-dl"><div><dt>Số đề nghị</dt><dd>${esc(item.id)}</dd></div><div><dt>Ngày đề nghị</dt><dd>${esc(fmtDateTime(item.requestedAt))}</dd></div><div><dt>Chỉ tiêu</dt><dd>${esc(item.metricName || reviewMetricLabel(item.metricType))}</dd></div><div><dt>Ngày số liệu</dt><dd>${esc(reviewDateText(item))}</dd></div><div><dt>Người gửi</dt><dd>${esc(item.requestedByName || item.requestedByEmail || '—')}</dd></div></dl></section>
-    <section class="reconciliation-detail-section"><h4>Nội dung đề nghị</h4><div class="reconciliation-value-grid"><div><span>Số liệu hệ thống</span><strong>${Number(item.currentValue || 0).toLocaleString('vi-VN')}</strong></div><div><span>Số liệu đề nghị</span><strong>${esc(expected)}</strong></div><div><span>Chênh lệch</span><strong>${difference == null ? '—' : (difference > 0 ? '+' : '') + difference.toLocaleString('vi-VN')}</strong></div></div><p class="reconciliation-reason"><b>Lý do đề nghị:</b> ${esc(item.reason || '—')}</p></section>
-    ${resolved ? `<section class="reconciliation-detail-section is-result"><h4>Kết quả xử lý</h4><p>${esc(item.resolutionNote || 'Đã xử lý')}</p><small>Số liệu sau xử lý: <b>${Number(item.finalValue || 0).toLocaleString('vi-VN')}</b>${item.resolvedByName ? ` · ${esc(item.resolvedByName)}` : ''}</small></section>` : (canResolve ? `<section class="reconciliation-detail-section"><label class="reconciliation-note-label">Ghi chú xử lý<textarea id="reconciliationResolutionNote" maxlength="500" rows="3" placeholder="Ghi nội dung kiểm tra hoặc kết quả xử lý..."></textarea></label></section><div class="reconciliation-detail-actions"><button class="btn btn-danger" data-reconcile-action="reject" type="button">Từ chối</button><button class="btn btn-soft" data-reconcile-action="adjust" type="button">Điều chỉnh</button><button class="btn btn-primary" data-reconcile-action="accept" type="button">Chấp nhận</button></div>` : '<div class="reconciliation-readonly-note">Bạn có thể theo dõi trạng thái đề nghị tại đây. Việc xử lý số liệu được thực hiện bởi người có quyền Báo cáo.</div>')}`;
-}
-function renderReconciliationView() {
-  const list = $('reconciliationList');
-  if (!list) return;
-  if (!canReconcile()) {
-    list.innerHTML = '<div class="journey-empty"><strong>Bạn chưa được cấp quyền sử dụng chức năng Đối soát.</strong></div>';
-    if ($('reconciliationCount')) $('reconciliationCount').textContent = '0 đề nghị';
-    renderReconciliationDetail(null);
-    return;
-  }
-  const rows = filteredReconciliationRows();
-  if ($('reconciliationCount')) $('reconciliationCount').textContent = `${rows.length} đề nghị`;
-  if (state.reconciliationSelectedId && !state.reviewRequests.some((r) => r.id === state.reconciliationSelectedId)) state.reconciliationSelectedId = '';
-  if (!state.reconciliationSelectedId && rows.length) state.reconciliationSelectedId = rows[0].id;
-  list.innerHTML = rows.length ? rows.map((item) => `<button class="reconciliation-row${item.id === state.reconciliationSelectedId ? ' is-selected' : ''}" data-reconciliation-id="${esc(item.id)}" type="button"><span class="reconciliation-row-icon">${item.metricType === 'DEATH' ? '∿' : '⇄'}</span><span class="reconciliation-row-main"><strong>${esc(item.metricName || reviewMetricLabel(item.metricType))}</strong><small>${esc(reviewDateText(item))} · ${esc(item.requestedByName || item.requestedByEmail || 'Người gửi')}</small><em>${esc(item.reason || 'Không có ghi chú')}</em></span><span class="status-chip ${item.status === 'RESOLVED' ? 'is-complete' : item.status === 'PROCESSING' ? 'is-auto' : 'is-pending'}">${esc(reviewStatusLabel(item.status))}</span><span class="reconciliation-chevron">›</span></button>`).join('') : '<div class="journey-empty"><strong>Không có đề nghị phù hợp bộ lọc.</strong></div>';
-  const selected = state.reviewRequests.find((item) => item.id === state.reconciliationSelectedId) || null;
-  renderReconciliationDetail(selected);
-}
-function startReviewRealtime() {
-  if (!auth.currentUser || !canReconcile()) {
-    if (state.reviewUnsubscribe) { state.reviewUnsubscribe(); state.reviewUnsubscribe = null; }
-    return;
-  }
-  if (state.reviewUnsubscribe) return;
-  state.reviewUnsubscribe = onValue(ref(db, REVIEW_ROOT), (snap) => {
-    const raw = snapshotObject(snap);
-    state.reviewRequests = Object.keys(raw).map((id) => ({ id, ...(raw[id] || {}) }));
-    renderReviewBadge();
-    if (!$('reviewInboxLayer')?.hidden) renderReviewInbox();
-    renderReconciliationView();
-  }, (error) => console.warn('Realtime yêu cầu đối soát:', error));
-}
-async function setReviewProcessing(id) {
-  if (!canResolveReconciliation()) return false;
-  const request = state.reviewRequests.find((item) => item.id === id);
-  if (!request || request.status === 'RESOLVED') return false;
-  try {
-    await update(ref(db), { [`${REVIEW_ROOT}/${id}/status`]: 'PROCESSING', [`${REVIEW_ROOT}/${id}/updatedAt`]: serverTimestamp() });
-    return true;
-  } catch (error) { showToast(friendlyError(error, 'Không thể chuyển đề nghị sang trạng thái đang xử lý.'), 'err'); return false; }
-}
-async function completeReviewRequest(id, note) {
-  if (!canResolveReconciliation()) return false;
-  const request = state.reviewRequests.find((item) => item.id === id);
-  if (!request || request.status === 'RESOLVED') return false;
-  const user = auth.currentUser; if (!user) return false;
-  const text = String(note || '').trim();
-  if (!text) { showToast('Vui lòng ghi kết quả xử lý.', 'warn'); return false; }
-  try {
-    const statsPath = request.metricType === 'DEATH' ? `${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${request.date}` : `${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${request.date}`;
-    const statsSnap = await get(ref(db, statsPath));
-    const finalValue = markerCount(snapshotObject(statsSnap), request.metricType === 'DEATH' ? 'death' : 'transfer');
-    const displayName = await resolveCurrentDisplayName();
-    const now = serverTimestamp();
-    await update(ref(db), {
-      [`${REVIEW_ROOT}/${id}/status`]: 'RESOLVED', [`${REVIEW_ROOT}/${id}/resolutionNote`]: text.slice(0,500), [`${REVIEW_ROOT}/${id}/finalValue`]: finalValue,
-      [`${REVIEW_ROOT}/${id}/resolvedByUid`]: user.uid, [`${REVIEW_ROOT}/${id}/resolvedByEmail`]: normalizeEmail(user.email), [`${REVIEW_ROOT}/${id}/resolvedByName`]: displayName,
-      [`${REVIEW_ROOT}/${id}/resolvedAt`]: now, [`${REVIEW_ROOT}/${id}/updatedAt`]: now
-    });
-    notifyBusinessEvent('REPORT_REVIEW_RESOLVED', id);
-    showToast('Đã cập nhật kết quả đối soát.', 'ok');
-    return true;
-  } catch (error) { console.error(error); showToast(friendlyError(error, 'Không thể cập nhật yêu cầu đối soát.'), 'err'); return false; }
-}
-async function handleReconciliationAction(action) {
-  const id = state.reconciliationSelectedId;
-  const item = state.reviewRequests.find((row) => row.id === id);
-  if (!id || !item || item.status === 'RESOLVED' || !canResolveReconciliation()) return;
-  const note = String($('reconciliationResolutionNote')?.value || '').trim();
-  if (action === 'adjust') {
-    const ok = await setReviewProcessing(id); if (!ok) return;
-    if (window.YTE_APP_UI && typeof window.YTE_APP_UI.openView === 'function') window.YTE_APP_UI.openView('reports');
-    await activate();
-    openHistoryFilter({ from: item.date, to: item.date, status: 'all' });
-    showToast('Đã chuyển sang Báo cáo. Hãy điều chỉnh dữ liệu nguồn, sau đó quay lại Đối soát để xác nhận kết quả.', 'ok');
-    return;
-  }
-  if (action === 'reject') {
-    if (!note) { showToast('Vui lòng ghi lý do từ chối trong Ghi chú xử lý.', 'warn'); return; }
-    await completeReviewRequest(id, `Từ chối: ${note}`);
-    return;
-  }
-  if (action === 'accept') await completeReviewRequest(id, note || 'Đã kiểm tra và chấp nhận số liệu hệ thống.');
-}
-async function activateReconciliation() {
-  await refreshPermission();
-  if (!canReconcile()) { renderReconciliationView(); return false; }
-  startReviewRealtime();
-  renderReconciliationView();
-  return true;
-}
-
 async function openResource(data) {
   data = data && typeof data === 'object' ? data : {};
   await activate();
-  const requestId = String(data.requestId || (String(data.eventType || '').startsWith('REPORT_REVIEW_') ? data.resourceId || '' : '') || '');
-  if (requestId && canEdit()) {
-    openReviewInbox(requestId);
-    return true;
-  }
+  if (data.requestId || String(data.eventType || '').startsWith('REPORT_REVIEW_')) return false; // Lịch sử Đối soát đã ngừng hoạt động.
   const caseId = String(data.caseId || data.resourceId || '');
   if (caseId) {
     const item = findCase(caseId);
@@ -2044,7 +1791,6 @@ async function activate() {
   await refreshPermission();
   if (!canView()) return;
   if ($('journeyCreateTab')) $('journeyCreateTab').hidden = !canEdit();
-  renderReviewBadge();
   if (!state.createBaseline) resetCreateForm();
   await loadJourneys(false);
   setSubView(state.subView || 'tracking');
@@ -2090,11 +1836,6 @@ function initEvents() {
     if (kind === 'delete') deleteJourney(id);
   });
   $('btnPreviewClinicalReport')?.addEventListener('click', previewClinicalReport);
-  $('btnReviewRequests')?.addEventListener('click', () => openReviewInbox(''));
-  $('reviewInboxClose')?.addEventListener('click', closeReviewInbox);
-  $('reviewInboxCloseX')?.addEventListener('click', closeReviewInbox);
-  $('reviewInboxLayer')?.addEventListener('click', (event) => { if (event.target === $('reviewInboxLayer')) closeReviewInbox(); });
-  $('reviewInboxList')?.addEventListener('click', (event) => { const btn = event.target.closest('.review-action'); if (btn && btn.getAttribute('data-kind') === 'resolve') resolveReviewRequest(btn.getAttribute('data-id')); });
   $('journeyHistoryList')?.addEventListener('click', (event) => {
     const button = event.target.closest('.journey-history-action');
     if (!button) return;
@@ -2109,11 +1850,6 @@ function initEvents() {
   $('journeyCorrectionSave')?.addEventListener('click', () => saveJourneyCorrection('UPDATE'));
   $('journeyCorrectionDelete')?.addEventListener('click', () => saveJourneyCorrection('DELETE'));
   $('journeyCorrectionLayer')?.addEventListener('click', (event) => { if (event.target === $('journeyCorrectionLayer')) closeJourneyCorrection(); });
-  ['reconciliationSearch','reconciliationFrom','reconciliationTo','reconciliationMetric','reconciliationStatus'].forEach((id) => $(id)?.addEventListener(id === 'reconciliationSearch' ? 'input' : 'change', renderReconciliationView));
-  $('reconciliationApply')?.addEventListener('click', renderReconciliationView);
-  $('reconciliationReset')?.addEventListener('click', () => { if ($('reconciliationSearch')) $('reconciliationSearch').value=''; if ($('reconciliationFrom')) $('reconciliationFrom').value=''; if ($('reconciliationTo')) $('reconciliationTo').value=''; if ($('reconciliationMetric')) $('reconciliationMetric').value='all'; if ($('reconciliationStatus')) $('reconciliationStatus').value='all'; renderReconciliationView(); });
-  $('reconciliationList')?.addEventListener('click', (event) => { const row = event.target.closest('[data-reconciliation-id]'); if (!row) return; state.reconciliationSelectedId = row.getAttribute('data-reconciliation-id') || ''; renderReconciliationView(); });
-  $('reconciliationDetail')?.addEventListener('click', (event) => { const button = event.target.closest('[data-reconcile-action]'); if (button) handleReconciliationAction(button.getAttribute('data-reconcile-action')); });
   $('journeyUpdateStatus')?.addEventListener('change', updateUpdateFields);
   $('journeyUpdateDestination')?.addEventListener('change', () => toggleOtherDestination('journeyUpdateDestination', 'journeyUpdateDestinationOtherField', 'journeyUpdateDestinationOther'));
   $('journeyUpdateCancel')?.addEventListener('click', () => closeUpdateDialog(false));
@@ -2124,7 +1860,6 @@ function initEvents() {
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     if (!$('journeyCorrectionLayer')?.hidden) closeJourneyCorrection();
-    else if (!$('reviewInboxLayer')?.hidden) closeReviewInbox();
     else if (!$('journeyUpdateLayer')?.hidden) closeUpdateDialog(false);
     else if (!$('journeyDetailLayer')?.hidden) closeDetail();
   });
@@ -2148,8 +1883,6 @@ window.YTE_JOURNEYS = {
   openReportPreview: previewClinicalReport,
   openResource,
   openHistoryFilter,
-  openReviewInbox,
-  activateReconciliation,
   captureUpdateContext: () => ({ subView: state.subView || 'tracking' }),
   restoreUpdateContext: (ctx) => { if (ctx && ctx.subView) setSubView(ctx.subView); },
   hasUnsavedChanges: () => isCreateDirty() || (!($('journeyUpdateLayer')?.hidden) && isUpdateDirty())
@@ -2167,19 +1900,14 @@ function start() {
       state.transferStatsToday = {};
       state.deathStatsToday = {};
       state.displayNames = {};
-      state.reviewRequests = [];
-      state.reviewFocusId = '';
-      renderReviewBadge();
-      state.loadedAt = 0;
+          state.loadedAt = 0;
       return;
     }
     try {
       await refreshPermission();
       startJourneyRealtime();
-      startReviewRealtime();
-      const reportsView = $('reportsView');
-      const transferTab = document.querySelector('.report-type-tab[data-report-type="CHUYEN_VIEN"]');
-      if (reportsView && reportsView.classList.contains('active') && transferTab && transferTab.classList.contains('active')) {
+      const journeyView = $('journeyView');
+      if (journeyView && journeyView.classList.contains('active')) {
         await activate();
       }
     } catch (error) { console.error(error); }

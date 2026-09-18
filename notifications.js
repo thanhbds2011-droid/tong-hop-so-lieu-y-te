@@ -251,9 +251,12 @@
     data = data && typeof data === 'object' ? data : {};
     let view = safeText(data.view || data.route || '').toLowerCase();
     if (!view) return;
-    const aliases = { tongquan:'dashboard', dashboard:'dashboard', nhaplieu:'entry', entry:'entry', baocao:'reports', report:'reports', reports:'reports', quantri:'admin', admin:'admin' };
+    const aliases = { tongquan:'dashboard', dashboard:'dashboard', nhaplieu:'entry', entry:'entry', baocao:'reports', report:'reports', reports:'reports', chuyenvien:'journey', journey:'journey', quantri:'admin', admin:'admin', reconciliation:'dashboard' };
     view = aliases[view] || view;
-    if (!['dashboard','entry','reports','admin'].includes(view)) return;
+    const eventType = safeText(data.eventType || '');
+    if (data.requestId || eventType.startsWith('REPORT_REVIEW_')) view = 'dashboard';
+    else if (view === 'reports' && (data.caseId || data.resourceId || /^(TRANSFER_|DEATH_)/.test(eventType))) view = 'journey';
+    if (!['dashboard','entry','reports','journey','admin'].includes(view)) return;
     savePendingRoute(Object.assign({}, data, { view: view }));
     consumePendingRoute();
   }
@@ -264,12 +267,16 @@
       data = JSON.parse(sessionStorage.getItem(ROUTE_DATA_KEY) || '{}');
     } catch (_) {}
     if (!view) return;
+    // Tương thích payload lưu từ bản cũ sau khi tách Báo cáo và Chuyển viện.
+    const eventType = safeText(data.eventType || '');
+    if (view === 'reconciliation' || data.requestId || eventType.startsWith('REPORT_REVIEW_')) view = 'dashboard';
+    else if (view === 'reports' && (data.caseId || data.resourceId || /^(TRANSFER_|DEATH_|JOURNEY_)/.test(eventType))) view = 'journey';
     const api = window.YTE_APP_UI;
     if (!api || typeof api.openView !== 'function') return;
     try {
       api.openView(view);
       let handled = true;
-      if (view === 'reports' && window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.openResource === 'function') {
+      if (view === 'journey' && window.YTE_JOURNEYS && typeof window.YTE_JOURNEYS.openResource === 'function') {
         handled = await window.YTE_JOURNEYS.openResource(data);
       }
       if (view === 'entry' && data.date) {
@@ -296,7 +303,7 @@
         const value = url.searchParams.get(key);
         if (value) data[key] = value;
       });
-      if (data.view) savePendingRoute(data);
+      if (data.view) { routeTo(data); }
     } catch (_) {}
   }
 

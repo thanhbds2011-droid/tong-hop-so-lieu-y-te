@@ -33,10 +33,9 @@ const OWNER_EMAIL = String(APP_CONFIG.OWNER_EMAIL || '').trim().toLowerCase();
 const ROOT = 'tongHopYTe';
 const REPORT_ROOT = 'baoCaoYTe';
 const YTE_APP_ROOT = 'yTeApp';
-const REVIEW_ROOT = `${YTE_APP_ROOT}/yeuCauDoiSoat`;
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '10.0.3';
+const APP_RUNTIME_VERSION = '10.0.5';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -1780,7 +1779,6 @@ var AUTO_SYNC_MS = 300000;
       editingCategoryCode:'',categorySaving:false,
       adjustingCode:'',adjustSaving:false,quickEntrySaving:false,quickEntryBaseline:'',deleteDailyCode:'',deleteDailySaving:false,
       historyCode:'',historyLoading:false,displayNameEditUid:'',
-      reviewRequestCode:'',reviewRequestSaving:false,reviewRequestAttempt:null,
       personManagerCode:'',personManagerDate:'',personManagerRows:[],personManagerTotal:0,personManagerSaving:false,
       personManagerLiveUnsubscribers:[],personManagerLiveRaw:{},personManagerLiveSummary:null,
       sourceDetailLiveUnsubscribers:[],sourceDetailLiveContext:null,sourceDetailLiveRaw:{},sourceDetailLiveSummary:{},
@@ -1967,7 +1965,7 @@ var AUTO_SYNC_MS = 300000;
     function message(text,type){type=type||'ok';if(type==='ok'){clearMessage();toast(text,'ok');return}$('message').innerHTML='<div class="message '+type+'">'+esc(text)+'</div>';window.scrollTo({top:0,behavior:'smooth'});toast(text,type)}
     function clearMessage(){$('message').innerHTML=''}
     var confirmResolver=null;
-    function closeConfirm(result){var layer=$('confirmLayer');if(layer.hidden)return;layer.hidden=true;var anotherDialog=['personDetailLayer','sourceDetailLayer','reviewRequestLayer','reviewInboxLayer','dataHistoryLayer','categoryLayer'].some(function(id){var el=$(id);return el&&!el.hidden});document.body.style.overflow=anotherDialog?'hidden':'';var resolver=confirmResolver;confirmResolver=null;if(resolver)resolver(!!result)}
+    function closeConfirm(result){var layer=$('confirmLayer');if(layer.hidden)return;layer.hidden=true;var anotherDialog=['personDetailLayer','sourceDetailLayer','dataHistoryLayer','categoryLayer'].some(function(id){var el=$(id);return el&&!el.hidden});document.body.style.overflow=anotherDialog?'hidden':'';var resolver=confirmResolver;confirmResolver=null;if(resolver)resolver(!!result)}
     function confirmAction(options){options=options||{};if(confirmResolver)closeConfirm(false);$('confirmTitle').textContent=options.title||'Xác nhận thao tác';$('confirmMessage').textContent=options.message||'';$('confirmAccept').textContent=options.confirmText||'Xác nhận';$('confirmCancel').textContent=options.cancelText||'Quay lại';$('confirmAccept').className='btn '+(options.danger?'btn-danger':'btn-primary');$('confirmLayer').classList.toggle('is-danger',!!options.danger);$('confirmLayer').hidden=false;document.body.style.overflow='hidden';window.setTimeout(function(){$('confirmAccept').focus()},0);return new Promise(function(resolve){confirmResolver=resolve})}
     function setBusy(active,text){state.busyCount=Math.max(0,state.busyCount+(active?1:-1));if(active&&text)$('loadingText').textContent=text;document.body.classList.toggle('is-busy',state.busyCount>0);if(state.busyCount===0)$('loadingText').textContent='Đang xử lý...'}
     function withTimeout(promise,timeoutMs,messageText){
@@ -1993,9 +1991,6 @@ var AUTO_SYNC_MS = 300000;
     function canInputTongHop(){return isAnyAppAdmin()||!!(state.user&&state.user.role==='Nhập liệu')}
     function canViewDerivedDetails(){return!!state.authUser&&(isAnyAppAdmin()||!!state.user||hasReportAccess())}
     function canManageReportPermissionsUi(){return isAnyAppAdmin()}
-    function canUseReconciliation(){
-      return isAnyAppAdmin() || canInputTongHop() || !!(state.reportPermission&&state.reportPermission.active===true&&['admin','nhaplieu'].indexOf(state.reportPermission.role)>=0);
-    }
 
     function defaultPrivateView(){
       if(state.user)return 'dashboard';
@@ -2004,6 +1999,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     function showView(name){
+      setAccountMenu(false);
       var isAdmin=isAnyAppAdmin();
       var hasReport=hasReportAccess();
       var hasTongHop=!!state.user,canInput=canInputTongHop();
@@ -2011,18 +2007,21 @@ var AUTO_SYNC_MS = 300000;
       if(name==='dashboard'&&state.authUser&&!hasTongHop&&!hasReport)name=defaultPrivateView();
       if(name==='entry'&&!canInput)name=state.authUser?defaultPrivateView():'auth';
       if(name==='reports'&&!hasReport){name=state.authUser?defaultPrivateView():'auth';message('Tài khoản chưa được cấp quyền Báo cáo.','err')}
-      if(name==='reconciliation'&&!canUseReconciliation()){name=state.authUser?defaultPrivateView():'auth';message('Bạn chưa được cấp quyền xử lý đối soát.','err')}
+      if(name==='reconciliation')name='dashboard';
+      if(name==='journey'&&!hasReport){name=state.authUser?defaultPrivateView():'auth';message('Tài khoản chưa được cấp quyền Chuyển viện.','err')}
       if(name==='home'){
         if(!state.authUser)name='dashboard';
         else if(hasTongHop||hasReport)name=defaultPrivateView();
       }
+      if(!$(name+'View'))name=defaultPrivateView();
       document.querySelectorAll('.view').forEach(function(view){view.classList.remove('active')});
       var target=$(name+'View');if(target)target.classList.add('active');
       document.querySelectorAll('.nav-item').forEach(function(button){var active=button.getAttribute('data-view')===name;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false')});
       window.scrollTo({top:0,behavior:'smooth'});
       if(name==='entry')activateEntryView();
+      if(name==='reports')renderReportSummary();
       if(name==='admin')showAdminSection(state.adminSection||'users');
-      if(name==='reconciliation'&&window.YTE_JOURNEYS&&typeof window.YTE_JOURNEYS.activateReconciliation==='function')window.YTE_JOURNEYS.activateReconciliation();
+
       if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.onViewChanged==='function')window.YTE_REPORTS.onViewChanged(name);
       document.querySelectorAll('.mobile-bottom-item').forEach(function(button){var active=button.getAttribute('data-view')===name;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false')});
     }
@@ -2043,8 +2042,24 @@ var AUTO_SYNC_MS = 300000;
       else{var selectedYear=$('yearValue').value;from=selectedYear+'-01-01';to=selectedYear+'-12-31';label='Năm '+selectedYear}
       if(!from||!to)throw new Error('Vui lòng chọn đầy đủ thời gian.');if(from>to)throw new Error('Từ ngày không được lớn hơn đến ngày.');return{from:from,to:to,label:label};
     }
-    function populateContentFilter(){var current=$('contentFilter').value||'all';$('contentFilter').innerHTML='<option value="all">Tất cả nội dung</option>'+state.categories.map(function(c){return'<option value="'+esc(c.code)+'">'+esc(c.name)+'</option>'}).join('');$('contentFilter').value=state.categories.some(function(c){return c.code===current})?current:'all'}
-    function selectedCategories(){var code=$('contentFilter').value||'all';return code==='all'?state.categories:state.categories.filter(function(c){return c.code===code})}
+    // Dữ liệu lịch sử vẫn phải xuất hiện nếu danh mục đã bị ẩn hoặc mirror chưa cập nhật.
+    // Không suy diễn đơn vị hoặc coi bản ghi không tồn tại là 0 đã xác nhận.
+    function dashboardAvailableCategories(){
+      var categories=(state.categories||[]).slice(),existing=new Set(categories.map(function(c){return c.code}));
+      (state.records||[]).forEach(function(record){
+        if(!record||!record.code||existing.has(record.code))return;
+        existing.add(record.code);
+        categories.push(decorateCategory({code:record.code,name:record.name||record.code,
+          group:'Dữ liệu lịch sử / cần kiểm tra danh mục',unit:'',order:9999,status:'Không còn trong danh mục đang hoạt động'}));
+      });
+      return categories;
+    }
+    function populateContentFilter(){
+      var filter=$('contentFilter'),current=filter.value||'all',categories=dashboardAvailableCategories();
+      filter.innerHTML='<option value="all">Tất cả chỉ tiêu</option>'+categories.map(function(c){return'<option value="'+esc(c.code)+'">'+esc(c.name)+'</option>'}).join('');
+      filter.value=categories.some(function(c){return c.code===current})?current:'all';
+    }
+    function selectedCategories(){var code=$('contentFilter').value||'all',categories=dashboardAvailableCategories();return code==='all'?categories:categories.filter(function(c){return c.code===code})}
 
     function syncData(silent,force){
       if(silent&&!force&&state.lastSyncAt&&Date.now()-state.lastSyncAt<SILENT_SYNC_MIN_AGE_MS)return Promise.resolve();
@@ -2070,31 +2085,51 @@ var AUTO_SYNC_MS = 300000;
     }
     function aggregate(){var totals={};state.records.forEach(function(record){totals[record.code]=(totals[record.code]||0)+Number(record.value||0)});return totals}
     function recordedCodeMap(){var map={};state.records.forEach(function(record){map[record.code]=true});return map}
-    function renderAll(){renderSummary(aggregate());renderProductionDashboardExtras();}
-    function renderSummary(totals){
-      var recorded=recordedCodeMap();
-      var categories=selectedCategories().filter(function(c){return !!recorded[c.code]||!!c.derivedKind||!!c.personDetailKind});
-      if(($('contentFilter').value||'all')==='all'){
-        var rank=function(c){if(c.derivedKind==='transfer')return 0;if((c.personDetailKind||personDetailKindFromCategory(c))==='tb')return 1;if(c.derivedKind==='death')return 2;if((c.personDetailKind||personDetailKindFromCategory(c))==='center')return 3;return 99};
-        categories=categories.slice().sort(function(a,b){return rank(a)-rank(b)||Number(a.order||9999)-Number(b.order||9999)});
-        var primary=categories.filter(function(c){return rank(c)<99});
-        categories=primary.length?primary.slice(0,4):categories.slice(0,4);
-      }
-      if(!categories.length){$('summaryCards').innerHTML='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có số liệu trong phạm vi này.</strong><span>Chọn thời gian khác hoặc nhập số liệu khi có phát sinh.</span></div>';return}
-      var canSeeSource=canViewDerivedDetails();
-      $('summaryCards').innerHTML=categories.map(function(c){
-        var value=Number(totals[c.code]||0);
-        var personKind=c.personDetailKind||personDetailKindFromCategory(c);
-        var chip=c.derivedKind?'<span class="status-chip is-auto" title="Số liệu được đồng bộ từ phân hệ Báo cáo và không sửa trực tiếp tại Tổng hợp">Tự động từ Báo cáo</span>':personKind?'<span class="status-chip is-auto">Theo danh sách đối tượng</span>':'';
-        var detail='';
-        if(c.derivedKind&&canSeeSource) detail='<button class="summary-source-detail-btn" data-source-kind="'+esc(c.derivedKind)+'" type="button"><span>Xem chi tiết</span><strong>'+value.toLocaleString('vi-VN')+' '+esc(c.unit)+'</strong><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
-        else if(personKind&&canSeeSource) detail='<button class="summary-source-detail-btn" data-source-kind="person" data-code="'+esc(c.code)+'" type="button"><span>Xem chi tiết</span><strong>'+value.toLocaleString('vi-VN')+' '+esc(c.unit)+'</strong><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
-        return'<article class="summary-item summary-recorded-item'+((c.derivedKind||personKind)?' is-auto-derived':'')+'">'+uiMetricIcon(c)+'<div class="summary-copy"><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+'</p></div><div class="summary-value"><span class="summary-number">'+value.toLocaleString('vi-VN')+'</span><span class="summary-unit">'+esc(c.unit)+'</span>'+chip+'</div>'+detail+'</article>';
-      }).join('');
+    function renderAll(){var totals=aggregate();renderSummary(totals);renderProductionDashboardExtras();renderReportSummary(totals);}
+    function categoryPriority(c){
+      if(c.derivedKind==='transfer')return 0;
+      if((c.personDetailKind||personDetailKindFromCategory(c))==='tb')return 1;
+      if(c.derivedKind==='death')return 2;
+      if((c.personDetailKind||personDetailKindFromCategory(c))==='center')return 3;
+      return 99;
     }
-
+    function sortedSummaryCategories(){
+      return selectedCategories().slice().sort(function(a,b){return categoryPriority(a)-categoryPriority(b)||Number(a.order||9999)-Number(b.order||9999)||a.name.localeCompare(b.name,'vi')});
+    }
+    function renderSummary(totals){
+      var recorded=recordedCodeMap(),categories=sortedSummaryCategories();
+      var positive=categories.filter(function(c){return !!recorded[c.code]&&Number(totals[c.code]||0)>0});
+      var nonPositive=categories.filter(function(c){return !recorded[c.code]||Number(totals[c.code]||0)===0});
+      var canSeeSource=canViewDerivedDetails(),label=$('dashboardIndicatorCaption');
+      if(label)label.textContent=positive.length+' chỉ tiêu phát sinh · '+nonPositive.length+' chỉ tiêu chưa phát sinh hoặc chưa ghi nhận';
+      function card(c){
+        var exists=!!recorded[c.code],value=Number(totals[c.code]||0),personKind=c.personDetailKind||personDetailKindFromCategory(c);
+        var chip=c.derivedKind?'<span class="status-chip is-auto">Tự động từ nguồn Chuyển viện</span>':personKind?'<span class="status-chip is-auto">Theo danh sách đối tượng</span>':'';
+        var detail='';
+        if(c.derivedKind&&canSeeSource)detail='<button class="summary-source-detail-btn" data-source-kind="'+esc(c.derivedKind)+'" type="button"><span>Xem chi tiết</span><strong>'+value.toLocaleString('vi-VN')+' '+esc(c.unit)+'</strong><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
+        else if(personKind&&canSeeSource)detail='<button class="summary-source-detail-btn" data-source-kind="person" data-code="'+esc(c.code)+'" type="button"><span>Xem chi tiết</span><strong>'+value.toLocaleString('vi-VN')+' '+esc(c.unit)+'</strong><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
+        var display=exists?'<span class="summary-number">'+value.toLocaleString('vi-VN')+'</span>':'<span class="summary-unrecorded">Chưa ghi nhận</span>';
+        return '<article class="summary-item summary-recorded-item '+(!exists?'is-unrecorded ':'')+((c.derivedKind||personKind)?'is-auto-derived':'')+'">'+uiMetricIcon(c)+'<div class="summary-copy"><h3>'+esc(c.name)+'</h3><p>'+esc(c.group)+'</p></div><div class="summary-value">'+display+(exists?'<span class="summary-unit">'+esc(c.unit)+'</span>':'')+chip+'</div>'+detail+'</article>';
+      }
+      var markup=positive.map(card).join('');
+      if(nonPositive.length){
+        markup+='<details class="dashboard-other-metrics" '+(positive.length?'':'open')+'><summary><span>Chỉ tiêu chưa phát sinh / chưa ghi nhận</span><strong>'+nonPositive.length+'</strong><span aria-hidden="true">⌄</span></summary><div class="summary-grid summary-grid-secondary">'+nonPositive.map(card).join('')+'</div></details>';
+      }
+      if(!categories.length)markup='<div class="empty dashboard-recorded-empty" style="grid-column:1/-1"><strong>Chưa có danh mục chỉ tiêu phù hợp.</strong><span>Vui lòng kiểm tra danh mục hoặc bỏ lọc chỉ tiêu.</span></div>';
+      $('summaryCards').innerHTML=markup;
+    }
+    function renderReportSummary(totals){
+      var box=$('reportSummaryRows');if(!box)return;
+      totals=totals||aggregate();var recorded=recordedCodeMap(),cats=sortedSummaryCategories();
+      if($('reportSummaryRange'))$('reportSummaryRange').textContent=$('rangeLabel')?$('rangeLabel').textContent:'Theo phạm vi đang xem';
+      if($('reportSummaryCount'))$('reportSummaryCount').textContent=cats.length+' chỉ tiêu';
+      box.innerHTML=cats.length?cats.map(function(c,i){var exists=!!recorded[c.code],auto=!!c.derivedKind||!!c.personDetailKind;
+        return '<tr><td>'+(i+1)+'</td><td><strong>'+esc(c.name)+'</strong><small>'+esc(c.group||'')+'</small></td><td class="report-summary-number">'+(exists?Number(totals[c.code]||0).toLocaleString('vi-VN'):'—')+'</td><td>'+esc(c.unit||'')+'</td><td><span class="report-summary-status">'+(!exists?'Chưa ghi nhận':auto?'Tự động':'Đã ghi nhận')+'</span></td></tr>';
+      }).join(''):'<tr><td colspan="5">Không có chỉ tiêu phù hợp. Vui lòng kiểm tra bộ lọc.</td></tr>';
+    }
     function keyDashboardCategories(){
       function rank(c){if(c.derivedKind==='transfer')return 0;if((c.personDetailKind||personDetailKindFromCategory(c))==='tb')return 1;if(c.derivedKind==='death')return 2;if((c.personDetailKind||personDetailKindFromCategory(c))==='center')return 3;return 99}
+      if(($('contentFilter')&&$('contentFilter').value||'all')!=='all')return selectedCategories();
       var all=(state.categories||[]).slice().sort(function(a,b){return rank(a)-rank(b)||Number(a.order||9999)-Number(b.order||9999)});
       var primary=all.filter(function(c){return rank(c)<99});
       return (primary.length?primary:all).slice(0,4);
@@ -2143,6 +2178,7 @@ var AUTO_SYNC_MS = 300000;
       var records=(state.records||[]).slice().sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''))||Number(a.updatedAt||0)-Number(b.updatedAt||0)});
       var trend=buildDashboardTrendBuckets(state.from,state.to,categories,records);
       if($('dashboardTrendPeriod'))$('dashboardTrendPeriod').textContent=trend.period;
+      if($('dashboardChartScope'))$('dashboardChartScope').textContent=($('contentFilter').value==='all'?'Chỉ hiển thị tối đa 4 chỉ tiêu trọng tâm; xem tất cả chỉ tiêu ở phía trên.':'Đang hiển thị chỉ tiêu được lọc.');
       if($('dashboardChartLegend'))$('dashboardChartLegend').innerHTML=categories.map(function(c,i){return '<span><i class="legend-dot is-'+metricAccent(c,i)+'"></i>'+esc(c.name)+'</span>'}).join('');
       if($('dashboardTrendChart')){
         if(!trend.buckets.length||!categories.length){$('dashboardTrendChart').innerHTML='<div class="dashboard-chart-empty">Chưa có dữ liệu để hiển thị biểu đồ.</div>'}
@@ -2153,10 +2189,12 @@ var AUTO_SYNC_MS = 300000;
         }
       }
       if($('dashboardCurrentState')){
-        var values=categories.map(function(c){return Number(totals[c.code]||0)}),maxValue=Math.max.apply(null,values.concat([0]));
+        var breakdown=sortedSummaryCategories().filter(function(c){return Number(totals[c.code]||0)>0});
+        var values=breakdown.map(function(c){return Number(totals[c.code]||0)}),maxValue=Math.max.apply(null,values.concat([0]));
+        var unitMax={};breakdown.forEach(function(c){var unit=c.unit||'không đơn vị';unitMax[unit]=Math.max(unitMax[unit]||0,Number(totals[c.code]||0))});
         if(!maxValue){$('dashboardCurrentState').innerHTML='<div class="dashboard-chart-empty">Chưa có dữ liệu trong phạm vi đang xem.</div>'}
         else{
-          $('dashboardCurrentState').innerHTML='<div class="dashboard-metric-breakdown" role="list">'+categories.map(function(c,i){var value=values[i],width=maxValue?Math.round(value/maxValue*100):0;return '<div class="dashboard-metric-breakdown-row" role="listitem"><div class="dashboard-metric-breakdown-head"><span><i class="legend-dot is-'+metricAccent(c,i)+'"></i>'+esc(c.name)+'</span><strong>'+value.toLocaleString('vi-VN')+' <small>'+esc(c.unit||'')+'</small></strong></div><div class="dashboard-metric-track" aria-hidden="true"><i class="is-'+metricAccent(c,i)+'" style="--metric-width:'+width+'%"></i></div></div>'}).join('')+'</div>';
+          $('dashboardCurrentState').innerHTML='<div class="dashboard-metric-breakdown" role="list">'+breakdown.map(function(c,i){var value=values[i],width=unitMax[c.unit||'không đơn vị']?Math.round(value/unitMax[c.unit||'không đơn vị']*100):0;return '<div class="dashboard-metric-breakdown-row" role="listitem"><div class="dashboard-metric-breakdown-head"><span><i class="legend-dot is-'+metricAccent(c,i)+'"></i>'+esc(c.name)+'</span><strong>'+value.toLocaleString('vi-VN')+' <small>'+esc(c.unit||'')+'</small></strong></div><div class="dashboard-metric-track" aria-hidden="true"><i class="is-'+metricAccent(c,i)+'" style="--metric-width:'+width+'%"></i></div></div>'}).join('')+'</div>';
         }
       }
       if($('dashboardRecentList')){
@@ -2176,15 +2214,18 @@ var AUTO_SYNC_MS = 300000;
     }
     function exportDashboardExcel(){
       try{
-        var range=getRange(),cats=new Map((state.categories||[]).map(function(c){return[c.code,c]}));
-        downloadXlsx({filename:'Bao-cao-Y-te_'+range.from+'_'+range.to+'.xlsx',sheetName:'Tong hop',title:'TỔNG HỢP SỐ LIỆU PHÒNG Y TẾ',subtitle:range.label,columns:[{key:'date',label:'Ngày',width:14},{key:'name',label:'Chỉ tiêu',width:32},{key:'value',label:'Giá trị',width:12},{key:'unit',label:'Đơn vị',width:12}],rows:(state.records||[]).map(function(r){var c=cats.get(r.code)||{};return{date:fmtDate(r.date),name:c.name||r.name||r.code,value:Number(r.value||0),unit:c.unit||''}})});
+        var range=getRange(),available=selectedCategories(),allowed=new Set(available.map(function(c){return c.code})),cats=new Map(available.map(function(c){return[c.code,c]}));
+        downloadXlsx({filename:'Bao-cao-Y-te_'+range.from+'_'+range.to+'.xlsx',sheetName:'Tong hop',title:'TỔNG HỢP SỐ LIỆU PHÒNG Y TẾ',subtitle:range.label,columns:[{key:'date',label:'Ngày',width:14},{key:'name',label:'Chỉ tiêu',width:32},{key:'value',label:'Giá trị',width:12},{key:'unit',label:'Đơn vị',width:12}],rows:(state.records||[]).filter(function(r){return allowed.has(r.code)}).map(function(r){var c=cats.get(r.code)||{};return{date:fmtDate(r.date),name:c.name||r.name||r.code,value:Number(r.value||0),unit:c.unit||''}})});
       }catch(error){toast(error.message||'Không thể xuất Excel.','err')}
     }
     function setupProductionUiBindings(){
       document.querySelectorAll('.mobile-bottom-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       if($('mobileNavLogout'))$('mobileNavLogout').addEventListener('click',logout);
       if($('btnDashboardExport'))$('btnDashboardExport').addEventListener('click',exportDashboardExcel);
-      if($('globalSearch'))$('globalSearch').addEventListener('input',function(){var q=$('globalSearch').value||'',view=currentViewName(),target=view==='admin'?'adminSearch':view==='reports'?'reportSearch':view==='reconciliation'?'reconciliationSearch':'';if(target&&$(target)){ $(target).value=q;$(target).dispatchEvent(new Event('input',{bubbles:true})) }});
+      if($('btnReportGoDashboard'))$('btnReportGoDashboard').addEventListener('click',function(){showView('dashboard');if($('rangeType'))$('rangeType').focus()});
+      if($('btnReportExportSummary'))$('btnReportExportSummary').addEventListener('click',exportDashboardExcel);
+      if($('btnReportPreviewSummary'))$('btnReportPreviewSummary').addEventListener('click',previewSummaryReport);
+      if($('globalSearch'))$('globalSearch').addEventListener('input',function(){var q=$('globalSearch').value||'',view=currentViewName(),target=view==='admin'?'adminSearch':view==='journey'?'journeyTrackingSearch':'';if(target&&$(target)){ $(target).value=q;$(target).dispatchEvent(new Event('input',{bubbles:true})) }});
     }
 
     function personBusinessDateLabel(category){
@@ -2430,7 +2471,7 @@ var AUTO_SYNC_MS = 300000;
 
     function previewSummaryReport(){
       var totals=aggregate(),recorded=recordedCodeMap();
-      var categories=selectedCategories().filter(function(c){return !!recorded[c.code]||!!c.derivedKind});
+      var categories=sortedSummaryCategories().filter(function(c){return !!recorded[c.code]});
       var reportFrom=state.from||'',reportTo=state.to||reportFrom,reportLabel=String($('rangeLabel').textContent||'Phạm vi đang xem');
       var rows=categories.map(function(c,index){return{stt:index+1,chiTieu:c.name,nhom:c.group,giaTri:Number(totals[c.code]||0),donVi:c.unit}});
       openReportPreview({
@@ -2465,6 +2506,11 @@ var AUTO_SYNC_MS = 300000;
       window.YTE_NOTIFICATIONS.syncUser({uid:state.authUser.uid,tongHopRole:tongHopRole,reportRole:reportRole}).catch(function(error){console.warn('Đồng bộ thông báo:',error)});
     }
 
+    function setAccountMenu(open){
+      var menu=$('headerAccountMenu'),trigger=$('headerUserSummary');if(!menu||!trigger)return;
+      var enabled=!!state.authUser;
+      menu.hidden=!(open&&enabled);trigger.setAttribute('aria-expanded',String(!menu.hidden));
+    }
     function updateAuthUi(){
       var authenticated=!!state.authUser,loggedIn=!!state.user,isAdmin=isAnyAppAdmin(),canInput=canInputTongHop();
       var tongHopAdmin=isAnyAppAdmin(),reportAdmin=canManageReportPermissionsUi();
@@ -2478,6 +2524,7 @@ var AUTO_SYNC_MS = 300000;
       if($('headerGreeting')){$('headerGreeting').hidden=!authenticated;$('headerGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('headerGreeting').title=fullGreetingName;}
       if($('mobileGreeting')){$('mobileGreeting').hidden=!authenticated;$('mobileGreeting').textContent=authenticated?'Xin chào, '+shortGreetingName+' 👋':'';$('mobileGreeting').title=fullGreetingName;}
       if($('mobileNavUser')){$('mobileNavUser').textContent=authenticated?fullGreetingName:'Tài khoản';$('mobileNavUser').title=fullGreetingName;}
+      if(!authenticated)setAccountMenu(false);
       if($('headerUserSummary')){
         $('headerUserSummary').hidden=!authenticated;
         if(authenticated){
@@ -2508,15 +2555,13 @@ var AUTO_SYNC_MS = 300000;
         if(view==='dashboard')visible=hasAnyAccess;
         else if(view==='entry')visible=canInput;
         else if(view==='reports')visible=hasReport;
-        else if(view==='reconciliation')visible=canUseReconciliation();
-        else if(view==='admin')visible=isAdmin;
+        else if(view==='journey')visible=hasReport;
         button.hidden=!visible;
       });
       if($('btnSync'))$('btnSync').hidden=authenticated&&!loggedIn;
       if($('navDashboard'))$('navDashboard').hidden=authenticated&&!loggedIn&&!hasReport;
-      $('navEntry').hidden=!canInput;$('navAdmin').hidden=!isAdmin;
+      $('navEntry').hidden=!canInput;$('navAdmin').hidden=!isAdmin;if($('navJourney'))$('navJourney').hidden=!hasReport;
       if($('navReports'))$('navReports').hidden=!hasReport;
-      if($('navReconciliation'))$('navReconciliation').hidden=!canUseReconciliation();
       if($('adminUsersTab'))$('adminUsersTab').hidden=!tongHopAdmin;
       if($('adminCategoriesTab'))$('adminCategoriesTab').hidden=!tongHopAdmin;
       if($('adminReportPermissionsTab'))$('adminReportPermissionsTab').hidden=!reportAdmin;
@@ -2541,11 +2586,13 @@ var AUTO_SYNC_MS = 300000;
         state.entryCache={};state.dailyByCode={};state.loadedEntryDate='';state.adminUsers=[];state.adminLoadedAt=0;state.adminCategories=[];state.categoryLoadedAt=0;
         if(currentViewName()==='entry')showView(authenticated?defaultPrivateView():'dashboard');
         if(currentViewName()==='admin'&&!isAdmin)showView(authenticated?defaultPrivateView():'dashboard');
+        if(currentViewName()==='journey'&&!hasReport)showView(authenticated?defaultPrivateView():'dashboard');
         if(currentViewName()==='home'&&hasReport)showView('reports');
         return;
       }
       if(!isAdmin&&currentViewName()==='admin')showView(defaultPrivateView());
       if(currentViewName()==='home')showView('dashboard');
+      if(currentViewName()==='journey'&&!hasReport)showView(defaultPrivateView());
       $('entryUserName').textContent=state.user.name;
       $('entryUserMeta').textContent=state.user.role;
       if(canInput){
@@ -2595,15 +2642,15 @@ var AUTO_SYNC_MS = 300000;
         updateRangeFields();
         if(ctx.contentFilter&&$('contentFilter'))$('contentFilter').value=ctx.contentFilter;
         if(ctx.adminSection)state.adminSection=ctx.adminSection;
-        var target=String(ctx.view||'');if(target&&['dashboard','entry','reports','reconciliation','admin'].indexOf(target)>=0)showView(target);
+        var target=String(ctx.view||'');if(target&&['dashboard','entry','reports','journey','admin'].indexOf(target)>=0)showView(target);
         if(target==='dashboard'){startDashboardRealtime(true);Promise.resolve(syncData(true,true)).catch(function(){})}
         if(target==='entry'&&$('entryDate').value){startEntryRealtime($('entryDate').value);loadDay({silent:true,force:true,notify:false}).catch(function(){})}
-        if(target==='reports'&&saved.journeys&&window.YTE_JOURNEYS&&typeof window.YTE_JOURNEYS.restoreUpdateContext==='function')window.setTimeout(function(){window.YTE_JOURNEYS.restoreUpdateContext(saved.journeys)},50);
+        if(target==='journey'&&saved.journeys&&window.YTE_JOURNEYS&&typeof window.YTE_JOURNEYS.restoreUpdateContext==='function')window.setTimeout(function(){window.YTE_JOURNEYS.restoreUpdateContext(saved.journeys)},50);
       }catch(error){console.warn('Không khôi phục được vị trí sau cập nhật:',error)}
     }
     window.YTE_REFRESH_SESSION=refreshCurrentSession;
     window.YTE_APP_UI=Object.freeze({
-      hasUnsavedChanges:function(){return quickEntryDirty()||personManagerFormDirty()||!!(state.reviewRequestCode&&$('reviewRequestReason')&&String($('reviewRequestReason').value||'').trim())},
+      hasUnsavedChanges:function(){return quickEntryDirty()||personManagerFormDirty()},
       openView:function(name){showView(String(name||''));},
       currentView:function(){return currentViewName();},
       captureUpdateContext:captureUpdateContext,
@@ -2698,7 +2745,7 @@ var AUTO_SYNC_MS = 300000;
       else if(record)setEntrySelectedStatus('Đã ghi nhận','is-complete');else setEntrySelectedStatus('','');
       var personMode=!!category.personDetailKind;
       if(personMode)setEntrySelectedStatus('Theo danh sách đối tượng','is-auto');
-      if(adjust&&adjust.querySelector('span'))adjust.querySelector('span').textContent=auto?'Yêu cầu kiểm tra':personMode?'Quản lý danh sách':'Cập nhật số liệu';
+      if(adjust&&adjust.querySelector('span'))adjust.querySelector('span').textContent=auto?'Xem nguồn':personMode?'Quản lý danh sách':'Cập nhật số liệu';
       if(history&&history.querySelector('span'))history.querySelector('span').textContent=auto?'Mở Báo cáo':'Lịch sử';
       history.hidden=auto?false:!record;
       if(personMode){
@@ -2716,125 +2763,15 @@ var AUTO_SYNC_MS = 300000;
       }
       if($('entryQuickError'))$('entryQuickError').textContent='';
     }
-    function closeReviewRequestDialog(){
-      if(state.reviewRequestSaving)return;
-      $('reviewRequestLayer').hidden=true;state.reviewRequestCode='';$('reviewRequestError').textContent='';document.body.style.overflow='';
-    }
-    function openReviewRequestDialog(code){
-      var category=state.categories.find(function(item){return item.code===code});
-      if(!category||!category.derivedKind||!canInputTongHop())return;
-      var date=$('entryDate').value,record=state.dailyByCode[code]||null,current=Number(record?record.autoValue!=null?record.autoValue:record.value||0:0);
-      state.reviewRequestCode=code;
-      $('reviewRequestMetric').textContent=category.name||code;
-      $('reviewRequestDate').textContent=fmtDate(date);
-      $('reviewRequestCurrent').textContent=current.toLocaleString('vi-VN')+' '+(category.unit||'Lượt');
-      $('reviewRequestExpected').value='';$('reviewRequestReason').value='';$('reviewRequestError').textContent='';
-      if(state.reviewRequestAttempt){
-        $('reviewRequestError').textContent='Nếu lần gửi trước chưa có kết quả, vui lòng kiểm tra mục Đối soát trước khi gửi lại cùng một yêu cầu.';
-      }
-      $('reviewRequestSend').disabled=false;
-      $('reviewRequestLayer').hidden=false;document.body.style.overflow='hidden';
-      window.setTimeout(function(){if(window.matchMedia&&window.matchMedia('(pointer:fine) and (min-width:761px)').matches)$('reviewRequestExpected').focus()},0);
-    }
     function openDerivedSource(code){
       var category=state.categories.find(function(item){return item.code===code});
       var date=$('entryDate').value;
       if(!category||!category.derivedKind)return;
-      showView('reports');
+      showView('journey');
       window.setTimeout(function(){
         if(window.YTE_JOURNEYS&&typeof window.YTE_JOURNEYS.openHistoryFilter==='function')window.YTE_JOURNEYS.openHistoryFilter({from:date,to:date,status:'all'});
       },80);
     }
-    async function submitReviewRequest(){
-      if(state.reviewRequestSaving)return;
-      var code=state.reviewRequestCode,category=state.categories.find(function(item){return item.code===code});
-      if(!category||!category.derivedKind){$('reviewRequestError').textContent='Không xác định được chỉ tiêu tự động.';return}
-      var reason=String($('reviewRequestReason').value||'').trim();
-      if(!reason){$('reviewRequestError').textContent='Vui lòng nhập lý do yêu cầu kiểm tra.';return}
-      if(reason.length>500){$('reviewRequestError').textContent='Lý do không được vượt quá 500 ký tự.';return}
-      var expectedRaw=String($('reviewRequestExpected').value||'').trim(),expectedProvided=expectedRaw!=='';
-      var expectedValue=expectedProvided?Number(expectedRaw):0;
-      if(expectedProvided&&(!isFinite(expectedValue)||expectedValue<0||Math.floor(expectedValue)!==expectedValue)){$('reviewRequestError').textContent='Số liệu đề nghị phải là số nguyên không âm.';return}
-      var user=firebaseAuth.currentUser;if(!user){$('reviewRequestError').textContent='Vui lòng đăng nhập lại.';return}
-      var record=state.dailyByCode[code]||null,currentValue=Number(record?record.autoValue!=null?record.autoValue:record.value||0:0),date=$('entryDate').value;
-      var signature=JSON.stringify([user.uid,code,date,currentValue,expectedProvided,expectedValue,reason]);
-      // A different form is an intentionally new request. Only keep the
-      // original ID when its full business signature matches this retry.
-      if(state.reviewRequestAttempt&&state.reviewRequestAttempt.signature!==signature){
-        state.reviewRequestAttempt=null;
-      }
-      if(state.reviewRequestAttempt&&state.reviewRequestAttempt.unknown){
-        $('reviewRequestError').textContent='Chưa xác định được kết quả lần gửi trước. Vui lòng kiểm tra danh sách Đối soát trước khi gửi lại nội dung này.';
-        return;
-      }
-      state.reviewRequestSaving=true;
-      $('reviewRequestLayer').setAttribute('aria-busy','true');
-      ['reviewRequestSend','reviewRequestExpected','reviewRequestReason','reviewRequestCancel','reviewRequestCloseX'].forEach(function(id){$(id).disabled=true});
-      $('reviewRequestSend').textContent='Đang gửi…';$('reviewRequestError').textContent='';
-      var saved=false,attempt=state.reviewRequestAttempt;
-      try{
-        // Reuse a single request ID for retries. Never overwrite an existing
-        // request which another user may already have started processing.
-        if(attempt){
-          var prior=await get(attempt.ref);
-          if(prior.exists()){
-            if(prior.val()&&prior.val().requestedByUid===user.uid){saved=true}
-            else throw new Error('Mã yêu cầu đã được sử dụng. Vui lòng liên hệ người quản trị.');
-          }
-        }
-        if(!saved){
-          if(!attempt){
-            var requestRef=push(ref(firebaseDatabase,REVIEW_ROOT)),id=requestRef.key;
-            var displayName=await preferredDisplayNameForUid(user.uid,(state.authUser&&state.authUser.name)||user.displayName||user.email||'');
-            attempt={ref:requestRef,id:id,signature:signature,uid:user.uid,payload:{
-              id:id,metricType:category.derivedKind==='death'?'DEATH':'TRANSFER',metricCode:category.code,metricName:category.name||category.code,date:date,
-              currentValue:currentValue,expectedValueProvided:expectedProvided,expectedValue:expectedValue,reason:reason,status:'PENDING',
-              requestedByUid:user.uid,requestedByEmail:normalizeEmail(user.email),requestedByName:displayName,requestedAt:serverTimestamp(),
-              resolvedByUid:'',resolvedByEmail:'',resolvedByName:'',resolvedAt:0,resolutionNote:'',finalValue:currentValue,updatedAt:serverTimestamp()
-            }};
-            state.reviewRequestAttempt=attempt;
-          }
-          await withTimeout(set(attempt.ref,attempt.payload),15000,'Kết nối đang chậm; chưa xác định được kết quả gửi yêu cầu.');
-          saved=true;
-          // Notification is best effort and never changes the business result.
-          try{notifyBusinessEvent('REPORT_REVIEW_REQUESTED',attempt.id)}catch(pushError){console.warn('Không gửi được thông báo đối soát:',pushError)}
-        }
-      }catch(error){
-        if(attempt&&(/permission.?denied/i.test(String(error.code||'')+' '+String(error.message||'')))){
-          state.reviewRequestAttempt=null;
-          $('reviewRequestError').textContent='Bạn chưa được cấp quyền gửi yêu cầu kiểm tra.';
-        }else if(attempt){
-          try{
-            var check=await withTimeout(get(attempt.ref),6000,'Chưa thể kiểm tra trạng thái yêu cầu.');
-            if(check.exists()&&check.val()&&check.val().requestedByUid===user.uid){
-              // A local RTDB snapshot may contain a queued, unacknowledged write.
-              // Only a resolved set() is sufficient to confirm server persistence.
-              state.reviewRequestAttempt.unknown=true;
-              $('reviewRequestError').textContent='Yêu cầu có thể đã được ghi nhận. Vui lòng kiểm tra danh sách Đối soát trước khi gửi lại.';
-            }
-            else if(!check.exists())$('reviewRequestError').textContent='Chưa gửi được yêu cầu. Bạn có thể thử lại; hệ thống sẽ dùng lại mã yêu cầu cũ.';
-            else $('reviewRequestError').textContent='Không thể xác minh yêu cầu. Vui lòng liên hệ người quản trị.';
-          }catch(checkError){
-            $('reviewRequestError').textContent='Chưa xác định được yêu cầu đã lưu hay chưa. Vui lòng kiểm tra mục Đối soát trước khi thử lại.';
-            // Disable uncertain retries to avoid overwriting a request already processed.
-            state.reviewRequestAttempt.unknown=true;
-          }
-        }else $('reviewRequestError').textContent='Không thể gửi yêu cầu kiểm tra. Vui lòng kiểm tra kết nối và thử lại.';
-      }finally{
-        state.reviewRequestSaving=false;$('reviewRequestLayer').setAttribute('aria-busy','false');
-        ['reviewRequestSend','reviewRequestExpected','reviewRequestReason','reviewRequestCancel','reviewRequestCloseX'].forEach(function(id){$(id).disabled=false});
-        $('reviewRequestSend').textContent='Gửi yêu cầu';
-      }
-      if(saved){
-        state.reviewRequestAttempt=null;
-        $('reviewRequestSend').textContent='Đã gửi';
-        closeReviewRequestDialog();
-        toast('Đã gửi yêu cầu kiểm tra thành công. Bạn có thể theo dõi tại mục Đối soát.','ok');
-      }else if(state.reviewRequestAttempt&&state.reviewRequestAttempt.unknown){
-        $('reviewRequestSend').disabled=true;
-      }
-    }
-
     function setQuickEntrySaving(active){
       state.quickEntrySaving=active===true;
       ['entryCategorySelect','entryQuickValue','btnEntrySelectedAdjust','btnEntrySelectedHistory','btnEntrySelectedDelete'].forEach(function(id){var el=$(id);if(el)el.disabled=state.quickEntrySaving});
@@ -3308,27 +3245,30 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.3'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.5'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       setupProductionUiBindings();
+      if($('headerUserSummary'))$('headerUserSummary').addEventListener('click',function(){setAccountMenu($('headerAccountMenu').hidden)});
+      if($('navAdmin'))$('navAdmin').addEventListener('click',function(){setAccountMenu(false);showView('admin')});
+      document.addEventListener('click',function(event){if($('headerAccountMenu')&&!$('headerAccountMenu').hidden&&!event.target.closest('#headerAccountMenu')&&!event.target.closest('#headerUserSummary'))setAccountMenu(false)});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
-      $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=logout;$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
+      $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=function(){setAccountMenu(false);logout()};$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
       $('btnGoogleLogin').onclick=loginGoogle;
       if($('btnLoginClose'))$('btnLoginClose').onclick=function(){showView('dashboard')};
       if($('btnPreviewSummary'))$('btnPreviewSummary').onclick=previewSummaryReport;
       if($('summaryCards'))$('summaryCards').addEventListener('click',function(event){var button=event.target.closest('.summary-source-detail-btn');if(button)openSourceDetail(button.getAttribute('data-source-kind'),button.getAttribute('data-code')||'')});
-      if($('sourceDetailClose'))$('sourceDetailClose').onclick=closeSourceDetail;if($('sourceDetailCloseBottom'))$('sourceDetailCloseBottom').onclick=closeSourceDetail;if($('sourceDetailLayer'))$('sourceDetailLayer').addEventListener('click',function(event){if(event.target===$('sourceDetailLayer'))closeSourceDetail()});if($('sourceDetailOpenReports'))$('sourceDetailOpenReports').onclick=function(){closeSourceDetail();showView('reports')};
+      if($('sourceDetailClose'))$('sourceDetailClose').onclick=closeSourceDetail;if($('sourceDetailCloseBottom'))$('sourceDetailCloseBottom').onclick=closeSourceDetail;if($('sourceDetailLayer'))$('sourceDetailLayer').addEventListener('click',function(event){if(event.target===$('sourceDetailLayer'))closeSourceDetail()});if($('sourceDetailOpenReports'))$('sourceDetailOpenReports').onclick=function(){closeSourceDetail();showView('journey')};
       if($('personDetailClose'))$('personDetailClose').onclick=closePersonManager;if($('personDetailCloseBottom'))$('personDetailCloseBottom').onclick=closePersonManager;if($('personDetailLayer'))$('personDetailLayer').addEventListener('click',function(event){if(event.target===$('personDetailLayer'))closePersonManager()});
       if($('personDetailForm'))$('personDetailForm').addEventListener('submit',savePersonManagerEntry);if($('personDetailNew'))$('personDetailNew').onclick=function(){resetPersonManagerForm();$('personDetailName').focus()};if($('personDetailReset'))$('personDetailReset').onclick=resetPersonManagerForm;
       if($('personDetailList'))$('personDetailList').addEventListener('click',function(event){var button=event.target.closest('.person-detail-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id');if(kind==='edit')editPersonManagerEntry(id);if(kind==='delete')deletePersonManagerEntry(id)});
       $('confirmAccept').onclick=function(){closeConfirm(true)};$('confirmCancel').onclick=function(){closeConfirm(false)};$('confirmLayer').addEventListener('click',function(event){if(event.target===$('confirmLayer'))closeConfirm(false)});
-      $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});$('reviewRequestCancel').onclick=closeReviewRequestDialog;$('reviewRequestCloseX').onclick=closeReviewRequestDialog;$('reviewRequestSend').onclick=submitReviewRequest;$('reviewRequestLayer').addEventListener('click',function(event){if(event.target===$('reviewRequestLayer'))closeReviewRequestDialog()});
+      $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});
       $('dataHistoryClose').onclick=closeDataHistoryDialog;$('dataHistoryFooterClose').onclick=closeDataHistoryDialog;$('dataHistoryLayer').addEventListener('click',function(event){if(event.target===$('dataHistoryLayer'))closeDataHistoryDialog()});$('deleteDailyCancel').onclick=closeDeleteDailyDialog;$('deleteDailyAccept').onclick=submitDeleteDaily;$('deleteDailyLayer').addEventListener('click',function(event){if(event.target===$('deleteDailyLayer'))closeDeleteDailyDialog()});
       $('categoryCancel').onclick=closeCategoryDialog;$('categorySave').onclick=submitCategory;$('categoryLayer').addEventListener('click',function(event){if(event.target===$('categoryLayer'))closeCategoryDialog()});
-      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;if($('personDetailLayer')&&!$('personDetailLayer').hidden)closePersonManager();else if($('sourceDetailLayer')&&!$('sourceDetailLayer').hidden)closeSourceDetail();else if(!$('deleteDailyLayer').hidden)closeDeleteDailyDialog();else if(!$('dataHistoryLayer').hidden)closeDataHistoryDialog();else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('reviewRequestLayer').hidden)closeReviewRequestDialog();else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
+      document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;setAccountMenu(false);if($('personDetailLayer')&&!$('personDetailLayer').hidden)closePersonManager();else if($('sourceDetailLayer')&&!$('sourceDetailLayer').hidden)closeSourceDetail();else if(!$('deleteDailyLayer').hidden)closeDeleteDailyDialog();else if(!$('dataHistoryLayer').hidden)closeDataHistoryDialog();else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
       window.addEventListener('beforeunload',function(event){if(!quickEntryDirty())return;event.preventDefault();event.returnValue=''});
       $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;
-      $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openReviewRequestDialog(code);else if(category&&category.personDetailKind)openPersonManager(code);else openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(code&&!(category&&category.derivedKind))openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
+      $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else if(category&&category.personDetailKind)openPersonManager(code);else openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(code&&!(category&&category.derivedKind))openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
       $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;if($('adminStatusFilter'))$('adminStatusFilter').onchange=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value'),card=button.closest('.admin-account-card');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='approve-selected'){var select=card&&card.querySelector('.admin-role-select');if(select)approveRegistration(id,select.value);return}if(kind==='save-role'){var roleSelect=card&&card.querySelector('.admin-role-select');if(roleSelect)adminRole(id,roleSelect.value);return}if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-viewer')approveRegistration(id,'Xem');if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='revoke')adminRevoke(id);if(kind==='delete')adminDelete(id)});
       $('btnReloadAdminReportUsers').onclick=function(){loadAdminReportUsers(true)};$('adminReportSearch').oninput=renderAdminReportUsers;$('adminReportUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-report-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value'),card=button.closest('.admin-account-card');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='grant-selected'){var select=card&&card.querySelector('.admin-report-role-select');if(select)adminReportPermission(id,select.value,true);return}if(kind==='save-role'){var roleSelect=card&&card.querySelector('.admin-report-role-select');if(roleSelect)adminReportPermission(id,roleSelect.value,true);return}if(kind==='grant-viewer')adminReportPermission(id,'viewer',true);if(kind==='grant-entry')adminReportPermission(id,'nhaplieu',true);if(kind==='grant-admin')adminReportPermission(id,'admin',true);if(kind==='role')adminReportPermission(id,value,true);if(kind==='revoke')adminReportPermission(id,'nhaplieu',false);if(kind==='delete')adminDelete(id)});
       $('displayNameCancel').onclick=closeDisplayNameDialog;$('displayNameCloseX').onclick=closeDisplayNameDialog;$('displayNameSave').onclick=saveDisplayName;$('displayNameLayer').addEventListener('click',function(event){if(event.target===$('displayNameLayer'))closeDisplayNameDialog()});
