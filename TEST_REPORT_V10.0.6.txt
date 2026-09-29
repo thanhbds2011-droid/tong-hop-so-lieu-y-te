@@ -1,0 +1,24 @@
+TEST REPORT — v10.0.6, 29/09/2026
+
+PASS — STATIC/LOCAL
+- Baseline ZIP v10.0.5 đã được giải nén và sửa trực tiếp.
+- Tất cả file JavaScript ở root: node --check PASS.
+- version.json và manifest.webmanifest: JSON parse PASS.
+- index.html: 388 DOM ID, không có ID trùng.
+- 16 local asset refs từ index.html: không thiếu file.
+- 24 APP_SHELL/local refs từ service-worker.js: không thiếu file.
+- 7 CSS runtime/legacy files: cân bằng dấu ngoặc khối PASS.
+- Runtime/query/cache version đã đồng bộ 10.0.6.
+- Không có menu/view reconciliation trong index.html.
+- savePersonDetailFirebase: private/public summary version được tăng độc lập.
+- deletePersonDetailFirebase: private/public summary version được tăng độc lập.
+- Firebase Rules patch: JSON string parse PASS; patch chỉ nhắm .validate của chiTietChiTieu.
+
+NOT TESTED — PRODUCTION
+- Firebase production write sau khi người dùng Publish Rules patch.
+- Realtime đồng bộ giữa hai thiết bị thật sau thao tác thêm/sửa/xóa.
+- OneSignal production / Google Auth popup warnings.
+- PWA installed-app auto-update trên thiết bị thật.
+
+Lý do NOT TESTED:
+Môi trường build không có quyền Publish Firebase Rules hay thao tác tài khoản production của người dùng.

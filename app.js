@@ -35,7 +35,7 @@ const REPORT_ROOT = 'baoCaoYTe';
 const YTE_APP_ROOT = 'yTeApp';
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '10.0.5';
+const APP_RUNTIME_VERSION = '10.0.6';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -957,10 +957,18 @@ async function savePersonDetailFirebase(payload) {
   updates[`${PERSON_DETAIL_ROOT}/${date}/${category.code}/${detailId}`] = record;
   if (!editingId) {
     const summaryRef = ref(firebaseDatabase, `${ROOT}/soLieuTheoNgay/${date}/${category.code}`);
-    const summarySnap = await get(summaryRef), summary = snapshotObject(summarySnap), beforeValue = Number(summary.giaTri || 0), afterValue = Math.max(beforeValue, active.length + 1);
-    const version = Number(summary.version || 0) + 1;
-    updates[`${ROOT}/soLieuTheoNgay/${date}/${category.code}`] = { maChiTieu:category.code, ten:category.name, ngay:date, giaTri:afterValue, ghiChu:'', trangThai:'Hoạt động', version, createdAt:Number(summary.createdAt || now), createdByUid:String(summary.createdByUid || user.uid), updatedAt:now, updatedByUid:user.uid, updatedByEmail:email, updatedByName:displayName };
-    updates[`${ROOT}/congKhai/soLieuTheoNgay/${date}/${category.code}`] = { maChiTieu:category.code, ten:category.name, ngay:date, giaTri:afterValue, version, updatedAt:now };
+    const publicSummaryRef = ref(firebaseDatabase, `${ROOT}/congKhai/soLieuTheoNgay/${date}/${category.code}`);
+    const [summarySnap, publicSummarySnap] = await Promise.all([
+      get(summaryRef),
+      get(publicSummaryRef).catch(() => null)
+    ]);
+    const summary = snapshotObject(summarySnap);
+    const publicSummary = publicSummarySnap && publicSummarySnap.exists() ? snapshotObject(publicSummarySnap) : {};
+    const beforeValue = Number(summary.giaTri || 0), afterValue = Math.max(beforeValue, active.length + 1);
+    const privateVersion = Number(summary.version || 0) + 1;
+    const publicVersion = Number(publicSummary.version || 0) + 1;
+    updates[`${ROOT}/soLieuTheoNgay/${date}/${category.code}`] = { maChiTieu:category.code, ten:category.name, ngay:date, giaTri:afterValue, ghiChu:'', trangThai:'Hoạt động', version:privateVersion, createdAt:Number(summary.createdAt || now), createdByUid:String(summary.createdByUid || user.uid), updatedAt:now, updatedByUid:user.uid, updatedByEmail:email, updatedByName:displayName };
+    updates[`${ROOT}/congKhai/soLieuTheoNgay/${date}/${category.code}`] = { maChiTieu:category.code, ten:category.name, ngay:date, giaTri:afterValue, version:publicVersion, updatedAt:now };
     const historyId = push(ref(firebaseDatabase, `${ROOT}/lichSu/${date.slice(0,7)}`)).key;
     updates[`${ROOT}/lichSu/${date.slice(0,7)}/${historyId}`] = { dataId:`${date}-${category.code}`, date, code:category.code, name:category.name, action:summarySnap.exists()?'Điều chỉnh':'Ghi nhận', beforeValue, afterValue, reason:`Thêm đối tượng: ${hoTen}`, uid:user.uid, email, displayName, role:user.appRole, createdAt:now };
   }
@@ -978,11 +986,19 @@ async function deletePersonDetailFirebase(payload) {
   const groupSnap = await get(groupRef), raw = snapshotObject(groupSnap), active = activePersonRows(raw), existing = raw[detailId] || null;
   if (!existing || String(existing.status||'ACTIVE')==='DELETED') throw new Error('Đối tượng đã được xóa hoặc không còn tồn tại.');
   const displayName = String(user.appPermission.displayName || user.displayName || user.email || ''), email = normalizeEmail(user.email), now=Date.now();
-  const summaryRef = ref(firebaseDatabase, `${ROOT}/soLieuTheoNgay/${date}/${category.code}`), summarySnap=await get(summaryRef), summary=snapshotObject(summarySnap), beforeValue=Number(summary.giaTri||active.length), afterValue=Math.max(0,active.length-1,beforeValue-1), version=Number(summary.version||0)+1;
+  const summaryRef = ref(firebaseDatabase, `${ROOT}/soLieuTheoNgay/${date}/${category.code}`);
+  const publicSummaryRef = ref(firebaseDatabase, `${ROOT}/congKhai/soLieuTheoNgay/${date}/${category.code}`);
+  const [summarySnap, publicSummarySnap] = await Promise.all([
+    get(summaryRef),
+    get(publicSummaryRef).catch(() => null)
+  ]);
+  const summary=snapshotObject(summarySnap), publicSummary=publicSummarySnap&&publicSummarySnap.exists()?snapshotObject(publicSummarySnap):{};
+  const beforeValue=Number(summary.giaTri||active.length), afterValue=Math.max(0,active.length-1,beforeValue-1);
+  const privateVersion=Number(summary.version||0)+1, publicVersion=Number(publicSummary.version||0)+1;
   const updates={};
   updates[`${PERSON_DETAIL_ROOT}/${date}/${category.code}/${detailId}`] = { ...existing, status:'DELETED', updatedAt:now, updatedByUid:user.uid, updatedByEmail:email, updatedByName:displayName, deletedAt:now, deletedByUid:user.uid, deletedByEmail:email, deletedByName:displayName };
-  updates[`${ROOT}/soLieuTheoNgay/${date}/${category.code}`] = { maChiTieu:category.code, ten:category.name, ngay:date, giaTri:afterValue, ghiChu:'', trangThai:'Hoạt động', version, createdAt:Number(summary.createdAt||now), createdByUid:String(summary.createdByUid||user.uid), updatedAt:now, updatedByUid:user.uid, updatedByEmail:email, updatedByName:displayName };
-  updates[`${ROOT}/congKhai/soLieuTheoNgay/${date}/${category.code}`] = { maChiTieu:category.code, ten:category.name, ngay:date, giaTri:afterValue, version, updatedAt:now };
+  updates[`${ROOT}/soLieuTheoNgay/${date}/${category.code}`] = { maChiTieu:category.code, ten:category.name, ngay:date, giaTri:afterValue, ghiChu:'', trangThai:'Hoạt động', version:privateVersion, createdAt:Number(summary.createdAt||now), createdByUid:String(summary.createdByUid||user.uid), updatedAt:now, updatedByUid:user.uid, updatedByEmail:email, updatedByName:displayName };
+  updates[`${ROOT}/congKhai/soLieuTheoNgay/${date}/${category.code}`] = { maChiTieu:category.code, ten:category.name, ngay:date, giaTri:afterValue, version:publicVersion, updatedAt:now };
   const historyId=push(ref(firebaseDatabase,`${ROOT}/lichSu/${date.slice(0,7)}`)).key;
   updates[`${ROOT}/lichSu/${date.slice(0,7)}/${historyId}`]={dataId:`${date}-${category.code}`,date,code:category.code,name:category.name,action:'Điều chỉnh',beforeValue,afterValue,reason:`Xóa đối tượng khỏi danh sách: ${existing.hoTen||''}`,uid:user.uid,email,displayName,role:user.appRole,createdAt:now};
   const logId=push(ref(firebaseDatabase,`${ROOT}/nhatKy/${date.slice(0,7)}`)).key;
@@ -2234,7 +2250,7 @@ var AUTO_SYNC_MS = 300000;
     }
     function personPermissionMessage(error){
       var raw=String(error&&error.message||error||'');
-      if(/permission.?denied|permission_denied|PERMISSION_DENIED/i.test(raw)) return 'Không thể truy cập danh sách. Hãy kiểm tra tài khoản đã được cấp quyền sử dụng chức năng này.';
+      if(/permission.?denied|permission_denied|PERMISSION_DENIED/i.test(raw)) return 'Firebase từ chối thao tác. Hãy kiểm tra quyền tài khoản và Firebase Rules của chỉ tiêu; dữ liệu chưa được lưu.';
       return raw||'Không thể xử lý danh sách đối tượng.';
     }
     function updatePersonManagerSubtitle(){
@@ -3245,7 +3261,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.5'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.6'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       setupProductionUiBindings();
       if($('headerUserSummary'))$('headerUserSummary').addEventListener('click',function(){setAccountMenu($('headerAccountMenu').hidden)});

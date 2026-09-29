@@ -1,7 +1,7 @@
 {
-  "version": "10.0.5",
-  "releasedAt": "2026-09-18",
-  "title": "Dynamic Dashboard, Four-Module Navigation & Approved UI",
-  "businessBaseline": "Business Stable v1.0 / Source of Truth preserved",
-  "message": "Tổng quan hiển thị động toàn bộ chỉ tiêu, tách Báo cáo và Chuyển viện thành hai phân hệ, Quản trị ở menu tài khoản; ngừng toàn bộ luồng tạo/xử lý Đối soát, giữ dữ liệu lịch sử; bảo toàn Source of Truth, Realtime Database và PWA."
+  "version": "10.0.6",
+  "releasedAt": "2026-09-29",
+  "title": "Fix danh sách Điều trị lao / Chuyển Trung tâm v10.0.6",
+  "businessBaseline": "v10.0.5 Dynamic Dashboard & Four Modules / Source of Truth preserved",
+  "message": "Sửa lỗi Firebase permission_denied khi lưu danh sách người do Rules nhận dạng chỉ tiêu theo tên hiển thị và do version private/public mirror có thể lệch; giữ nguyên dữ liệu, phân quyền, Source of Truth, realtime, PWA và Push."
 }

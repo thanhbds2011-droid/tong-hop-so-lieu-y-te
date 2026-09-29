@@ -1,0 +1,24 @@
+TEST REPORT — v10.0.5, 18/09/2026
+
+PASS (kiểm tra tĩnh LOCAL, không phải UAT production):
+- Toàn bộ 12 file JavaScript cú pháp hợp lệ qua node --check.
+- 7 CSS parse hợp lệ qua tinycss2.
+- 388 DOM ID không trùng.
+- 4 menu chính chính xác trên Desktop và Mobile; ADMIN trong avatar menu.
+- Không còn màn hình/DOM Đối soát.
+- Các asset nội bộ liên kết trong index.html tồn tại.
+- Service Worker precache 22 đường dẫn, không thiếu file.
+- version.json, app-config, JS runtime, worker và asset query cùng 10.0.5.
+- Không còn mã gọi trực tiếp node yeuCauDoiSoat/tạo request trong 4 file JS nghiệp vụ.
+- Dashboard có danh mục động và bổ sung bản ghi có mã danh mục thiếu.
+- Báo cáo tổng hợp tách biệt, xuất Excel tôn trọng bộ lọc, lịch sử deep-link tương thích.
+
+NOT TESTED (cần UAT với các thiết bị/tài khoản/nguồn dữ liệu thực tế):
+- Firebase Authentication/Realtime Database Rules & read/write, tất cả vai trò.
+- Chạy chức năng thêm/sửa/xóa ca và điều trị lao/chuyển trung tâm trên production.
+- Đối chiếu thống kê thực tế, Excel thực tế trên dữ liệu sản xuất.
+- OneSignal Push, Apps Script Gateway, deep-link PWA trên thiết bị thực.
+- Realtime xuyên thiết bị, Service Worker update khi có form chưa lưu.
+- Kiểm tra trực quan ở từng kích thước 320–1920 px trên trình duyệt/điện thoại.
+
+Chưa có bằng chứng xác nhận production deploy. Không công bố UAT PASS khi chưa thử trên môi trường thật.
