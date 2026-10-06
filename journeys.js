@@ -25,7 +25,7 @@ const OPEN_STATUSES = ['DANG_THEO_DOI', 'TAI_KHAM', 'DANG_DIEU_TRI', 'CHUYEN_TIE
 // TAI_KHAM vẫn được giữ trong OPEN_STATUSES/label để đọc dữ liệu legacy, nhưng không còn là hình thức được phép tạo mới.
 const TRANSFER_TYPES = ['CAP_CUU', 'CHUYEN_VIEN', 'KHAC'];
 const OTHER_DESTINATION = '__OTHER__';
-const CLOSED_STATUSES = ['TU_VONG_TAI_BENH_VIEN', 'TU_VONG_TAI_NOI_KHAC', 'DA_VE_TRUNG_TAM'];
+const CLOSED_STATUSES = ['TU_VONG_TAI_BENH_VIEN', 'TU_VONG_TAI_NOI_KHAC', 'HOI_GIA_TAI_BENH_VIEN', 'DA_VE_TRUNG_TAM'];
 const ALL_STATUSES = [...OPEN_STATUSES, ...CLOSED_STATUSES];
 
 const app = getApps().length ? getApp() : initializeApp(CFG.FIREBASE);
@@ -226,6 +226,7 @@ function statusLabel(status) {
     CHUYEN_TIEP_BENH_VIEN_KHAC: 'Chuyển tiếp bệnh viện khác',
     TU_VONG_TAI_BENH_VIEN: 'Tử vong tại bệnh viện',
     TU_VONG_TAI_NOI_KHAC: 'Tử vong tại nơi khác',
+    HOI_GIA_TAI_BENH_VIEN: 'Hồi gia tại bệnh viện',
     DA_VE_TRUNG_TAM: 'Đã về Trung tâm'
   };
   return map[status] || status || '—';
@@ -266,6 +267,7 @@ function eventLabel(type) {
     CAP_NHAT_TRANG_THAI: 'Cập nhật trạng thái',
     CHUYEN_TIEP: 'Chuyển tiếp bệnh viện khác',
     DA_VE_TRUNG_TAM: 'Đã về Trung tâm',
+    HOI_GIA_TAI_BENH_VIEN: 'Hồi gia tại bệnh viện',
     TU_VONG_TAI_BENH_VIEN: 'Tử vong tại bệnh viện',
     TU_VONG_TAI_NOI_KHAC: 'Tử vong tại nơi khác'
   };
@@ -402,7 +404,7 @@ async function deceasedDuplicate(payload) {
 }
 
 function statusClass(status) {
-  if (status === 'DA_VE_TRUNG_TAM') return 'is-returned';
+  if (status === 'DA_VE_TRUNG_TAM' || status === 'HOI_GIA_TAI_BENH_VIEN') return 'is-returned';
   if (status === 'TU_VONG_TAI_BENH_VIEN' || status === 'TU_VONG_TAI_NOI_KHAC') return 'is-death';
   if (status === 'CHUYEN_TIEP_BENH_VIEN_KHAC') return 'is-transfer';
   if (status === 'DANG_DIEU_TRI') return 'is-treatment';
@@ -465,11 +467,13 @@ function timelineBadge(event, item) {
   }
   if (event.loaiSuKien === 'CHUYEN_TIEP') return 'Chuyển tiếp';
   if (event.loaiSuKien === 'DA_VE_TRUNG_TAM') return 'Đã về Trung tâm';
+  if (event.loaiSuKien === 'HOI_GIA_TAI_BENH_VIEN') return 'Hồi gia tại bệnh viện';
   if (event.loaiSuKien === 'TU_VONG_TAI_BENH_VIEN') return 'Tử vong tại bệnh viện';
   if (event.loaiSuKien === 'TU_VONG_TAI_NOI_KHAC') return 'Tử vong tại nơi khác';
   return statusLabel(event.trangThaiSau);
 }
 function timelineTitle(event) {
+  if (event && event.loaiSuKien === 'HOI_GIA_TAI_BENH_VIEN') return 'Hồi gia tại bệnh viện';
   const from = String(event.noiTruoc || '').trim();
   const to = String(event.noiSau || '').trim();
   if (from && to && normalizeText(from) !== normalizeText(to)) return `${from} → ${to}`;
@@ -724,12 +728,14 @@ function updateHistoryFilterLabels(allRows) {
   const counts = {
     all: allRows.length,
     DA_VE_TRUNG_TAM: allRows.filter((x) => x.trangThaiHienTai === 'DA_VE_TRUNG_TAM').length,
+    HOI_GIA_TAI_BENH_VIEN: allRows.filter((x) => x.trangThaiHienTai === 'HOI_GIA_TAI_BENH_VIEN').length,
     TU_VONG_TAI_BENH_VIEN: allRows.filter((x) => x.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN').length,
     TU_VONG_TAI_NOI_KHAC: allRows.filter((x) => x.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC').length
   };
   const labels = {
     all: 'Tất cả',
     DA_VE_TRUNG_TAM: 'Đã về Trung tâm',
+    HOI_GIA_TAI_BENH_VIEN: 'Hồi gia tại bệnh viện',
     TU_VONG_TAI_BENH_VIEN: 'Tử vong tại bệnh viện',
     TU_VONG_TAI_NOI_KHAC: 'Tử vong tại nơi khác'
   };
@@ -1263,16 +1269,19 @@ function updateUpdateFields() {
   const status = $('journeyUpdateStatus').value;
   const transfer = status === 'CHUYEN_TIEP_BENH_VIEN_KHAC';
   const returned = status === 'DA_VE_TRUNG_TAM';
+  const homeReturn = status === 'HOI_GIA_TAI_BENH_VIEN';
   const deathHospital = status === 'TU_VONG_TAI_BENH_VIEN';
   const deathOther = status === 'TU_VONG_TAI_NOI_KHAC';
   const death = deathHospital || deathOther;
   $('journeyUpdateDestinationField').hidden = !transfer;
   $('journeyUpdateReasonField').hidden = true;
-  $('journeyUpdateDiagnosisField').hidden = returned;
+  $('journeyUpdateDiagnosisField').hidden = returned || homeReturn;
   $('journeyReturnConditionField').hidden = !returned;
+  if ($('journeyUpdateNoteField')) $('journeyUpdateNoteField').hidden = homeReturn;
   $('journeyUpdateDeathPlaceField').hidden = !deathOther;
   const dateLabel = death ? 'Ngày tử vong *'
     : returned ? 'Ngày về Trung tâm *'
+    : homeReturn ? 'Ngày hồi gia *'
     : transfer ? 'Ngày chuyển tiếp *'
     : 'Ngày cập nhật *';
   if ($('journeyUpdateBusinessDateLabel')) $('journeyUpdateBusinessDateLabel').textContent = dateLabel;
@@ -1320,6 +1329,10 @@ function updatePayload() {
     const tinhTrangKhiVe = String($('journeyReturnCondition').value || '').trim();
     if (!tinhTrangKhiVe || tinhTrangKhiVe.length > 1500) throw new Error('Vui lòng nhập Tình trạng khi về.');
     return { status, tinhTrangKhiVe, lyDo: '', tinhTrang: '', noiDen: CENTER_NAME, ghiChu, ngaySuKien, ngayTuVong: '', noiTuVong: '' };
+  }
+
+  if (status === 'HOI_GIA_TAI_BENH_VIEN') {
+    return { status, tinhTrangKhiVe: '', lyDo: '', tinhTrang: '', noiDen: String(item.noiHienTai || '').trim(), ghiChu: '', ngaySuKien, ngayTuVong: '', noiTuVong: '' };
   }
 
   const tinhTrang = String($('journeyUpdateDiagnosis').value || '').trim();
@@ -1372,10 +1385,11 @@ async function saveJourneyUpdate() {
     const ts = serverTimestamp();
     const isTransfer = payload.status === 'CHUYEN_TIEP_BENH_VIEN_KHAC';
     const isReturn = payload.status === 'DA_VE_TRUNG_TAM';
+    const isHomeReturn = payload.status === 'HOI_GIA_TAI_BENH_VIEN';
     const isDeathHospital = payload.status === 'TU_VONG_TAI_BENH_VIEN';
     const isDeathOther = payload.status === 'TU_VONG_TAI_NOI_KHAC';
     const isDeath = isDeathHospital || isDeathOther;
-    const isClosed = isReturn || isDeath;
+    const isClosed = isReturn || isHomeReturn || isDeath;
     const nextOrder = Number(latest.thuTuChang || 1) + (isTransfer || isReturn ? 1 : 0);
     const nextInfo = {
       id: latest.id,
@@ -1390,11 +1404,11 @@ async function saveJourneyUpdate() {
       noiHienTai: isReturn ? CENTER_NAME : (isTransfer ? payload.noiDen : latest.noiHienTai),
       ngayChuyenVien: String(latest.ngayChuyenVien || transferBusinessDate(latest) || ''),
       ngaySuKienHienTai: businessDate,
-      ngayTuVong: isDeath ? payload.ngayTuVong : String(latest.ngayTuVong || ''),
-      noiTuVong: isDeath ? payload.noiTuVong : String(latest.noiTuVong || ''),
-      lyDoHienTai: isReturn ? latest.lyDoHienTai : payload.lyDo,
-      tinhTrangChanDoanHienTai: isReturn ? latest.tinhTrangChanDoanHienTai : payload.tinhTrang,
-      ghiChu: payload.ghiChu || latest.ghiChu || '',
+      ngayTuVong: isDeath ? payload.ngayTuVong : '',
+      noiTuVong: isDeath ? payload.noiTuVong : '',
+      lyDoHienTai: (isReturn || isHomeReturn) ? latest.lyDoHienTai : payload.lyDo,
+      tinhTrangChanDoanHienTai: (isReturn || isHomeReturn) ? latest.tinhTrangChanDoanHienTai : payload.tinhTrang,
+      ghiChu: isHomeReturn ? (latest.ghiChu || '') : (payload.ghiChu || latest.ghiChu || ''),
       trangThaiHienTai: payload.status,
       trangThaiKyThuat: isClosed ? 'CLOSED' : 'OPEN',
       ngayGioDi: Number(latest.ngayGioDi || 0),
@@ -1413,7 +1427,7 @@ async function saveJourneyUpdate() {
     };
     if (validGender(latest.gioiTinh)) nextInfo.gioiTinh = latest.gioiTinh;
     if (validBirthYear(latest.namSinh)) nextInfo.namSinh = Number(latest.namSinh);
-    const eventType = isTransfer ? 'CHUYEN_TIEP' : isReturn ? 'DA_VE_TRUNG_TAM' : isDeathOther ? 'TU_VONG_TAI_NOI_KHAC' : isDeathHospital ? 'TU_VONG_TAI_BENH_VIEN' : 'CAP_NHAT_TRANG_THAI';
+    const eventType = isTransfer ? 'CHUYEN_TIEP' : isReturn ? 'DA_VE_TRUNG_TAM' : isHomeReturn ? 'HOI_GIA_TAI_BENH_VIEN' : isDeathOther ? 'TU_VONG_TAI_NOI_KHAC' : isDeathHospital ? 'TU_VONG_TAI_BENH_VIEN' : 'CAP_NHAT_TRANG_THAI';
     const updates = {};
     updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/thongTin`] = nextInfo;
     updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/lichSu/${historyId}`] = {
@@ -1481,10 +1495,11 @@ async function saveJourneyUpdate() {
     await update(ref(db), updates);
     if (isTransfer) notifyBusinessEvent('TRANSFER_FORWARDED', caseId);
     else if (isReturn) notifyBusinessEvent('TRANSFER_RETURNED', caseId);
+    else if (isHomeReturn) notifyBusinessEvent('TRANSFER_HOME_RETURNED', caseId);
     else if (isDeathHospital) notifyBusinessEvent('DEATH_HOSPITAL', caseId);
     else if (isDeathOther) notifyBusinessEvent('DEATH_OTHER', caseId);
     closeUpdateDialog(true);
-    showToast(isReturn ? 'Đã xác nhận đối tượng về Trung tâm.' : isDeathOther ? 'Đã kết thúc hành trình với trạng thái tử vong tại nơi khác.' : isDeathHospital ? 'Đã kết thúc hành trình với trạng thái tử vong tại bệnh viện.' : 'Đã cập nhật hành trình.', 'ok');
+    showToast(isReturn ? 'Đã xác nhận đối tượng về Trung tâm.' : isHomeReturn ? 'Đã xác nhận hồi gia tại bệnh viện và kết thúc hành trình.' : isDeathOther ? 'Đã kết thúc hành trình với trạng thái tử vong tại nơi khác.' : isDeathHospital ? 'Đã kết thúc hành trình với trạng thái tử vong tại bệnh viện.' : 'Đã cập nhật hành trình.', 'ok');
     await loadJourneys(true);
     setSubView(isClosed ? 'history' : 'tracking');
   } catch (error) {
@@ -1506,28 +1521,62 @@ function eventTypeFromStatus(status, currentType) {
   if (currentType === 'MO_HANH_TRINH') return 'MO_HANH_TRINH';
   if (status === 'CHUYEN_TIEP_BENH_VIEN_KHAC') return 'CHUYEN_TIEP';
   if (status === 'DA_VE_TRUNG_TAM') return 'DA_VE_TRUNG_TAM';
+  if (status === 'HOI_GIA_TAI_BENH_VIEN') return 'HOI_GIA_TAI_BENH_VIEN';
   if (status === 'TU_VONG_TAI_BENH_VIEN') return 'TU_VONG_TAI_BENH_VIEN';
   if (status === 'TU_VONG_TAI_NOI_KHAC') return 'TU_VONG_TAI_NOI_KHAC';
   return 'CAP_NHAT_TRANG_THAI';
 }
 
+function correctionDateBounds(item, eventId) {
+  const events = effectiveHistoryEvents(item);
+  const index = events.findIndex((row) => String(row._sourceId) === String(eventId));
+  const min = index > 0 ? eventBusinessDate(events[index - 1], item) : '';
+  const next = index >= 0 && index < events.length - 1 ? eventBusinessDate(events[index + 1], item) : '';
+  let max = todayIso();
+  if (validIsoBusinessDate(next) && next < max) max = next;
+  return { min: validIsoBusinessDate(min) ? min : '', max };
+}
+
+function updateCorrectionFields() {
+  const status = String($('journeyCorrectionStatus')?.value || '');
+  const homeReturn = status === 'HOI_GIA_TAI_BENH_VIEN';
+  ['journeyCorrectionFromField','journeyCorrectionToField','journeyCorrectionDiagnosisField','journeyCorrectionReturnField','journeyCorrectionDeathPlaceField','journeyCorrectionNoteField'].forEach((id) => {
+    const field = $(id);
+    if (field) field.hidden = homeReturn;
+  });
+  if ($('journeyCorrectionDateLabel')) $('journeyCorrectionDateLabel').textContent = homeReturn ? 'Ngày hồi gia *' : 'Ngày nghiệp vụ *';
+}
+
 function correctionEventPayload(item, source) {
   const status = String($('journeyCorrectionStatus')?.value || source.trangThaiSau || 'DANG_THEO_DOI');
   const date = String($('journeyCorrectionDate')?.value || '').trim();
-  const from = String($('journeyCorrectionFrom')?.value || '').trim();
+  let from = String($('journeyCorrectionFrom')?.value || '').trim();
   let to = String($('journeyCorrectionTo')?.value || '').trim();
-  const diagnosis = String($('journeyCorrectionDiagnosis')?.value || '').trim();
-  const returnCondition = String($('journeyCorrectionReturn')?.value || '').trim();
+  let diagnosis = String($('journeyCorrectionDiagnosis')?.value || '').trim();
+  let returnCondition = String($('journeyCorrectionReturn')?.value || '').trim();
   let deathPlace = String($('journeyCorrectionDeathPlace')?.value || '').trim();
-  const note = String($('journeyCorrectionNote')?.value || '').trim();
+  let note = String($('journeyCorrectionNote')?.value || '').trim();
   if (!validIsoBusinessDate(date) || date > todayIso()) throw new Error('Ngày nghiệp vụ không hợp lệ hoặc lớn hơn ngày hiện tại.');
+  const bounds = correctionDateBounds(item, source._sourceId || source.id);
+  if (bounds.min && date < bounds.min) throw new Error('Ngày nghiệp vụ không được nhỏ hơn ngày của sự kiện trước (' + formatBusinessDate(bounds.min) + ').');
+  if (bounds.max && date > bounds.max) throw new Error('Ngày nghiệp vụ không được lớn hơn ngày của sự kiện kế tiếp (' + formatBusinessDate(bounds.max) + ').');
   if (!ALL_STATUSES.includes(status)) throw new Error('Trạng thái không hợp lệ.');
   if (source.loaiSuKien === 'MO_HANH_TRINH' && status !== 'DANG_THEO_DOI') throw new Error('Sự kiện mở hành trình phải giữ trạng thái Đang theo dõi.');
+  const homeReturn = status === 'HOI_GIA_TAI_BENH_VIEN';
+  if (homeReturn) {
+    const hospital = String(source.noiTruoc || source.noiSau || item.noiHienTai || '').trim();
+    from = hospital;
+    to = hospital;
+    diagnosis = '';
+    returnCondition = '';
+    deathPlace = '';
+    note = '';
+  }
   if (status === 'DA_VE_TRUNG_TAM') to = CENTER_NAME;
   if (status === 'TU_VONG_TAI_BENH_VIEN') deathPlace = to || item.noiHienTai || source.noiSau || '';
   if (status === 'TU_VONG_TAI_NOI_KHAC' && !deathPlace) throw new Error('Vui lòng nhập Nơi tử vong.');
   if (['DANG_THEO_DOI','TAI_KHAM','DANG_DIEU_TRI','CHUYEN_TIEP_BENH_VIEN_KHAC'].includes(status) && !to) throw new Error('Vui lòng nhập Nơi đến / nơi hiện tại.');
-  if (status !== 'DA_VE_TRUNG_TAM' && !diagnosis) throw new Error('Vui lòng nhập Tình trạng / Chẩn đoán.');
+  if (status !== 'DA_VE_TRUNG_TAM' && !homeReturn && !diagnosis) throw new Error('Vui lòng nhập Tình trạng / Chẩn đoán.');
   if (status === 'DA_VE_TRUNG_TAM' && !returnCondition) throw new Error('Vui lòng nhập Tình trạng khi về Trung tâm.');
   return {
     ...correctionAuditEvent(source),
@@ -1559,7 +1608,9 @@ function openJourneyCorrection(eventId) {
   $('journeyCorrectionTitle').textContent = event.loaiSuKien === 'MO_HANH_TRINH' ? 'Điều chỉnh lần chuyển viện ban đầu' : 'Điều chỉnh sự kiện hành trình';
   $('journeyCorrectionSubtitle').textContent = `${item.doiTuong || 'Đối tượng'} · ${timelineTitle(event)}`;
   $('journeyCorrectionDate').value = eventBusinessDate(event, item) || todayIso();
-  $('journeyCorrectionDate').max = todayIso();
+  const dateBounds = correctionDateBounds(item, eventId);
+  $('journeyCorrectionDate').min = dateBounds.min || '';
+  $('journeyCorrectionDate').max = dateBounds.max || todayIso();
   $('journeyCorrectionStatus').value = event.trangThaiSau || 'DANG_THEO_DOI';
   $('journeyCorrectionStatus').disabled = event.loaiSuKien === 'MO_HANH_TRINH';
   $('journeyCorrectionFrom').value = event.noiTruoc || '';
@@ -1571,6 +1622,7 @@ function openJourneyCorrection(eventId) {
   $('journeyCorrectionReason').value = '';
   $('journeyCorrectionError').textContent = '';
   $('journeyCorrectionDelete').hidden = event.loaiSuKien === 'MO_HANH_TRINH';
+  updateCorrectionFields();
   $('journeyCorrectionLayer').hidden = false;
   setBodyModalState(true);
   setTimeout(() => $('journeyCorrectionDate')?.focus(), 0);
@@ -1736,16 +1788,21 @@ function openDetail(id) {
     const lines = [];
     if (event.loaiSuKien === 'DA_VE_TRUNG_TAM') {
       if (returnCondition) lines.push(`<p><b>Tình trạng khi về:</b> ${esc(returnCondition)}</p>`);
+    } else if (event.loaiSuKien === 'HOI_GIA_TAI_BENH_VIEN') {
+      // Hồi gia tại bệnh viện chỉ hiển thị ngày nghiệp vụ và người cập nhật.
     } else {
       if (event.loaiSuKien === 'TU_VONG_TAI_NOI_KHAC' && event.noiTuVong) lines.push(`<p><b>Nơi tử vong:</b> ${esc(event.noiTuVong)}</p>`);
       if (diagnosis) lines.push(`<p><b>Tình trạng/chẩn đoán:</b> ${esc(diagnosis)}</p>`);
     }
-    if (note) lines.push(`<p><b>Ghi chú:</b> ${esc(note)}</p>`);
+    if (note && event.loaiSuKien !== 'HOI_GIA_TAI_BENH_VIEN') lines.push(`<p><b>Ghi chú:</b> ${esc(note)}</p>`);
     const personLabel = event.loaiSuKien === 'MO_HANH_TRINH' ? 'Người nhập' : 'Người cập nhật';
+    const businessDateText = event.loaiSuKien === 'HOI_GIA_TAI_BENH_VIEN'
+      ? `Ngày hồi gia: ${formatBusinessDate(eventBusinessDate(event, item))}`
+      : formatBusinessDate(eventBusinessDate(event, item));
     return `<div class="journey-timeline-item">
       <div class="journey-timeline-dot"></div>
       <div class="journey-timeline-card">
-        <div class="journey-timeline-head"><strong>${esc(timelineTitle(event))}</strong><span>${esc(formatBusinessDate(eventBusinessDate(event, item)))} <small class="journey-audit-time">· nhập ${esc(fmtDateTime(event.createdAt))}</small></span></div>
+        <div class="journey-timeline-head"><strong>${esc(timelineTitle(event))}</strong><span>${esc(businessDateText)} <small class="journey-audit-time">· nhập ${esc(fmtDateTime(event.createdAt))}</small></span></div>
         <div class="journey-timeline-status ${statusClass(event.trangThaiSau)}">${esc(timelineBadge(event, item))}</div>
         ${lines.join('')}
         <div class="journey-timeline-by">${personLabel}: ${esc(preferredName(event.uid, event.displayName))}${event._corrected ? ' · <span class="journey-corrected-mark">Đã điều chỉnh</span>' : ''}</div>
@@ -1855,6 +1912,7 @@ function initEvents() {
   $('journeyCorrectionCancel')?.addEventListener('click', closeJourneyCorrection);
   $('journeyCorrectionSave')?.addEventListener('click', () => saveJourneyCorrection('UPDATE'));
   $('journeyCorrectionDelete')?.addEventListener('click', () => saveJourneyCorrection('DELETE'));
+  $('journeyCorrectionStatus')?.addEventListener('change', updateCorrectionFields);
   $('journeyCorrectionLayer')?.addEventListener('click', (event) => { if (event.target === $('journeyCorrectionLayer')) closeJourneyCorrection(); });
   $('journeyUpdateStatus')?.addEventListener('change', updateUpdateFields);
   $('journeyUpdateDestination')?.addEventListener('change', () => toggleOtherDestination('journeyUpdateDestination', 'journeyUpdateDestinationOtherField', 'journeyUpdateDestinationOther'));

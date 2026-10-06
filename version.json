@@ -1,7 +1,7 @@
 {
-  "version": "10.0.8",
+  "version": "10.0.9",
   "releasedAt": "2026-10-06",
-  "title": "Unified Roles, Training Content & Person List Permission Fix",
-  "businessBaseline": "v10.0.6 production source + unified end-user access + Firebase/Apps Script hardening",
-  "message": "Hoàn thiện phân quyền người dùng cuối theo 3 vai trò viewer/nhaplieu/admin, bổ sung nội dung tập huấn, sửa luồng danh sách Điều trị lao/Chuyển Trung tâm và version private/public, vô hiệu hóa Đối soát mới, giữ Source of Truth Chuyển viện/Tử vong, realtime, PWA và Push."
+  "title": "Hồi gia tại bệnh viện",
+  "businessBaseline": "v10.0.8 production source + hospital home-return journey closure",
+  "message": "Bổ sung trạng thái Hồi gia tại bệnh viện: chỉ nhập Ngày hồi gia, đóng hành trình không tạo thêm Chuyển viện/Tử vong, cập nhật Lịch sử/điều chỉnh, Firebase Rules và OneSignal Gateway."
 }
