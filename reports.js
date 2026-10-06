@@ -139,15 +139,18 @@ function isReportAdmin() {
 function isGlobalAdmin() {
   return !!((reportState.user || auth.currentUser) && (isOwner(reportState.user || auth.currentUser) || isTongHopAdmin() || isReportAdmin()));
 }
-function hasReportViewAccess() {
-  return isGlobalAdmin() || validPermission(reportState.permission);
-}
 function effectiveReportRole() {
   if (isGlobalAdmin()) return 'admin';
-  return validPermission(reportState.permission) ? reportState.permission.role : 'viewer';
+  const roles = [reportState.permission, reportState.tongHopPermission].filter(validPermission).map((permission) => permission.role);
+  if (roles.includes('nhaplieu')) return 'nhaplieu';
+  if (roles.includes('viewer')) return 'viewer';
+  return '';
+}
+function hasReportViewAccess() {
+  return !!effectiveReportRole();
 }
 function canEditReport() {
-  return isGlobalAdmin() || (validPermission(reportState.permission) && ['admin', 'nhaplieu'].includes(reportState.permission.role));
+  return ['admin', 'nhaplieu'].includes(effectiveReportRole());
 }
 function canAdminReport() {
   return isGlobalAdmin();
@@ -291,7 +294,7 @@ function updateModuleUi(external) {
     ? external.tongHopActive
     : !!(reportState.tongHopPermission && reportState.tongHopPermission.active === true &&
       ['admin', 'nhaplieu', 'viewer'].includes(reportState.tongHopPermission.role)));
-  const reportActive = globalAdmin || validPermission(reportState.permission);
+  const reportActive = globalAdmin || validPermission(reportState.permission) || validPermission(reportState.tongHopPermission);
 
   if ($('navReports')) $('navReports').hidden = !reportActive;
   if ($('navJourney')) $('navJourney').hidden = !reportActive;

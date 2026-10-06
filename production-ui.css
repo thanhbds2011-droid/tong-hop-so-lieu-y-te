@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.6
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.7
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -536,4 +536,20 @@ body > .notification-layer { z-index:1900!important; }
   .header-user-summary .header-user-avatar{width:33px;height:33px;}
   .report-summary-heading{flex-wrap:wrap;}
   .dashboard-other-metrics .summary-grid-secondary{grid-template-columns:1fr!important;}
+}
+
+/* v10.0.7 - Nội dung tập huấn và hiển thị ghi chú */
+.entry-inline-form > .entry-training-content { grid-column:1 / -1; min-width:0; }
+.entry-training-content textarea,
+#adjustTrainingContent { width:100%; min-height:84px; resize:vertical; }
+.entry-selected-facts > div:has(#entrySelectedNote) { flex-basis:100%; }
+#entrySelectedNote { white-space:normal; line-height:1.45; }
+.entry-recent-note { margin-top:4px; color:#6d5a67 !important; line-height:1.35; white-space:normal; }
+.data-history-note { margin:8px 0; padding:9px 10px; border-radius:10px; background:#fff7fb; border:1px solid #f5d8e8; }
+.data-history-note span { display:block; color:#8a6177; font-size:11px; font-weight:700; margin-bottom:3px; }
+.data-history-note strong { display:block; color:#3f3340; font-size:12px; line-height:1.45; overflow-wrap:anywhere; }
+.report-summary-note { min-width:220px; max-width:360px; white-space:normal; line-height:1.45; color:#536273; }
+@media (max-width: 760px){
+  .entry-selected-facts > div:has(#entrySelectedNote){grid-column:1/-1;}
+  .report-summary-note{min-width:180px;}
 }

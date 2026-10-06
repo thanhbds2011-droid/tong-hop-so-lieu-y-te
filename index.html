@@ -12,20 +12,20 @@
 <link href="./manifest.webmanifest" rel="manifest"/>
 <link href="./assets/favicon-32.png" rel="icon" sizes="32x32" type="image/png"/>
 <link href="./assets/apple-touch-icon.png" rel="apple-touch-icon"/>
-<link href="./styles.css?v=10.0.6" rel="stylesheet"/>
+<link href="./styles.css?v=10.0.7" rel="stylesheet"/>
 
-<link href="./reports.css?v=10.0.6" rel="stylesheet"/>
-<link href="./journeys.css?v=10.0.6" rel="stylesheet"/>
-<link href="./production-ui.css?v=10.0.6" rel="stylesheet"/>
+<link href="./reports.css?v=10.0.7" rel="stylesheet"/>
+<link href="./journeys.css?v=10.0.7" rel="stylesheet"/>
+<link href="./production-ui.css?v=10.0.7" rel="stylesheet"/>
 
-<script src="./app-config.js?v=10.0.6"></script>
-<script defer src="./ui.js?v=10.0.6"></script>
-<script defer src="./update-manager.js?v=10.0.6"></script>
+<script src="./app-config.js?v=10.0.7"></script>
+<script defer src="./ui.js?v=10.0.7"></script>
+<script defer src="./update-manager.js?v=10.0.7"></script>
 <script defer src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"></script>
-<script defer src="./notifications.js?v=10.0.6"></script>
-<script src="./app.js?v=10.0.6" type="module"></script>
-<script src="./reports.js?v=10.0.6" type="module"></script>
-<script src="./journeys.js?v=10.0.6" type="module"></script>
+<script defer src="./notifications.js?v=10.0.7"></script>
+<script src="./app.js?v=10.0.7" type="module"></script>
+<script src="./reports.js?v=10.0.7" type="module"></script>
+<script src="./journeys.js?v=10.0.7" type="module"></script>
 
 </head>
 <body>
@@ -34,7 +34,7 @@
 <button aria-controls="appNav" aria-expanded="false" aria-label="Mở menu" class="mobile-nav-toggle" hidden id="mobileNavToggle" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
 <div class="brand">
 <div aria-hidden="true" class="brand-mark brand-mark-logo">
-<img alt="" src="./assets/icon-192.png?v=10.0.6"/>
+<img alt="" src="./assets/icon-192.png?v=10.0.7"/>
 </div>
 <div class="brand-copy">
 <strong class="brand-org brand-desktop">Trung tâm Bảo trợ xã hội Tân Hiệp</strong>
@@ -66,7 +66,7 @@
 <div aria-live="polite" id="message"></div>
 <nav aria-label="Điều hướng chính" class="nav" id="appNav">
 <div class="mobile-nav-head">
-  <div class="mobile-nav-identity"><img alt="" src="./assets/icon-192.png?v=10.0.6"/><div><strong>Phòng Y tế</strong><span id="mobileNavUser">Tài khoản</span></div></div>
+  <div class="mobile-nav-identity"><img alt="" src="./assets/icon-192.png?v=10.0.7"/><div><strong>Phòng Y tế</strong><span id="mobileNavUser">Tài khoản</span></div></div>
   <button aria-label="Đóng menu" class="mobile-nav-close" id="mobileNavClose" type="button">×</button>
 </div>
 <button class="nav-item active" data-view="dashboard" id="navDashboard" type="button">
@@ -80,7 +80,7 @@
 </button>
 <button class="nav-item" data-view="journey" hidden="" id="navJourney" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Chuyển viện</span></button>
 <div class="nav-footer" aria-label="Thông tin ứng dụng">
-<div><strong id="sidebarVersion">Phiên bản v10.0.6</strong><span class="connection-pill"><i id="sidebarConnectionDot"></i><span id="sidebarConnectionText">Đang kết nối</span></span></div>
+<div><strong id="sidebarVersion">Phiên bản v10.0.7</strong><span class="connection-pill"><i id="sidebarConnectionDot"></i><span id="sidebarConnectionText">Đang kết nối</span></span></div>
 <button class="nav-drawer-logout" hidden id="mobileNavLogout" type="button">Đăng xuất</button>
 </div>
 </nav>
@@ -114,7 +114,7 @@
 <summary><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16M7 12h10M10 19h4"></path></svg><span>Lọc chỉ tiêu</span></summary>
 <div class="field filter-content-field"><label>Nội dung<select id="contentFilter"><option value="all">Tất cả nội dung</option></select></label></div>
 </details>
-<button class="btn btn-soft report-preview-trigger" id="btnPreviewSummary" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"></path><path d="M14 3v4h4"></path><path d="M9 12h6M9 16h6"></path></svg><span>Xem báo cáo</span></button>
+<button class="btn btn-soft report-preview-trigger" id="btnPreviewSummary" type="button" hidden><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"></path><path d="M14 3v4h4"></path><path d="M9 12h6M9 16h6"></path></svg><span>Xem báo cáo</span></button>
 <button class="btn btn-soft" id="btnDashboardExport" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg><span>Xuất Excel</span></button>
 </div>
 </div>
@@ -159,7 +159,7 @@
 <div class="login-stage">
 <div class="login-shell">
 <button aria-label="Đóng đăng nhập" class="login-close" id="btnLoginClose" type="button">×</button>
-<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=10.0.6"/></div>
+<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=10.0.7"/></div>
 <div class="auth-panel active" id="loginPanel">
 <div class="login-action-copy">
 <h2>Ứng dụng Phòng Y tế</h2>
@@ -197,9 +197,11 @@
 <div><span>Giá trị hiện tại</span><strong id="entrySelectedCurrent">—</strong></div>
 <div hidden id="entrySelectedAutoRow"><span>Giá trị tự động</span><strong id="entrySelectedAuto">—</strong></div>
 <div hidden id="entrySelectedUpdaterRow"><span>Người cập nhật</span><strong id="entrySelectedUpdater">—</strong></div>
+<div hidden id="entrySelectedNoteRow"><span>Nội dung</span><strong id="entrySelectedNote">—</strong></div>
 </div>
 </div>
 <div class="field entry-quick-value" hidden id="entryQuickValueField"><label id="entryQuickValueLabel">Số liệu *<input id="entryQuickValue" inputmode="numeric" min="0" placeholder="Nhập số liệu" step="1" type="number"/></label></div>
+<div class="field entry-training-content" hidden id="entryTrainingContentField"><label>Nội dung tập huấn *<textarea id="entryTrainingContent" maxlength="1000" placeholder="Ví dụ: Tập huấn cho viên chức hoặc tập huấn cho đối tượng" rows="3"></textarea></label></div>
 <div aria-live="polite" class="adjust-error" id="entryQuickError"></div>
 <div aria-live="polite" class="adjust-progress" hidden id="entryQuickProgress" role="status"><span class="spinner"></span><span>Đang lưu...</span></div>
 <div class="entry-inline-actions" hidden id="entryInlineActions">
@@ -222,7 +224,7 @@
     <div class="report-summary-heading"><div><h3>Tổng hợp các chỉ tiêu</h3><p id="reportSummaryRange">Theo phạm vi thời gian đã chọn ở Tổng quan</p></div><span class="summary-pill" id="reportSummaryCount">0 chỉ tiêu</span></div>
     <div class="report-summary-actions"><button class="btn btn-soft" id="btnReportGoDashboard" type="button">Đổi phạm vi thời gian</button><button class="btn btn-primary" id="btnReportPreviewSummary" type="button">Xem báo cáo</button><button class="btn btn-soft" id="btnReportExportSummary" type="button">Xuất Excel</button></div>
     <p class="report-summary-notice">Chỉ tiêu Chuyển viện và Tử vong tự động lấy từ dữ liệu nguồn. Thông tin người bệnh chỉ hiển thị theo quyền truy cập.</p>
-    <div class="report-summary-table-wrap"><table class="report-summary-table"><thead><tr><th>STT</th><th>Chỉ tiêu</th><th>Giá trị</th><th>Đơn vị</th><th>Trạng thái</th></tr></thead><tbody id="reportSummaryRows"><tr><td colspan="5">Đang tải dữ liệu...</td></tr></tbody></table></div>
+    <div class="report-summary-table-wrap"><table class="report-summary-table"><thead><tr><th>STT</th><th>Chỉ tiêu</th><th>Giá trị</th><th>Đơn vị</th><th>Nội dung/Ghi chú</th><th>Trạng thái</th></tr></thead><tbody id="reportSummaryRows"><tr><td colspan="6">Đang tải dữ liệu...</td></tr></tbody></table></div>
   </div>
 </section>
 <section class="view" id="journeyView">
@@ -417,6 +419,7 @@
 <p class="adjust-auto-reference" hidden="" id="adjustAutoReference"></p>
 <div class="adjust-form">
 <div class="field"><label>Số liệu mới<input id="adjustNewValue" inputmode="numeric" min="0" step="1" type="number"/></label></div>
+<div class="field" hidden id="adjustTrainingContentField"><label>Nội dung tập huấn *<textarea id="adjustTrainingContent" maxlength="1000" placeholder="Ví dụ: Tập huấn cho viên chức hoặc tập huấn cho đối tượng" rows="3"></textarea></label></div>
 <div class="field"><label><span id="adjustReasonLabel">Lý do điều chỉnh</span><textarea id="adjustReason" maxlength="500" placeholder="Nhập lý do nếu cần lưu để đối chiếu" rows="3"></textarea></label></div>
 <div aria-live="polite" class="adjust-progress" hidden="" id="adjustProgress" role="status"><span class="spinner"></span><span>Đang lưu dữ liệu, vui lòng chờ...</span></div>
 <div aria-live="polite" class="adjust-error" id="adjustError"></div>

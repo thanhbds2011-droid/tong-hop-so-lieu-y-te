@@ -288,18 +288,24 @@ function isReportAdmin() {
 function isGlobalAdmin() {
   return isOwner() || isTongHopAdmin() || isReportAdmin();
 }
+function effectiveRole() {
+  if (isGlobalAdmin()) return 'admin';
+  const roles = [state.permission, state.tongHopPermission].filter(validPermission).map((permission) => permission.role);
+  if (roles.includes('nhaplieu')) return 'nhaplieu';
+  if (roles.includes('viewer')) return 'viewer';
+  return '';
+}
 function canView() {
-  return isGlobalAdmin() || validPermission(state.permission);
+  return !!effectiveRole();
 }
 function canEdit() {
-  return isGlobalAdmin() || (validPermission(state.permission) && ['admin', 'nhaplieu'].includes(state.permission.role));
+  return ['admin', 'nhaplieu'].includes(effectiveRole());
 }
 function canDelete() {
-  return isGlobalAdmin();
+  return effectiveRole() === 'admin';
 }
 function roleForLog() {
-  if (isGlobalAdmin()) return 'admin';
-  return state.permission && state.permission.role === 'nhaplieu' ? 'nhaplieu' : 'viewer';
+  return effectiveRole() || 'viewer';
 }
 function showToast(text, type) {
   const box = $('toast');
