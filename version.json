@@ -1,5 +1,5 @@
 {
-  "version": "10.0.7",
+  "version": "10.0.8",
   "releasedAt": "2026-10-06",
   "title": "Unified Roles, Training Content & Person List Permission Fix",
   "businessBaseline": "v10.0.6 production source + unified end-user access + Firebase/Apps Script hardening",

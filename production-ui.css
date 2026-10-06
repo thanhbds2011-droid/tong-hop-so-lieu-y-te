@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.7
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.8
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -538,7 +538,7 @@ body > .notification-layer { z-index:1900!important; }
   .dashboard-other-metrics .summary-grid-secondary{grid-template-columns:1fr!important;}
 }
 
-/* v10.0.7 - Nội dung tập huấn và hiển thị ghi chú */
+/* v10.0.8 - Nội dung tập huấn và hiển thị ghi chú */
 .entry-inline-form > .entry-training-content { grid-column:1 / -1; min-width:0; }
 .entry-training-content textarea,
 #adjustTrainingContent { width:100%; min-height:84px; resize:vertical; }
@@ -553,3 +553,25 @@ body > .notification-layer { z-index:1900!important; }
   .entry-selected-facts > div:has(#entrySelectedNote){grid-column:1/-1;}
   .report-summary-note{min-width:180px;}
 }
+
+
+/* ======================================================================
+   v10.0.8 - AUTH / ROLE VISIBILITY HOTFIX
+   The HTML hidden attribute is an application state contract.  It must win
+   over presentation rules such as .nav-item{display:flex!important}.
+   ====================================================================== */
+[hidden]{display:none!important;}
+#navEntry[hidden],
+#navReports[hidden],
+#navJourney[hidden],
+#navAdmin[hidden],
+#btnPreviewSummary[hidden],
+#mobileNavToggle[hidden],
+#mobileBottomNav[hidden],
+.mobile-bottom-item[hidden],
+#headerUserSummary[hidden],
+#headerAccountMenu[hidden],
+#btnNotificationCenter[hidden],
+#btnTopLogout[hidden],
+#mobileNavLogout[hidden],
+#mobileNavBackdrop[hidden]{display:none!important;}

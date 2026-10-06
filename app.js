@@ -35,7 +35,7 @@ const REPORT_ROOT = 'baoCaoYTe';
 const YTE_APP_ROOT = 'yTeApp';
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '10.0.7';
+const APP_RUNTIME_VERSION = '10.0.8';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -496,7 +496,7 @@ async function resolveApplicationAccess(user, profile) {
   if (permission) permission.displayName = preferredName;
   if (reportPermission) reportPermission.displayName = preferredName;
 
-  // v10.0.7: vai trò có hiệu lực là vai trò cao nhất đang hoạt động ở một trong
+  // v10.0.8: vai trò có hiệu lực là vai trò cao nhất đang hoạt động ở một trong
   // hai namespace tongHopYTe/phanQuyen hoặc baoCaoYTe/phanQuyen. Điều này giữ
   // backward compatibility cho tài khoản cũ và bảo đảm viewer/nhaplieu/admin
   // đều vào được đúng chức năng sau khi được cấp quyền.
@@ -1493,7 +1493,7 @@ async function adminApproveRegistrationFirebase(uid, roleValue) {
     approvedAt: now,
     approvedByUid: admin.uid
   };
-  // v10.0.7: một vai trò dùng chung toàn ứng dụng. Luôn đồng bộ sang Báo cáo
+  // v10.0.8: một vai trò dùng chung toàn ứng dụng. Luôn đồng bộ sang Báo cáo
   // để viewer/nhaplieu/admin không cần được cấp quyền lần thứ hai.
   const oldReportSnap = await get(ref(firebaseDatabase, `${REPORT_ROOT}/phanQuyen/${uid}`)).catch(() => null);
   const oldReport = snapshotObject(oldReportSnap);
@@ -3353,7 +3353,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.7'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.8'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       setupProductionUiBindings();
       if($('headerUserSummary'))$('headerUserSummary').addEventListener('click',function(){setAccountMenu($('headerAccountMenu').hidden)});
