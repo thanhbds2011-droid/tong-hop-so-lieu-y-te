@@ -251,12 +251,12 @@
     data = data && typeof data === 'object' ? data : {};
     let view = safeText(data.view || data.route || '').toLowerCase();
     if (!view) return;
-    const aliases = { tongquan:'dashboard', dashboard:'dashboard', nhaplieu:'entry', entry:'entry', baocao:'reports', report:'reports', reports:'reports', chuyenvien:'journey', journey:'journey', quantri:'admin', admin:'admin', reconciliation:'dashboard' };
+    const aliases = { tongquan:'dashboard', dashboard:'dashboard', nhaplieu:'entry', entry:'entry', baocao:'dashboard', report:'dashboard', reports:'dashboard', chuyenvien:'journey', journey:'journey', quantri:'admin', admin:'admin', reconciliation:'dashboard' };
     view = aliases[view] || view;
     const eventType = safeText(data.eventType || '');
     if (data.requestId || eventType.startsWith('REPORT_REVIEW_')) view = 'dashboard';
-    else if (view === 'reports' && (data.caseId || data.resourceId || /^(TRANSFER_|DEATH_)/.test(eventType))) view = 'journey';
-    if (!['dashboard','entry','reports','journey','admin'].includes(view)) return;
+    else if (data.caseId || data.resourceId || /^(TRANSFER_|DEATH_|JOURNEY_)/.test(eventType)) view = 'journey';
+    if (!['dashboard','entry','journey','admin'].includes(view)) return;
     savePendingRoute(Object.assign({}, data, { view: view }));
     consumePendingRoute();
   }
@@ -271,6 +271,7 @@
     const eventType = safeText(data.eventType || '');
     if (view === 'reconciliation' || data.requestId || eventType.startsWith('REPORT_REVIEW_')) view = 'dashboard';
     else if (view === 'reports' && (data.caseId || data.resourceId || /^(TRANSFER_|DEATH_|JOURNEY_)/.test(eventType))) view = 'journey';
+    else if (view === 'reports' || view === 'report' || view === 'baocao') view = 'dashboard';
     const api = window.YTE_APP_UI;
     if (!api || typeof api.openView !== 'function') return;
     try {

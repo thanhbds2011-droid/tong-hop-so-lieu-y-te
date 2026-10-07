@@ -296,10 +296,8 @@ function updateModuleUi(external) {
       ['admin', 'nhaplieu', 'viewer'].includes(reportState.tongHopPermission.role)));
   const reportActive = globalAdmin || validPermission(reportState.permission) || validPermission(reportState.tongHopPermission);
 
-  if ($('navReports')) $('navReports').hidden = !reportActive;
   if ($('navJourney')) $('navJourney').hidden = !reportActive;
   if ($('moduleTongHopCard')) $('moduleTongHopCard').hidden = !tongHopActive;
-  if ($('moduleReportCard')) $('moduleReportCard').hidden = !reportActive;
   if ($('noModuleAccess')) $('noModuleAccess').hidden = !authenticated || tongHopActive || reportActive;
 
   const user = reportState.user || auth.currentUser;
@@ -318,8 +316,7 @@ async function routeAfterLogin(result) {
   clearGlobalMessage();
   const tongHopActive = !!(result && result.active === true);
   const reportActive = hasReportViewAccess();
-  if (tongHopActive) activateView('dashboard');
-  else if (reportActive) activateView('reports');
+  if (tongHopActive || reportActive) activateView('dashboard');
   else activateView('home');
 }
 
@@ -331,11 +328,11 @@ async function routeAfterRestore(result) {
   const reportActive = hasReportViewAccess();
   if (!auth.currentUser) return;
   if (currentName === 'home' && (tongHopActive || reportActive)) {
-    activateView(tongHopActive ? 'dashboard' : 'reports');
+    activateView('dashboard');
     return;
   }
   if (currentName === 'dashboard' || currentName === 'auth' || !currentName) {
-    if (!tongHopActive && reportActive) activateView('reports');
+    if (!tongHopActive && reportActive) activateView('dashboard');
     else if (!tongHopActive && !reportActive) activateView('home');
   }
 }
@@ -1018,7 +1015,6 @@ function initEvents() {
   });
 
   $('moduleTongHopCard').addEventListener('click', () => activateView('dashboard'));
-  $('moduleReportCard').addEventListener('click', () => activateView('reports'));
   $('btnReloadReports').addEventListener('click', () => loadReports(true));
   $('reportFromDate').addEventListener('change', () => loadReports(true));
   $('reportToDate').addEventListener('change', () => loadReports(true));

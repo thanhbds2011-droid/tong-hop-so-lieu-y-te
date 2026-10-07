@@ -921,8 +921,8 @@ function setSubView(name) {
   name = ['tracking', 'create', 'history'].includes(name) ? name : 'tracking';
   if (name === 'create' && !canEdit()) name = 'tracking';
   state.subView = name;
-  const reportsView = $('reportsView');
-  if (reportsView) reportsView.setAttribute('data-journey-view', name);
+  const journeyView = $('journeyView');
+  if (journeyView) journeyView.setAttribute('data-journey-view', name);
   document.querySelectorAll('.journey-subtab').forEach((button) => {
     button.classList.toggle('active', button.getAttribute('data-journey-view') === name);
   });
