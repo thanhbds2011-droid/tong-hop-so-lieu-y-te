@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.10
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.11
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -576,7 +576,7 @@ body > .notification-layer { z-index:1900!important; }
 #mobileNavLogout[hidden],
 #mobileNavBackdrop[hidden]{display:none!important;}
 
-/* v10.0.10: Dashboard tinh gọn - Biểu đồ xu hướng dùng toàn chiều rộng. */
+/* v10.0.11: Dashboard tinh gọn - Biểu đồ xu hướng dùng toàn chiều rộng. */
 .dashboard-insights{display:block!important;}
 .dashboard-insights>.dashboard-trend-panel{width:100%!important;grid-column:auto!important;margin:0!important;}
 .dashboard-trend-panel .dashboard-trend-chart{min-height:260px;}
