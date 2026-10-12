@@ -249,10 +249,21 @@ function transferTypeLabel(type, otherText) {
   return map[type] || 'Chưa phân loại';
 }
 function inferLegacyTransferType(item) {
-  if (item && item.hinhThucChuyen) return item.hinhThucChuyen;
+  const raw = String(item && item.hinhThucChuyen || '').trim();
+  if (['CAP_CUU', 'TAI_KHAM', 'CHUYEN_VIEN', 'KHAC'].includes(raw)) return raw;
+  const normalized = normalizeText(raw).replace(/[^a-z0-9]+/g, ' ').trim();
+  if (normalized === 'cap cuu' || normalized.includes('cap cuu')) return 'CAP_CUU';
+  if (normalized === 'tai kham' || normalized.includes('tai kham')) return 'TAI_KHAM';
+  if (normalized === 'khac') return 'KHAC';
+  if (normalized === 'chuyen vien' || normalized.includes('chuyen vien')) return 'CHUYEN_VIEN';
   if (item && item.trangThaiHienTai === 'TAI_KHAM') return 'TAI_KHAM';
   return 'CHUYEN_VIEN';
 }
+function canonicalTransferType(item) {
+  const value = inferLegacyTransferType(item);
+  return ['CAP_CUU', 'TAI_KHAM', 'CHUYEN_VIEN', 'KHAC'].includes(value) ? value : 'CHUYEN_VIEN';
+}
+
 function resolvedDestination(selectId, otherId) {
   const selected = String($(selectId)?.value || '').trim();
   if (!selected) return '';
@@ -1435,7 +1446,7 @@ async function saveJourneyUpdate() {
       theBHYT: latest.theBHYT || '',
       theBHYTNorm: latest.theBHYTNorm || '',
       doiTuongKey: latest.doiTuongKey,
-      hinhThucChuyen: latest.hinhThucChuyen || inferLegacyTransferType(latest),
+      hinhThucChuyen: canonicalTransferType(latest),
       hinhThucChuyenKhac: latest.hinhThucChuyenKhac || '',
       noiDiBanDau: latest.noiDiBanDau || CENTER_NAME,
       noiHienTai: isReturn ? CENTER_NAME : (isTransfer ? payload.noiDen : latest.noiHienTai),
@@ -1478,7 +1489,7 @@ async function saveJourneyUpdate() {
       ngaySuKien: businessDate,
       ngayTuVong: isDeath ? payload.ngayTuVong : '',
       noiTuVong: isDeath ? payload.noiTuVong : '',
-      hinhThucChuyen: latest.hinhThucChuyen || inferLegacyTransferType(latest),
+      hinhThucChuyen: canonicalTransferType(latest),
       hinhThucChuyenKhac: latest.hinhThucChuyenKhac || '',
       lyDo: payload.lyDo,
       tinhTrangChanDoan: payload.tinhTrang,
@@ -1497,7 +1508,7 @@ async function saveJourneyUpdate() {
         thuTu: nextOrder,
         noiDi: latest.noiHienTai || '',
         noiDen: isReturn ? CENTER_NAME : payload.noiDen,
-        hinhThucChuyen: latest.hinhThucChuyen || inferLegacyTransferType(latest),
+        hinhThucChuyen: canonicalTransferType(latest),
         hinhThucChuyenKhac: latest.hinhThucChuyenKhac || '',
         lyDo: isReturn ? 'Trở về Trung tâm' : payload.lyDo,
         tinhTrangChanDoan: isReturn ? payload.tinhTrangKhiVe : payload.tinhTrang,
@@ -1733,70 +1744,158 @@ async function saveJourneyCorrection(action) {
     const effective = effectiveHistoryEvents(latest).find((row) => String(row._sourceId) === eventId);
     if (!effective) throw new Error('Sự kiện đã thay đổi trên thiết bị khác. Vui lòng mở lại hành trình.');
     if (action === 'DELETE' && effective.loaiSuKien === 'MO_HANH_TRINH') throw new Error('Không thể xóa sự kiện mở hành trình. Hãy dùng chức năng xóa toàn bộ hành trình nếu nhập nhầm cả ca.');
+
     const after = action === 'UPDATE' ? correctionEventPayload(latest, effective) : null;
     const correctionId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/dieuChinh`)).key;
     const displayName = await resolveCurrentDisplayName();
-    const now = Date.now();
-    const correction = {
+    const email = normalizeEmail(user.email);
+
+    // v10.0.14: mọi timestamp ghi Firebase dùng serverTimestamp().
+    // v10.0.13 dùng Date.now(), trong khi Rules chỉ chấp nhận cửa sổ ±5 phút theo server;
+    // máy người dùng lệch giờ sẽ làm cả atomic update bị PERMISSION_DENIED.
+    const projectionSortTime = Date.now();
+    const ts = serverTimestamp();
+    const correctionForProjection = {
       id: correctionId, caseId, targetEventId: eventId, action,
-      beforeJson: JSON.stringify(correctionAuditEvent(effective)), afterJson: after ? JSON.stringify(correctionAuditEvent(after)) : '',
-      reason: reason.slice(0,500), uid: user.uid, email: normalizeEmail(user.email), displayName, createdAt: now
+      beforeJson: JSON.stringify(correctionAuditEvent(effective)),
+      afterJson: after ? JSON.stringify(correctionAuditEvent(after)) : '',
+      reason: reason.slice(0,500), uid: user.uid, email, displayName, createdAt: projectionSortTime
     };
-    const corrections = { ...(latest.dieuChinh || {}), [correctionId]: correction };
+    const correctionForWrite = { ...correctionForProjection, createdAt: ts };
+    const corrections = { ...(latest.dieuChinh || {}), [correctionId]: correctionForProjection };
     const projection = buildProjectedJourney(latest, corrections);
+
+    if (!validIsoBusinessDate(projection.finalDate)) throw new Error('Không xác định được ngày nghiệp vụ sau điều chỉnh.');
+    if (!validIsoBusinessDate(projection.transferDate)) throw new Error('Không xác định được ngày chuyển viện ban đầu.');
+
     const openIndexSnap = await get(ref(db, `${REPORT_ROOT}/hanhTrinhDangMo/${latest.doiTuongKey}`));
-    if (!projection.closed && openIndexSnap.exists() && String(openIndexSnap.val() || '') !== caseId) throw new Error('Đối tượng đã có một hành trình khác đang mở. Không thể khôi phục trạng thái đang điều trị.');
+    if (!projection.closed && openIndexSnap.exists() && String(openIndexSnap.val() || '') !== caseId) {
+      throw new Error('Đối tượng đã có một hành trình khác đang mở. Không thể khôi phục hành trình này về trạng thái đang theo dõi.');
+    }
+
+    const canonicalType = canonicalTransferType(latest);
+    const safeLatestDiagnosis = String(
+      projection.latestDiagnosis || latest.tinhTrangChanDoanHienTai || latest.lyDoHienTai || 'Chưa ghi nhận'
+    ).trim() || 'Chưa ghi nhận';
     const updates = {};
-    updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/dieuChinh/${correctionId}`] = correction;
+    updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/dieuChinh/${correctionId}`] = correctionForWrite;
+
     const oldTransferDate = transferBusinessDate(latest);
-    if (oldTransferDate && oldTransferDate !== projection.transferDate) updates[`${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${oldTransferDate}/${caseId}`] = null;
-    if (projection.transferDate) updates[`${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${projection.transferDate}/${caseId}`] = true;
+    if (oldTransferDate && oldTransferDate !== projection.transferDate) {
+      updates[`${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${oldTransferDate}/${caseId}`] = null;
+    }
+    updates[`${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${projection.transferDate}/${caseId}`] = true;
+
     if (latest.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN' || latest.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC') {
-      const oldDeathDate = deathBusinessDate(latest), oldPrefix = latest.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC' ? 'OTHER_' : 'HOSP_';
+      const oldDeathDate = deathBusinessDate(latest);
+      const oldPrefix = latest.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC' ? 'OTHER_' : 'HOSP_';
       if (oldDeathDate) updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${oldDeathDate}/${oldPrefix}${caseId}`] = null;
     }
     if (projection.isDeath) {
       const prefix = projection.finalStatus === 'TU_VONG_TAI_NOI_KHAC' ? 'OTHER_' : 'HOSP_';
       updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${projection.finalDate}/${prefix}${caseId}`] = true;
     }
-    Object.keys(latest.chang || {}).forEach((stageId) => { updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/chang/${stageId}`] = null; });
+
+    // Rebuild chang từ lịch sử hiệu lực và chuẩn hóa schema cũ trước khi ghi.
+    Object.keys(latest.chang || {}).forEach((stageId) => {
+      updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/chang/${stageId}`] = null;
+    });
     projection.stages.forEach((stage) => {
-      const stageId = 'EV_' + String(stage.event._sourceId || '').replace(/[^A-Za-z0-9_-]/g,'_');
+      const stageId = 'EV_' + String(stage.event._sourceId || '').replace(/[^A-Za-z0-9_-]/g, '_');
       const e = stage.event;
+      const stageDiagnosis = String(e.tinhTrangChanDoan || e.tinhTrangKhiVe || e.lyDo || safeLatestDiagnosis).trim() || 'Chưa ghi nhận';
+      const stageReason = String(e.tinhTrangChanDoan || e.lyDo || (stage.status === 'DA_VE_TRUNG_TAM' ? 'Trở về Trung tâm' : stageDiagnosis)).trim() || stageDiagnosis;
+      const stageFrom = String(stage.from || latest.noiDiBanDau || CENTER_NAME).trim() || CENTER_NAME;
+      const stageTo = String(stage.to || projection.currentPlace || latest.noiHienTai || CENTER_NAME).trim() || CENTER_NAME;
       updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/chang/${stageId}`] = {
-        id: stageId, caseId, thuTu: stage.order, noiDi: stage.from || CENTER_NAME, noiDen: stage.to || '',
-        hinhThucChuyen: latest.hinhThucChuyen || inferLegacyTransferType(latest), hinhThucChuyenKhac: latest.hinhThucChuyenKhac || '',
-        lyDo: String(e.tinhTrangChanDoan || e.lyDo || (stage.status === 'DA_VE_TRUNG_TAM' ? 'Trở về Trung tâm' : '')), tinhTrangChanDoan: String(e.tinhTrangChanDoan || e.tinhTrangKhiVe || e.lyDo || ''),
-        ghiChu: String(e.ghiChu || ''), trangThaiSauChang: stage.status, ngaySuKien: eventBusinessDate(e, latest), thoiDiem: now,
-        uid: user.uid, email: normalizeEmail(user.email), displayName: displayName
+        id: stageId,
+        caseId,
+        thuTu: stage.order,
+        noiDi: stageFrom.slice(0,300),
+        noiDen: stageTo.slice(0,300),
+        hinhThucChuyen: canonicalType,
+        hinhThucChuyenKhac: canonicalType === 'KHAC' ? String(latest.hinhThucChuyenKhac || '').trim().slice(0,120) : '',
+        lyDo: stageReason.slice(0,1000),
+        tinhTrangChanDoan: stageDiagnosis.slice(0,1500),
+        ghiChu: String(e.ghiChu || '').slice(0,2000),
+        trangThaiSauChang: stage.status,
+        ngaySuKien: eventBusinessDate(e, latest),
+        thoiDiem: ts,
+        uid: user.uid,
+        email,
+        displayName
       };
     });
+
     const last = projection.last;
-    const info = { ...latest,
-      noiHienTai: projection.finalStatus === 'DA_VE_TRUNG_TAM' ? CENTER_NAME : projection.currentPlace,
-      lyDoHienTai: projection.latestDiagnosis,
-      tinhTrangChanDoanHienTai: projection.latestDiagnosis,
-      ghiChu: String(last.ghiChu || latest.ghiChu || ''),
+    const info = {
+      id: latest.id || caseId,
+      doiTuong: String(latest.doiTuong || '').trim(),
+      doiTuongNorm: String(latest.doiTuongNorm || normalizeText(latest.doiTuong || '')).trim(),
+      theBHYT: String(latest.theBHYT || '').trim(),
+      theBHYTNorm: String(latest.theBHYTNorm || normalizeBHYT(latest.theBHYT || '')).trim(),
+      doiTuongKey: latest.doiTuongKey,
+      hinhThucChuyen: canonicalType,
+      hinhThucChuyenKhac: canonicalType === 'KHAC' ? String(latest.hinhThucChuyenKhac || '').trim().slice(0,120) : '',
+      noiDiBanDau: String(latest.noiDiBanDau || CENTER_NAME).trim() || CENTER_NAME,
+      noiHienTai: projection.finalStatus === 'DA_VE_TRUNG_TAM'
+        ? CENTER_NAME
+        : (String(projection.currentPlace || latest.noiHienTai || '').trim() || CENTER_NAME),
+      lyDoHienTai: safeLatestDiagnosis.slice(0,1000),
+      tinhTrangChanDoanHienTai: safeLatestDiagnosis.slice(0,1500),
+      ghiChu: String(last.ghiChu || latest.ghiChu || '').slice(0,2000),
       trangThaiHienTai: projection.finalStatus,
       trangThaiKyThuat: projection.closed ? 'CLOSED' : 'OPEN',
       ngayChuyenVien: projection.transferDate,
       ngaySuKienHienTai: projection.finalDate,
       ngayTuVong: projection.isDeath ? projection.finalDate : '',
-      noiTuVong: projection.isDeath ? String(last.noiTuVong || projection.currentPlace || '') : '',
-      ngayGioVe: projection.finalStatus === 'DA_VE_TRUNG_TAM' ? now : 0,
-      tinhTrangKhiVe: projection.finalStatus === 'DA_VE_TRUNG_TAM' ? String(last.tinhTrangKhiVe || '') : '',
-      thuTuChang: Math.max(1, projection.stages.length), version: Number(latest.version || 1) + 1,
-      updatedAt: now, updatedByUid: user.uid, updatedByEmail: normalizeEmail(user.email), updatedByName: displayName
+      noiTuVong: projection.isDeath ? String(last.noiTuVong || projection.currentPlace || '').trim().slice(0,300) : '',
+      ngayGioDi: Number(latest.ngayGioDi || latest.createdAt || 0),
+      ngayGioVe: projection.finalStatus === 'DA_VE_TRUNG_TAM' ? ts : 0,
+      tinhTrangKhiVe: projection.finalStatus === 'DA_VE_TRUNG_TAM' ? String(last.tinhTrangKhiVe || '').trim().slice(0,1500) : '',
+      thuTuChang: Math.max(1, projection.stages.length),
+      version: Number(latest.version || 1) + 1,
+      createdAt: Number(latest.createdAt || latest.ngayGioDi || 0),
+      createdByUid: String(latest.createdByUid || ''),
+      createdByEmail: String(latest.createdByEmail || ''),
+      createdByName: String(latest.createdByName || ''),
+      updatedAt: ts,
+      updatedByUid: user.uid,
+      updatedByEmail: email,
+      updatedByName: displayName
     };
-    delete info.chang; delete info.lichSu; delete info.dieuChinh;
+    if (validGender(latest.gioiTinh)) info.gioiTinh = latest.gioiTinh;
+    if (validBirthYear(latest.namSinh)) info.namSinh = Number(latest.namSinh);
     updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/thongTin`] = info;
     updates[`${REPORT_ROOT}/hanhTrinhDangMo/${latest.doiTuongKey}`] = projection.closed ? null : caseId;
+
     const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${projection.finalDate.slice(0,7)}`)).key;
     updates[`${REPORT_ROOT}/nhatKy/${projection.finalDate.slice(0,7)}/${logId}`] = {
       action: action === 'DELETE' ? 'Xóa sự kiện hành trình' : 'Điều chỉnh sự kiện hành trình',
-      content: `${formatPersonName(latest.doiTuong)} · ${reason.slice(0,300)}`, reportId: caseId, loaiBaoCao: 'CHUYEN_VIEN', dataDate: projection.finalDate,
-      uid: user.uid, email: normalizeEmail(user.email), displayName, role: roleForLog(), createdAt: now
+      content: `${formatPersonName(latest.doiTuong)} · ${reason.slice(0,300)}`,
+      reportId: caseId,
+      loaiBaoCao: 'CHUYEN_VIEN',
+      dataDate: projection.finalDate,
+      uid: user.uid,
+      email,
+      displayName,
+      role: roleForLog(),
+      createdAt: ts
     };
+
+    console.debug('[Journey correction write]', {
+      caseId,
+      eventId,
+      action,
+      fromStatus: effective.trangThaiSau || '',
+      toStatus: projection.finalStatus,
+      closed: projection.closed,
+      transferDate: projection.transferDate,
+      finalDate: projection.finalDate,
+      canonicalTransferType: canonicalType,
+      updatePaths: Object.keys(updates)
+    });
+
     const openedFromDetail = state.correctionFromDetail;
     await update(ref(db), updates);
     closeJourneyCorrection();
@@ -1819,7 +1918,18 @@ async function saveJourneyCorrection(action) {
       }
     }
   } catch (error) {
-    console.error(error); $('journeyCorrectionError').textContent = friendlyError(error, 'Không thể điều chỉnh sự kiện. Vui lòng thử lại.');
+    const raw = String(error && (error.code || error.message) || error || '');
+    console.error('[Journey correction failed]', {
+      caseId: state.correctionCaseId,
+      eventId: state.correctionEventId,
+      role: effectiveRole(),
+      online: navigator.onLine,
+      code: error && error.code || '',
+      message: error && error.message || String(error || '')
+    }, error);
+    $('journeyCorrectionError').textContent = /permission[_ -]?denied/i.test(raw)
+      ? 'Không thể lưu điều chỉnh do Firebase từ chối dữ liệu. Vui lòng tải lại trang rồi thử lại; nếu vẫn lỗi, gửi ảnh Console có dòng “Journey correction failed”.'
+      : friendlyError(error, 'Không thể điều chỉnh sự kiện. Vui lòng thử lại.');
   } finally { if (button) button.disabled = false; }
 }
 
