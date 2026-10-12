@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.11
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.12
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -581,3 +581,93 @@ body > .notification-layer { z-index:1900!important; }
 .dashboard-insights>.dashboard-trend-panel{width:100%!important;grid-column:auto!important;margin:0!important;}
 .dashboard-trend-panel .dashboard-trend-chart{min-height:260px;}
 @media (max-width:700px){.dashboard-trend-panel .dashboard-trend-chart{min-height:200px;}}
+
+
+/* ======================================================================
+   v10.0.12 — APPROVED SUBTLE MEDICAL BACKGROUND PATTERN
+   Visual-only layer. No business/auth/data semantics are changed.
+   Approved baseline: pale medical crosses + dotted accents + soft pastel blobs.
+   ====================================================================== */
+:root{
+  --ui-pattern-bg:#fbf9fd;
+  --ui-pattern-pink:rgba(255,102,183,.065);
+  --ui-pattern-lavender:rgba(166,144,232,.055);
+  --ui-pattern-blue:rgba(118,151,196,.04);
+}
+
+/* The decorative surface lives on the shell, behind every module card.
+   It is a background rather than an overlay, so it can never intercept clicks. */
+.app-shell{
+  background-color:var(--ui-pattern-bg)!important;
+  background-image:
+    radial-gradient(circle at 94% 8%, rgba(255,182,220,.17) 0 82px, rgba(255,210,233,.085) 83px 148px, transparent 149px),
+    radial-gradient(circle at 15% 88%, rgba(202,188,246,.105) 0 76px, rgba(228,218,252,.055) 77px 142px, transparent 143px),
+    radial-gradient(circle at 72% 56%, rgba(210,225,246,.075) 0 62px, transparent 63px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='132' height='132' viewBox='0 0 132 132'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M18 11v14M11 18h14' stroke='%23ff66b7' stroke-opacity='.10' stroke-width='4'/%3E%3Cpath d='M103 83v12M97 89h12' stroke='%23a690e8' stroke-opacity='.085' stroke-width='3.4'/%3E%3C/g%3E%3Cg fill='%2399acd0' fill-opacity='.105'%3E%3Ccircle cx='79' cy='23' r='1.7'/%3E%3Ccircle cx='87' cy='23' r='1.7'/%3E%3Ccircle cx='95' cy='23' r='1.7'/%3E%3Ccircle cx='79' cy='31' r='1.7'/%3E%3Ccircle cx='87' cy='31' r='1.7'/%3E%3Ccircle cx='95' cy='31' r='1.7'/%3E%3Ccircle cx='79' cy='39' r='1.7'/%3E%3Ccircle cx='87' cy='39' r='1.7'/%3E%3Ccircle cx='95' cy='39' r='1.7'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat:no-repeat,no-repeat,no-repeat,repeat;
+  background-size:470px 470px,430px 430px,390px 390px,132px 132px;
+  background-position:right -165px top -155px,left 155px bottom -190px,72% 56%,0 0;
+}
+
+/* Keep all working surfaces clean and opaque enough for maximum readability. */
+.workspace-panel,
+.page-card,
+.card,
+.summary-item,
+.summary-card,
+.entry-panel,
+.report-workspace,
+.journey-case-card,
+.journey-card,
+.modal,
+.modal-card,
+.dialog,
+.confirm-card,
+.header-account-menu,
+.notification-layer,
+.notification-panel{
+  background-color:#fff;
+}
+
+/* Content views stay transparent so the approved pattern can breathe only in gaps. */
+.view,
+.view.active{
+  background:transparent!important;
+}
+
+/* Keep header/sidebar intentionally clean, matching the approved mockup. */
+.app-header,
+.nav{
+  background:#fff!important;
+}
+
+/* Tablet: lower decorative density and soften the large blobs. */
+@media (max-width:1023px){
+  .app-shell{
+    background-image:
+      radial-gradient(circle at 96% 7%, rgba(255,190,223,.095) 0 58px, transparent 120px),
+      radial-gradient(circle at 10% 92%, rgba(209,198,245,.07) 0 56px, transparent 118px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='154' height='154' viewBox='0 0 154 154'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M20 13v12M14 19h12' stroke='%23ff66b7' stroke-opacity='.072' stroke-width='3.2'/%3E%3C/g%3E%3Cg fill='%2399acd0' fill-opacity='.075'%3E%3Ccircle cx='103' cy='39' r='1.5'/%3E%3Ccircle cx='111' cy='39' r='1.5'/%3E%3Ccircle cx='119' cy='39' r='1.5'/%3E%3Ccircle cx='103' cy='47' r='1.5'/%3E%3Ccircle cx='111' cy='47' r='1.5'/%3E%3Ccircle cx='119' cy='47' r='1.5'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat:no-repeat,no-repeat,repeat;
+    background-size:330px 330px,330px 330px,154px 154px;
+    background-position:right -140px top -120px,left -120px bottom -125px,0 0;
+  }
+}
+
+/* Mobile: a sparse, nearly imperceptible texture only. */
+@media (max-width:700px){
+  .app-shell{
+    background-color:#fcfafd!important;
+    background-image:
+      radial-gradient(circle at 104% 3%, rgba(255,196,226,.065) 0 48px, transparent 92px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='184' height='184' viewBox='0 0 184 184'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M21 14v10M16 19h10' stroke='%23ff66b7' stroke-opacity='.052' stroke-width='3'/%3E%3C/g%3E%3Cg fill='%2399acd0' fill-opacity='.052'%3E%3Ccircle cx='132' cy='54' r='1.4'/%3E%3Ccircle cx='140' cy='54' r='1.4'/%3E%3Ccircle cx='132' cy='62' r='1.4'/%3E%3Ccircle cx='140' cy='62' r='1.4'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat:no-repeat,repeat;
+    background-size:250px 250px,184px 184px;
+    background-position:right -115px top -95px,0 0;
+  }
+}
+
+/* Accessibility: remove decorative layers for users requesting reduced visual complexity. */
+@media (prefers-reduced-transparency: reduce){
+  .app-shell{background-image:none!important;background-color:#fbf9fd!important;}
+}
