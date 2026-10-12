@@ -2116,3 +2116,12 @@
   .journey-history-advanced .journey-history-status-field,
   .journey-history-filter-actions { grid-column: 1 !important; }
 }
+
+
+/* v10.0.13 — History correction + restored journey focus */
+.journey-history-edit{background:#fff!important;border-color:#ecd6e3!important;color:#8f2a61!important}
+.journey-history-edit:hover{background:#fff4fa!important;border-color:#ff66b7!important;color:#b92f77!important}
+.journey-card-restored{outline:3px solid rgba(255,102,183,.28);box-shadow:0 0 0 8px rgba(255,102,183,.08),0 14px 36px rgba(185,47,119,.10)!important;transition:outline-color .25s ease,box-shadow .25s ease}
+.journey-correction-audit{margin-top:10px;padding:10px 12px;border:1px solid #f0d7e4;border-radius:10px;background:#fff7fb;display:grid;gap:3px;font-size:11.5px;color:#5f5260}
+.journey-correction-audit strong{color:#b92f77;font-size:12px}.journey-correction-audit span{line-height:1.45}.journey-correction-audit-row{display:grid;gap:2px;padding-top:7px;margin-top:5px;border-top:1px dashed #efdbe6}
+@media(max-width:700px){.journey-history-actions{flex-wrap:wrap}.journey-history-edit{min-width:86px}.journey-correction-audit{font-size:11px}}

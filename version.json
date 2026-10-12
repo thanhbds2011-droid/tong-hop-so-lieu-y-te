@@ -1,7 +1,7 @@
 {
-  "version": "10.0.12",
+  "version": "10.0.13",
   "releasedAt": "2026-10-12",
-  "title": "Giao diện nền hoa văn y tế pastel đã duyệt",
-  "businessBaseline": "v10.0.11 login syntax hotfix + v10.0.10 simplified dashboard + v10.0.9 journey/home-return flow",
-  "message": "Bổ sung nền hoa văn y tế pastel rất nhẹ theo Visual UI Baseline đã duyệt; không thay đổi nghiệp vụ, dữ liệu, Firebase Rules hay Apps Script Gateway."
+  "title": "Chuẩn hóa họ tên và sửa trực tiếp hành trình trong Lịch sử",
+  "businessBaseline": "v10.0.12 approved medical pattern + v10.0.11 login hotfix + v10.0.9 journey/home-return flow",
+  "message": "Chuẩn hóa tên người khi lưu/hiển thị; ADMIN có nút Sửa tại Lịch sử để điều chỉnh sự kiện cuối, tái projection CLOSED↔OPEN, khôi phục hanhTrinhDangMo và giữ audit. Không thay đổi Firebase Rules hay Apps Script Gateway."
 }

@@ -35,7 +35,7 @@ const REPORT_ROOT = 'baoCaoYTe';
 const YTE_APP_ROOT = 'yTeApp';
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '10.0.12';
+const APP_RUNTIME_VERSION = '10.0.13';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -268,15 +268,23 @@ async function readOptionalSnapshot(referenceOrQuery) {
   catch (error) { console.warn('Không đọc được thống kê tự động:', error); return {}; }
 }
 function formatPersonName(value) {
-  return String(value || '').trim().replace(/\s+/g, ' ').split(' ').filter(Boolean).map((word) => {
-    const lower = word.toLocaleLowerCase('vi-VN');
-    return lower.charAt(0).toLocaleUpperCase('vi-VN') + lower.slice(1);
-  }).join(' ');
+  let text = String(value || '').trim().replace(/\s+/g, ' ');
+  if (!text) return '';
+  // Chuẩn hóa khoảng trắng quanh ngoặc và dấu gạch nối trước khi title-case.
+  text = text.replace(/\s*\(\s*/g, ' (').replace(/\s+\)/g, ')').replace(/\s*-\s*/g, '-').trim();
+  text = text.toLocaleLowerCase('vi-VN');
+  // Viết hoa đầu chuỗi, đầu mỗi từ, sau dấu ngoặc mở và sau dấu gạch nối.
+  return text.replace(/(^|[\s(-])(\p{L})/gu, (match, prefix, letter) => prefix + letter.toLocaleUpperCase('vi-VN'));
+}
+function formatHumanNameOrFallback(value) {
+  const text = String(value || '').trim();
+  if (!text || text.includes('@') || text === 'Quản trị hệ thống' || /^[A-Za-z0-9_-]{20,}$/.test(text)) return text;
+  return formatPersonName(text);
 }
 async function preferredDisplayNameForUid(uid, fallback) {
   if (!uid) return String(fallback || '').trim();
   const raw = await readOptionalSnapshot(ref(firebaseDatabase, `${YTE_APP_ROOT}/tenHienThi/${uid}`));
-  return String(raw.displayName || fallback || '').trim().slice(0, 150);
+  return formatHumanNameOrFallback(raw.displayName || fallback || '').slice(0, 150);
 }
 function ownerUser(user) {
   return !!(user && normalizeEmail(user.email) === OWNER_EMAIL);
@@ -290,7 +298,7 @@ async function ensureYteUserProfile(user) {
   const now = Date.now();
   await update(profileRef, {
     email: normalizeEmail(user.email),
-    displayName: String(user.displayName || old.displayName || user.email || '').slice(0, 150),
+    displayName: formatHumanNameOrFallback(user.displayName || old.displayName || user.email || '').slice(0, 150),
     photoURL: String(user.photoURL || old.photoURL || '').slice(0, 1000),
     provider: providerId(user),
     active: true,
@@ -309,7 +317,7 @@ async function ensureReportOwnerPermission(user) {
   const now = Date.now();
   await update(permissionRef, {
     email: normalizeEmail(user.email),
-    displayName: String(user.displayName || old.displayName || 'Quản trị hệ thống').slice(0, 150),
+    displayName: formatHumanNameOrFallback(user.displayName || old.displayName || 'Quản trị hệ thống').slice(0, 150),
     role: 'admin',
     active: true,
     source: old.source || 'OWNER_BOOTSTRAP',
@@ -347,7 +355,7 @@ function effectivePermissionRecord(user, tongHopPermission, reportPermission, pr
   return {
     ...preferred,
     email: normalizeEmail((user && user.email) || preferred.email),
-    displayName: String(preferredName || preferred.displayName || (user && user.displayName) || (user && user.email) || ''),
+    displayName: formatHumanNameOrFallback(preferredName || preferred.displayName || (user && user.displayName) || (user && user.email) || ''),
     role,
     active: true,
     source: preferred.source || 'EFFECTIVE_APP_PERMISSION'
@@ -366,7 +374,7 @@ async function writeAuditLog(user, action, content, dataDate) {
     dataDate: dataDate || '',
     uid: user.uid,
     email: normalizeEmail(user.email),
-    displayName: String((user.appPermission && user.appPermission.displayName) || user.displayName || user.email || '').slice(0, 150),
+    displayName: formatHumanNameOrFallback((user.appPermission && user.appPermission.displayName) || user.displayName || user.email || '').slice(0, 150),
     role: user.appRole || '',
     createdAt: serverTimestamp()
   });
@@ -380,7 +388,7 @@ async function ensureOwnerPermission(user) {
   if (old.active === true && old.role === 'admin' && normalizeEmail(old.email) === normalizeEmail(user.email)) return;
   await update(permissionRef, {
     email: normalizeEmail(user.email),
-    displayName: String(user.displayName || 'Quản trị hệ thống').slice(0, 150),
+    displayName: formatHumanNameOrFallback(user.displayName || 'Quản trị hệ thống').slice(0, 150),
     username: normalizeUsername(old.username || String(user.email || '').split('@')[0]),
     role: 'admin',
     active: true,
@@ -397,9 +405,7 @@ async function ensureRegistrationRequest(user, profile) {
   const existing = snapshotObject(snap);
   if (existing.status === 'pending' || existing.status === 'approved' || existing.status === 'rejected') return existing;
 
-  const displayName = String(
-    (profile && profile.displayName) || user.displayName || user.email || ''
-  ).trim().slice(0, 150);
+  const displayName = formatHumanNameOrFallback((profile && profile.displayName) || user.displayName || user.email || '').slice(0, 150);
   const username = normalizeUsername(
     (profile && profile.username) || existing.username || String(user.email || '').split('@')[0]
   );
@@ -731,7 +737,7 @@ async function getDerivedSourceDetailsFirebase(filter) {
       id: marker.caseId,
       markerKey: marker.markerKey,
       kind,
-      name: String(info.doiTuong || 'Đối tượng'),
+      name: formatPersonName(info.doiTuong) || 'Đối tượng',
       birthYear: info.namSinh == null ? '' : String(info.namSinh),
       gender: String(info.gioiTinh || ''),
       date: marker.date,
@@ -837,7 +843,11 @@ async function personDetailDiagnosticFirebase(code, date) {
 }
 function normalizePersonIdentity(value) { return normalizeMetricText(formatPersonName(value)); }
 function activePersonRows(raw) {
-  return Object.keys(raw || {}).map((id) => ({ id, ...(raw[id] || {}) })).filter((item) => String(item.status || 'ACTIVE') !== 'DELETED');
+  return Object.keys(raw || {}).map((id) => {
+    const item = { id, ...(raw[id] || {}) };
+    if (item.hoTen) item.hoTen = formatPersonName(item.hoTen);
+    return item;
+  }).filter((item) => String(item.status || 'ACTIVE') !== 'DELETED');
 }
 async function getPersonDetailListFirebase(payload) {
   await requireAnyYteViewer();
@@ -892,7 +902,7 @@ async function savePersonDetailFirebase(payload) {
   const detailId = editingId || push(groupRef).key;
   const existing = raw[detailId] || null;
   if (editingId && (!existing || String(existing.status||'ACTIVE')==='DELETED')) throw new Error('Không tìm thấy đối tượng cần cập nhật.');
-  const displayName = String(user.appPermission.displayName || user.displayName || user.email || '');
+  const displayName = formatHumanNameOrFallback(user.appPermission.displayName || user.displayName || user.email || '');
   const email = normalizeEmail(user.email), now = Date.now();
   const record = {
     id: detailId, date, code: category.code, metricName: category.name,
@@ -964,7 +974,7 @@ async function deletePersonDetailFirebase(payload) {
   const groupRef = ref(firebaseDatabase, `${PERSON_DETAIL_ROOT}/${date}/${category.code}`);
   const groupSnap = await get(groupRef), raw = snapshotObject(groupSnap), active = activePersonRows(raw), existing = raw[detailId] || null;
   if (!existing || String(existing.status||'ACTIVE')==='DELETED') throw new Error('Đối tượng đã được xóa hoặc không còn tồn tại.');
-  const displayName = String(user.appPermission.displayName || user.displayName || user.email || ''), email = normalizeEmail(user.email), now=Date.now();
+  const displayName = formatHumanNameOrFallback(user.appPermission.displayName || user.displayName || user.email || ''), email = normalizeEmail(user.email), now=Date.now();
   const summaryRef = ref(firebaseDatabase, `${ROOT}/soLieuTheoNgay/${date}/${category.code}`);
   const publicSummaryRef = ref(firebaseDatabase, `${ROOT}/congKhai/soLieuTheoNgay/${date}/${category.code}`);
   const [summarySnap, publicSummarySnap] = await Promise.all([
@@ -1094,7 +1104,7 @@ async function adjustDailyDataFirebase(payload) {
   const now = Date.now();
   const createdAt = current.createdAt || now;
   const createdByUid = current.createdByUid || user.uid;
-  const displayName = String(user.appPermission.displayName || user.displayName || user.email || '');
+  const displayName = formatHumanNameOrFallback(user.appPermission.displayName || user.displayName || user.email || '');
 
   const updates = {};
   updates[`${ROOT}/soLieuTheoNgay/${date}/${code}`] = {
@@ -1231,7 +1241,7 @@ async function deleteDailyDataFirebase(payload) {
   }
 
   const beforeValue = Number(current.giaTri || 0);
-  const displayName = String(user.appPermission.displayName || user.displayName || user.email || '');
+  const displayName = formatHumanNameOrFallback(user.appPermission.displayName || user.displayName || user.email || '');
   const historyRef = push(ref(firebaseDatabase, `${ROOT}/lichSu/${monthKey(date)}`));
   const logRef = push(ref(firebaseDatabase, `${ROOT}/nhatKy/${monthKey(date)}`));
   const updates = {};
@@ -1309,7 +1319,7 @@ async function getDailyDataHistoryFirebase(payload) {
       beforeNote: String(item.beforeNote || ''),
       afterNote: String(item.afterNote || ''),
       reason: String(item.reason || ''),
-      displayName: String((displayNames[item.uid] && displayNames[item.uid].displayName) || item.displayName || item.email || ''),
+      displayName: formatHumanNameOrFallback((displayNames[item.uid] && displayNames[item.uid].displayName) || item.displayName || item.email || ''),
       email: normalizeEmail(item.email),
       role: String(item.role || ''),
       autoValue: item.autoValue == null ? null : Number(item.autoValue || 0),
@@ -1448,7 +1458,7 @@ async function getAdminUsersFirebase() {
     users.push({
       id: uid,
       uid,
-      name: (customNames[uid] && customNames[uid].displayName) || item.displayName || request.displayName || profile.displayName || item.email || request.email || profile.email || '',
+      name: formatHumanNameOrFallback((customNames[uid] && customNames[uid].displayName) || item.displayName || request.displayName || profile.displayName || item.email || request.email || profile.email || ''),
       username: item.username || request.username || '',
       email: item.email || request.email || profile.email || '',
       role: hasPermission ? uiRole(item.role) : '',
@@ -1476,7 +1486,7 @@ async function adminApproveRegistrationFirebase(uid, roleValue) {
   const oldPerm = snapshotObject(oldPermSnap);
   const email = normalizeEmail(request.email || profile.email || oldPerm.email);
   if (!email) throw new Error('Không tìm thấy thông tin tài khoản đã đăng nhập Google.');
-  const displayName = String(request.displayName || profile.displayName || oldPerm.displayName || email).slice(0, 150);
+  const displayName = formatHumanNameOrFallback(request.displayName || profile.displayName || oldPerm.displayName || email).slice(0, 150);
   const now = Date.now();
   const updates = {};
   updates[`${ROOT}/cauHinh/taiKhoanDaXoa/${uid}`] = null;
@@ -1546,7 +1556,7 @@ async function adminSetUserStatusFirebase(uid, statusValue) {
   const tongHop = snapshotObject(tongHopSnap), report = snapshotObject(reportSnap), profile = snapshotObject(profileSnap);
   const role = effectivePermissionRole(tongHop, report, { email: tongHop.email || report.email || profile.email || '' }) || dbRole(tongHop.role || report.role || 'viewer');
   const email = normalizeEmail(tongHop.email || report.email || profile.email);
-  const displayName = String(tongHop.displayName || report.displayName || profile.displayName || email || uid).slice(0,150);
+  const displayName = formatHumanNameOrFallback(tongHop.displayName || report.displayName || profile.displayName || email || uid).slice(0,150);
   const now = Date.now();
   const updates = {};
   updates[`${ROOT}/phanQuyen/${uid}`] = {
@@ -1589,7 +1599,7 @@ async function adminSetUserRoleFirebase(uid, roleValue) {
   if (!(tongHopSnap && tongHopSnap.exists()) && !(reportSnap && reportSnap.exists())) throw new Error('Không tìm thấy quyền tài khoản.');
   const email = normalizeEmail(tongHop.email || report.email || profile.email);
   if (!email) throw new Error('Không xác định được email tài khoản.');
-  const displayName = String(tongHop.displayName || report.displayName || profile.displayName || email).slice(0,150);
+  const displayName = formatHumanNameOrFallback(tongHop.displayName || report.displayName || profile.displayName || email).slice(0,150);
   const now = Date.now();
   const updates = {};
   updates[`${ROOT}/phanQuyen/${uid}`] = {
@@ -1668,7 +1678,7 @@ async function adminDeleteUserFromAppFirebase(uid) {
   if (email === OWNER_EMAIL && !ownerUser(admin)) {
     throw new Error('Không thể xóa tài khoản quản trị hệ thống.');
   }
-  const displayName = String(permission.displayName || request.displayName || reportPermission.displayName || profile.displayName || email || uid).slice(0, 150);
+  const displayName = formatHumanNameOrFallback(permission.displayName || request.displayName || reportPermission.displayName || profile.displayName || email || uid).slice(0, 150);
 
   // Ghi audit trước khi gỡ quyền; không xóa lịch sử nghiệp vụ của tài khoản đích.
   await writeAuditLog(admin, 'Xóa tài khoản khỏi ứng dụng', `${displayName}${email ? ` (${email})` : ''}`, '');
@@ -1736,7 +1746,7 @@ async function getAdminReportUsersFirebase() {
     return {
       id: uid,
       uid,
-      name: (customNames[uid] && customNames[uid].displayName) || permission.displayName || profile.displayName || permission.email || profile.email || '',
+      name: formatHumanNameOrFallback((customNames[uid] && customNames[uid].displayName) || permission.displayName || profile.displayName || permission.email || profile.email || ''),
       email: normalizeEmail(permission.email || profile.email || ''),
       role: permission.role || '',
       roleLabel: uiReportRole(permission.role),
@@ -1765,7 +1775,7 @@ async function adminSetReportPermissionFirebase(uid, roleValue, activeValue) {
   const profile = snapshotObject(profileSnap), oldReport = snapshotObject(oldReportSnap), oldTongHop = snapshotObject(oldTongHopSnap);
   const email = normalizeEmail(profile.email || oldReport.email || oldTongHop.email);
   if (!email) throw new Error('Tài khoản chưa đăng nhập Google nên chưa có thông tin để cấp quyền.');
-  const displayName = String(oldTongHop.displayName || oldReport.displayName || profile.displayName || email).slice(0,150);
+  const displayName = formatHumanNameOrFallback(oldTongHop.displayName || oldReport.displayName || profile.displayName || email).slice(0,150);
   const now = Date.now();
   const updates = {};
   updates[`${ROOT}/phanQuyen/${uid}`] = {
@@ -3268,7 +3278,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.12'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.13'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       setupProductionUiBindings();
       if($('headerUserSummary'))$('headerUserSummary').addEventListener('click',function(){setAccountMenu($('headerAccountMenu').hidden)});
@@ -3283,6 +3293,7 @@ var AUTO_SYNC_MS = 300000;
       if($('sourceDetailClose'))$('sourceDetailClose').onclick=closeSourceDetail;if($('sourceDetailCloseBottom'))$('sourceDetailCloseBottom').onclick=closeSourceDetail;if($('sourceDetailLayer'))$('sourceDetailLayer').addEventListener('click',function(event){if(event.target===$('sourceDetailLayer'))closeSourceDetail()});if($('sourceDetailOpenReports'))$('sourceDetailOpenReports').onclick=function(){closeSourceDetail();showView('journey')};
       if($('personDetailClose'))$('personDetailClose').onclick=closePersonManager;if($('personDetailCloseBottom'))$('personDetailCloseBottom').onclick=closePersonManager;if($('personDetailLayer'))$('personDetailLayer').addEventListener('click',function(event){if(event.target===$('personDetailLayer'))closePersonManager()});
       if($('personDetailForm'))$('personDetailForm').addEventListener('submit',savePersonManagerEntry);if($('personDetailNew'))$('personDetailNew').onclick=function(){resetPersonManagerForm();$('personDetailName').focus()};if($('personDetailReset'))$('personDetailReset').onclick=resetPersonManagerForm;
+      if($('personDetailName'))$('personDetailName').addEventListener('blur',function(){this.value=formatPersonName(this.value)});
       if($('personDetailList'))$('personDetailList').addEventListener('click',function(event){var button=event.target.closest('.person-detail-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id');if(kind==='edit')editPersonManagerEntry(id);if(kind==='delete')deletePersonManagerEntry(id)});
       $('confirmAccept').onclick=function(){closeConfirm(true)};$('confirmCancel').onclick=function(){closeConfirm(false)};$('confirmLayer').addEventListener('click',function(event){if(event.target===$('confirmLayer'))closeConfirm(false)});
       $('adjustCancel').onclick=closeAdjustDialog;$('adjustSave').onclick=submitAdjustment;$('adjustLayer').addEventListener('click',function(event){if(event.target===$('adjustLayer'))closeAdjustDialog()});
@@ -3294,6 +3305,7 @@ var AUTO_SYNC_MS = 300000;
       $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else if(category&&category.personDetailKind)openPersonManager(code);else openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(code&&!(category&&category.derivedKind))openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});if($('entryTrainingContent'))$('entryTrainingContent').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
       $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;if($('adminStatusFilter'))$('adminStatusFilter').onchange=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value'),card=button.closest('.admin-account-card');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='approve-selected'){var select=card&&card.querySelector('.admin-role-select');if(select)approveRegistration(id,select.value);return}if(kind==='save-role'){var roleSelect=card&&card.querySelector('.admin-role-select');if(roleSelect)adminRole(id,roleSelect.value);return}if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-viewer')approveRegistration(id,'Xem');if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='revoke')adminRevoke(id);if(kind==='delete')adminDelete(id)});
       $('displayNameCancel').onclick=closeDisplayNameDialog;$('displayNameCloseX').onclick=closeDisplayNameDialog;$('displayNameSave').onclick=saveDisplayName;$('displayNameLayer').addEventListener('click',function(event){if(event.target===$('displayNameLayer'))closeDisplayNameDialog()});
+      if($('displayNameInput'))$('displayNameInput').addEventListener('blur',function(){this.value=formatPersonName(this.value)});
       $('btnAddCategory').onclick=function(){openCategoryDialog('')};$('btnReloadCategories').onclick=function(){loadAdminCategories(true)};$('categorySearch').oninput=renderAdminCategories;$('adminCategories').addEventListener('click',function(event){var button=event.target.closest('.category-action');if(!button)return;var kind=button.getAttribute('data-kind'),code=button.getAttribute('data-code'),value=button.getAttribute('data-value');if(kind==='edit')openCategoryDialog(code);if(kind==='status')setCategoryStatus(code,value)});
       document.addEventListener('visibilitychange',function(){if(!document.hidden&&Date.now()-state.lastSyncAt>90000)syncData(true)});window.addEventListener('focus',function(){if(Date.now()-state.lastSyncAt>90000)syncData(true)});
       // Public Dashboard phải có thể khởi động và nhận realtime độc lập với việc Firebase Auth
