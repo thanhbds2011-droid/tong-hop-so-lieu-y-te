@@ -12,20 +12,21 @@
 <link href="./manifest.webmanifest" rel="manifest"/>
 <link href="./assets/favicon-32.png" rel="icon" sizes="32x32" type="image/png"/>
 <link href="./assets/apple-touch-icon.png" rel="apple-touch-icon"/>
-<link href="./styles.css?v=10.0.15" rel="stylesheet"/>
+<script src="./theme.js?v=10.0.16"></script>
+<link href="./styles.css?v=10.0.16" rel="stylesheet"/>
 
-<link href="./reports.css?v=10.0.15" rel="stylesheet"/>
-<link href="./journeys.css?v=10.0.15" rel="stylesheet"/>
-<link href="./production-ui.css?v=10.0.15" rel="stylesheet"/>
+<link href="./reports.css?v=10.0.16" rel="stylesheet"/>
+<link href="./journeys.css?v=10.0.16" rel="stylesheet"/>
+<link href="./production-ui.css?v=10.0.16" rel="stylesheet"/>
 
-<script src="./app-config.js?v=10.0.15"></script>
-<script defer src="./ui.js?v=10.0.15"></script>
-<script defer src="./update-manager.js?v=10.0.15"></script>
+<script src="./app-config.js?v=10.0.16"></script>
+<script defer src="./ui.js?v=10.0.16"></script>
+<script defer src="./update-manager.js?v=10.0.16"></script>
 <script defer src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"></script>
-<script defer src="./notifications.js?v=10.0.15"></script>
-<script src="./app.js?v=10.0.15" type="module"></script>
-<script src="./reports.js?v=10.0.15" type="module"></script>
-<script src="./journeys.js?v=10.0.15" type="module"></script>
+<script defer src="./notifications.js?v=10.0.16"></script>
+<script src="./app.js?v=10.0.16" type="module"></script>
+<script src="./reports.js?v=10.0.16" type="module"></script>
+<script src="./journeys.js?v=10.0.16" type="module"></script>
 
 </head>
 <body>
@@ -34,7 +35,7 @@
 <button aria-controls="appNav" aria-expanded="false" aria-label="Mở menu" class="mobile-nav-toggle" hidden id="mobileNavToggle" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
 <div class="brand">
 <div aria-hidden="true" class="brand-mark brand-mark-logo">
-<img alt="" src="./assets/icon-192.png?v=10.0.15"/>
+<img alt="" src="./assets/icon-192.png?v=10.0.16"/>
 </div>
 <div class="brand-copy">
 <strong class="brand-org brand-desktop">Trung tâm Bảo trợ xã hội Tân Hiệp</strong>
@@ -49,6 +50,8 @@
 </div>
 <div class="header-actions">
 <div class="header-greeting" hidden id="headerGreeting"></div>
+<button aria-label="Bảo vệ mắt" aria-pressed="false" class="theme-toggle-button theme-eye-button" id="btnEyeComfort" title="Bảo vệ mắt" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="2.5"></circle></svg></button>
+<button aria-label="Chế độ tối" aria-pressed="false" class="theme-toggle-button theme-dark-button" id="btnDarkMode" title="Chế độ tối" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.7A8.5 8.5 0 1 1 11.3 3a7 7 0 0 0 9.7 9.7Z"></path></svg></button>
 <button aria-controls="notificationLayer" aria-expanded="false" aria-haspopup="true" aria-label="Thông báo" class="notification-bell-button" hidden id="btnNotificationCenter" title="Thông báo" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg><span class="notification-badge" hidden id="notificationBadge">0</span></button>
 <button class="btn btn-light btn-top" id="btnAccount" type="button">Đăng nhập</button>
 <button class="header-user-summary" hidden id="headerUserSummary" type="button" aria-controls="headerAccountMenu" aria-expanded="false" aria-haspopup="menu" title="Tài khoản">
@@ -66,7 +69,7 @@
 <div aria-live="polite" id="message"></div>
 <nav aria-label="Điều hướng chính" class="nav" id="appNav">
 <div class="mobile-nav-head">
-  <div class="mobile-nav-identity"><img alt="" src="./assets/icon-192.png?v=10.0.15"/><div><strong>Phòng Y tế</strong><span id="mobileNavUser">Tài khoản</span></div></div>
+  <div class="mobile-nav-identity"><img alt="" src="./assets/icon-192.png?v=10.0.16"/><div><strong>Phòng Y tế</strong><span id="mobileNavUser">Tài khoản</span></div></div>
   <button aria-label="Đóng menu" class="mobile-nav-close" id="mobileNavClose" type="button">×</button>
 </div>
 <button class="nav-item active" data-view="dashboard" id="navDashboard" type="button">
@@ -77,7 +80,7 @@
 </button>
 <button class="nav-item" data-view="journey" hidden="" id="navJourney" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Chuyển viện</span></button>
 <div class="nav-footer" aria-label="Thông tin ứng dụng">
-<div><strong id="sidebarVersion">Phiên bản v10.0.15</strong><span class="connection-pill"><i id="sidebarConnectionDot"></i><span id="sidebarConnectionText">Đang kết nối</span></span></div>
+<div><strong id="sidebarVersion">Phiên bản v10.0.16</strong><span class="connection-pill"><i id="sidebarConnectionDot"></i><span id="sidebarConnectionText">Đang kết nối</span></span></div>
 <button class="nav-drawer-logout" hidden id="mobileNavLogout" type="button">Đăng xuất</button>
 </div>
 </nav>
@@ -147,7 +150,7 @@
 <div class="login-stage">
 <div class="login-shell">
 <button aria-label="Đóng đăng nhập" class="login-close" id="btnLoginClose" type="button">×</button>
-<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=10.0.15"/></div>
+<div class="login-logo-wrap"><img alt="Logo Ứng dụng Phòng Y tế" class="login-app-logo" src="./assets/icon-512.png?v=10.0.16"/></div>
 <div class="auth-panel active" id="loginPanel">
 <div class="login-action-copy">
 <h2>Ứng dụng Phòng Y tế</h2>

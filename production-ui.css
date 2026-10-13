@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.15
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.16
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -671,3 +671,259 @@ body > .notification-layer { z-index:1900!important; }
 @media (prefers-reduced-transparency: reduce){
   .app-shell{background-image:none!important;background-color:#fbf9fd!important;}
 }
+
+/* ======================================================================
+   v10.0.16 — GLOBAL EYE COMFORT + DARK MODE
+   UI-only. Theme state is local to this browser/device (theme.js).
+   No overlay is used; themes apply to the full application surface.
+   ====================================================================== */
+.theme-toggle-button{
+  appearance:none;
+  width:40px;
+  min-width:40px;
+  height:40px;
+  padding:0;
+  border:1px solid transparent;
+  border-radius:11px;
+  background:#fff;
+  color:#40566b;
+  display:inline-grid;
+  place-items:center;
+  cursor:pointer;
+  transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease;
+}
+.theme-toggle-button svg{width:20px;height:20px;pointer-events:none;}
+.theme-toggle-button:hover{background:#fff4fa;color:#b92f77;border-color:#f6cde2;}
+.theme-toggle-button:active{transform:translateY(1px);}
+.theme-toggle-button:focus-visible{outline:3px solid rgba(185,47,119,.35);outline-offset:2px;}
+.theme-toggle-button[aria-pressed="true"]{background:#fff0f8;color:#b92f77;border-color:#f2bed9;box-shadow:0 0 0 3px rgba(255,102,183,.08);}
+.theme-eye-button[aria-pressed="true"]{background:#fff8df;color:#8c6813;border-color:#ecd99d;}
+
+/* Eye-comfort mode: warm, low-glare, full-screen surface. */
+html.theme-eye-comfort{
+  --ui-bg:#f3ede0;
+  --ui-pattern-bg:#f3ede0;
+  --ui-line:#e6dccb;
+  --color-bg:#f3ede0;
+  --color-surface:#fffaf0;
+  --color-surface-subtle:#fbf4e8;
+  --color-surface-muted:#f3eadb;
+  --color-border:#e5d9c6;
+  background:#f3ede0!important;
+}
+html.theme-eye-comfort body{background:#f3ede0!important;}
+html.theme-eye-comfort .app-header,
+html.theme-eye-comfort .nav{background:#fbf5e9!important;border-color:#e5dbc9!important;}
+html.theme-eye-comfort .app-shell{
+  background-color:#f3ede0!important;
+  background-image:
+    radial-gradient(circle at 94% 8%, rgba(224,184,126,.105) 0 82px, rgba(233,209,167,.065) 83px 148px, transparent 149px),
+    radial-gradient(circle at 15% 88%, rgba(203,181,143,.09) 0 76px, rgba(224,211,184,.055) 77px 142px, transparent 143px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='142' height='142' viewBox='0 0 142 142'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M18 12v13M12 18.5h13' stroke='%23c79a6d' stroke-opacity='.085' stroke-width='3.6'/%3E%3C/g%3E%3Cg fill='%23b59c76' fill-opacity='.075'%3E%3Ccircle cx='93' cy='30' r='1.5'/%3E%3Ccircle cx='101' cy='30' r='1.5'/%3E%3Ccircle cx='109' cy='30' r='1.5'/%3E%3Ccircle cx='93' cy='38' r='1.5'/%3E%3Ccircle cx='101' cy='38' r='1.5'/%3E%3Ccircle cx='109' cy='38' r='1.5'/%3E%3C/g%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat,no-repeat,repeat!important;
+  background-size:470px 470px,430px 430px,142px 142px!important;
+  background-position:right -165px top -155px,left 155px bottom -190px,0 0!important;
+}
+html.theme-eye-comfort :is(.workspace-panel,.page-card,.card,.summary-item,.summary-card,.entry-panel,.report-workspace,.journey-case-card,.journey-card,.confirm-card,.adjust-card,.category-card,.data-history-card,.report-dialog-card,.journey-dialog-card,.journey-correction-card,.person-detail-card,.source-detail-card,.notification-panel,.header-account-menu){
+  background-color:#fffaf0!important;
+  border-color:#e9decd!important;
+}
+html.theme-eye-comfort :is(input,select,textarea,.header-search){background-color:#fffdf7!important;border-color:#dfd4c3!important;}
+html.theme-eye-comfort .nav-item:hover{background:#f6eddf!important;}
+html.theme-eye-comfort .nav-item.active{background:#f8e9eb!important;}
+html.theme-eye-comfort .theme-toggle-button,
+html.theme-eye-comfort .notification-bell-button{background:#fbf5e9!important;}
+html.theme-eye-comfort .theme-eye-button[aria-pressed="true"]{background:#efe0ae!important;color:#6f5312!important;border-color:#d8bf73!important;}
+
+/* Dark mode variables and full-screen base. */
+html.theme-dark{
+  --ui-bg:#0f1420;
+  --ui-pattern-bg:#0f1420;
+  --ui-navy:#f7f8fb;
+  --ui-muted:#c2c9d4;
+  --ui-line:#303846;
+  --ui-pink-soft:#392437;
+  --ui-shadow:0 6px 24px rgba(0,0,0,.28);
+  --color-bg:#0f1420;
+  --color-surface:#171e2a;
+  --color-surface-subtle:#1d2532;
+  --color-surface-muted:#232c3a;
+  --color-text:#f7f8fb;
+  --color-text-2:#d4dae3;
+  --color-text-3:#aeb7c5;
+  --color-border:#323b49;
+  --color-border-strong:#465162;
+  background:#0f1420!important;
+  color-scheme:dark;
+}
+html.theme-dark body{background:#0f1420!important;color:#f7f8fb!important;}
+html.theme-dark .app-header,
+html.theme-dark .nav{background:#121923!important;border-color:#303846!important;color:#f7f8fb!important;}
+html.theme-dark .app-shell{
+  background-color:#0f1420!important;
+  background-image:
+    radial-gradient(circle at 94% 8%, rgba(255,102,183,.075) 0 82px, rgba(166,144,232,.045) 83px 148px, transparent 149px),
+    radial-gradient(circle at 15% 88%, rgba(103,129,174,.06) 0 76px, transparent 143px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='148' height='148' viewBox='0 0 148 148'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M19 12v13M13 18.5h13' stroke='%23ff66b7' stroke-opacity='.095' stroke-width='3.5'/%3E%3Cpath d='M111 95v11M105.5 100.5h11' stroke='%23988be1' stroke-opacity='.075' stroke-width='3'/%3E%3C/g%3E%3Cg fill='%238fa7cc' fill-opacity='.07'%3E%3Ccircle cx='91' cy='30' r='1.5'/%3E%3Ccircle cx='99' cy='30' r='1.5'/%3E%3Ccircle cx='107' cy='30' r='1.5'/%3E%3Ccircle cx='91' cy='38' r='1.5'/%3E%3Ccircle cx='99' cy='38' r='1.5'/%3E%3Ccircle cx='107' cy='38' r='1.5'/%3E%3C/g%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat,no-repeat,repeat!important;
+  background-size:470px 470px,430px 430px,148px 148px!important;
+  background-position:right -165px top -155px,left 155px bottom -190px,0 0!important;
+}
+
+/* Dark-mode working surfaces. Keep every module inside the same theme. */
+html.theme-dark :is(.workspace-panel,.page-card,.card,.summary-item,.summary-card,.entry-panel,.entry-side-summary-item,.report-workspace,.report-summary-workspace,.journey-case-card,.journey-card,.journey-history-table-wrap,.journey-history-card,.confirm-card,.adjust-card,.category-card,.data-history-card,.report-dialog-card,.journey-dialog-card,.journey-correction-card,.person-detail-card,.source-detail-card,.notification-panel,.header-account-menu,.reconciliation-list-panel,.reconciliation-detail-panel,.report-preview-card){
+  background:#171e2a!important;
+  border-color:#323b49!important;
+  color:#f7f8fb!important;
+  box-shadow:0 6px 22px rgba(0,0,0,.18)!important;
+}
+html.theme-dark :is(.view,.view.active){background:transparent!important;color:#f7f8fb!important;}
+html.theme-dark :is(h1,h2,h3,h4,h5,h6,p,label,strong,b,small,span,td,th,legend,summary,.page-heading h2,.page-title-row h2,.page-subtitle,.section-head h3,.section-caption,.field label,.header-user-copy strong,.header-user-copy small,.brand-org,.brand-app,.nav-item,.connection-pill,.dashboard-chart-scope,.summary-unrecorded){
+  color:#f7f8fb!important;
+}
+html.theme-dark :is(.page-subtitle,.section-caption,.header-user-copy small,.brand-app,.dashboard-chart-scope,.summary-unrecorded,.connection-pill,.entry-recent-note){color:#c2c9d4!important;}
+html.theme-dark .brand-mobile-title{color:#f7f8fb!important;}
+html.theme-dark .header-user-summary{background:#1b2330!important;color:#f7f8fb!important;border-color:#303846!important;}
+html.theme-dark .header-user-summary:hover,
+html.theme-dark .header-user-summary[aria-expanded="true"]{background:#252e3c!important;border-color:#665269!important;}
+html.theme-dark .header-user-avatar{background:#283345!important;color:#fff!important;}
+html.theme-dark .header-account-menu{background:#171e2a!important;border-color:#323b49!important;}
+html.theme-dark .header-account-action{color:#f7f8fb!important;}
+html.theme-dark .header-account-action:hover{background:#2a2230!important;color:#fff!important;}
+html.theme-dark .header-account-action.is-logout{color:#ff9ab0!important;border-color:#323b49!important;}
+
+html.theme-dark :is(input,select,textarea,.header-search){
+  background:#111824!important;
+  color:#fff!important;
+  border-color:#394556!important;
+  box-shadow:none!important;
+}
+html.theme-dark :is(input,textarea)::placeholder{color:#929dac!important;opacity:1;}
+html.theme-dark select option{background:#111824;color:#fff;}
+html.theme-dark .header-search svg{color:#dce2ea!important;}
+
+html.theme-dark .nav-item{color:#e9edf3!important;}
+html.theme-dark .nav-item:hover{background:#1d2633!important;color:#fff!important;}
+html.theme-dark .nav-item.active{background:#342034!important;color:#ff9bd0!important;box-shadow:inset 3px 0 0 #ff66b7!important;}
+html.theme-dark .nav-footer{background:#171e2a!important;border-color:#323b49!important;}
+html.theme-dark .nav-footer strong{color:#ff91c9!important;}
+
+html.theme-dark .theme-toggle-button,
+html.theme-dark .notification-bell-button{
+  background:#171e2a!important;
+  color:#eef2f7!important;
+  border-color:#303846!important;
+}
+html.theme-dark .theme-toggle-button:hover,
+html.theme-dark .notification-bell-button:hover{background:#252e3c!important;color:#fff!important;border-color:#4a5667!important;}
+html.theme-dark .theme-toggle-button[aria-pressed="true"]{background:#3b2840!important;color:#ffb5dc!important;border-color:#754b68!important;}
+html.theme-dark .theme-eye-button[aria-pressed="true"]{background:#3b3526!important;color:#ffe5a0!important;border-color:#776843!important;}
+
+html.theme-dark :is(.btn-soft,.btn-light,.small-btn:not(.btn-primary),.icon-btn,.dialog-close,.notification-text-button){
+  background:#1b2330!important;
+  color:#f7f8fb!important;
+  border-color:#3a4555!important;
+}
+html.theme-dark :is(.btn-soft,.btn-light,.small-btn:not(.btn-primary),.icon-btn,.dialog-close):hover{background:#273142!important;color:#fff!important;border-color:#556276!important;}
+html.theme-dark .btn-primary{color:#fff!important;}
+html.theme-dark .btn-danger{background:#2a1c24!important;color:#ff9ab0!important;border-color:#653449!important;}
+
+html.theme-dark :is(.dashboard-other-metrics,.dashboard-other-metrics>summary,.dashboard-metric-track,.report-summary-notice,.data-history-note,.journey-correction-audit,.entry-side-summary-item){background:#1a2230!important;border-color:#323b49!important;}
+html.theme-dark .dashboard-metric-track{background:#2b3544!important;}
+html.theme-dark .dashboard-chart-empty,
+html.theme-dark .dashboard-empty{color:#bac3cf!important;}
+html.theme-dark .trend-axis span,
+html.theme-dark .trend-day>span,
+html.theme-dark .dashboard-chart-legend span{color:#e1e6ed!important;}
+html.theme-dark .trend-columns::before,
+html.theme-dark .trend-bars::before{border-color:#303a49!important;}
+
+/* Tables across summary/admin/journey/history. */
+html.theme-dark :is(table,.report-summary-table,.journey-history-table){background:#171e2a!important;color:#f7f8fb!important;}
+html.theme-dark :is(table thead,.report-summary-table thead,.journey-history-table thead){background:#202836!important;color:#fff!important;}
+html.theme-dark :is(table th,.report-summary-table th,.journey-history-table th){color:#fff!important;border-color:#35404f!important;}
+html.theme-dark :is(table td,.report-summary-table td,.journey-history-table td){color:#f7f8fb!important;border-color:#303a48!important;background:#171e2a!important;}
+html.theme-dark :is(table tbody tr:nth-child(odd) td,.report-summary-table tbody tr:nth-child(even) td,.journey-history-table tbody tr:nth-child(odd) td){background:#1a2230!important;}
+html.theme-dark :is(table tbody tr:hover td,.journey-history-table tbody tr:hover td){background:#222c3a!important;}
+html.theme-dark .journey-history-table .history-col-name strong{color:#fff!important;}
+
+/* Journey cards, timeline, statuses and modal surfaces. */
+html.theme-dark :is(.journey-subtabs,.journey-toolbar,.journey-history-filter-shell,.journey-detail-section,.journey-detail-note,.journey-correction-audit-row){border-color:#303a48!important;}
+html.theme-dark .journey-subtabs{background:#161e2a!important;}
+html.theme-dark .journey-subtab{color:#e7ebf1!important;}
+html.theme-dark .journey-subtab.active{background:#38223a!important;color:#ff9bd0!important;}
+html.theme-dark :is(.journey-card,.journey-history-table tbody tr){background:#171e2a!important;border-color:#323b49!important;}
+html.theme-dark :is(.journey-person-name-line strong,.journey-card strong,.journey-route-place,.journey-detail-value,.journey-detail-grid strong){color:#fff!important;}
+html.theme-dark :is(.journey-person-facts,.journey-location-label,.journey-detail-grid span,.journey-history-route,.journey-history-summary){color:#c6ced8!important;}
+html.theme-dark .journey-action-popover{background:#171e2a!important;border-color:#3a4555!important;box-shadow:0 14px 34px rgba(0,0,0,.38)!important;}
+html.theme-dark .journey-action-popover button{color:#fff!important;background:transparent!important;}
+html.theme-dark .journey-action-popover button:hover{background:#252e3c!important;}
+
+/* Generic dialog layers: only surfaces change; overlays remain transparent/functional. */
+html.theme-dark :is(.confirm-layer,.adjust-layer,.category-layer,.data-history-layer,.report-dialog-layer,.journey-dialog-layer,.journey-correction-layer,.person-detail-layer,.source-detail-layer){color:#f7f8fb!important;}
+html.theme-dark :is(.confirm-head,.adjust-head,.category-head,.data-history-head,.journey-correction-head,.person-detail-head,.source-detail-head){border-color:#323b49!important;}
+
+/* Combined mode: dark remains the base, eye comfort gently warms surfaces. */
+html.theme-dark.theme-eye-comfort{
+  --ui-bg:#151711;
+  --ui-pattern-bg:#151711;
+  --color-bg:#151711;
+}
+html.theme-dark.theme-eye-comfort body{background:#151711!important;}
+html.theme-dark.theme-eye-comfort .app-shell{background-color:#151711!important;}
+html.theme-dark.theme-eye-comfort .app-header,
+html.theme-dark.theme-eye-comfort .nav{background:#191b17!important;}
+html.theme-dark.theme-eye-comfort :is(.workspace-panel,.page-card,.card,.summary-item,.summary-card,.entry-panel,.report-workspace,.journey-card,.journey-history-table-wrap,.confirm-card,.adjust-card,.category-card,.data-history-card,.report-dialog-card,.journey-dialog-card,.journey-correction-card,.person-detail-card,.source-detail-card,.notification-panel,.header-account-menu){background:#1d201a!important;border-color:#3d4035!important;}
+html.theme-dark.theme-eye-comfort :is(input,select,textarea,.header-search){background:#171913!important;border-color:#474a3c!important;color:#fff!important;}
+
+@media(max-width:1023px){
+  .theme-toggle-button{width:38px;min-width:38px;height:38px;border-radius:10px;}
+  .theme-toggle-button svg{width:19px;height:19px;}
+  .header-actions{gap:5px!important;}
+}
+@media(max-width:480px){
+  .theme-toggle-button{width:34px;min-width:34px;height:34px;border-radius:9px;}
+  .theme-toggle-button svg{width:18px;height:18px;}
+}
+
+/* v10.0.16 theme completeness: login, mobile nav, journey mobile cards/statuses. */
+html.theme-eye-comfort .login-shell{background:#fffaf0!important;border-color:#e9decd!important;}
+html.theme-eye-comfort .mobile-bottom-nav{background:rgba(251,245,233,.98)!important;border-color:#e5dbc9!important;}
+
+html.theme-dark .login-shell{background:#171e2a!important;border-color:#323b49!important;box-shadow:0 18px 48px rgba(0,0,0,.28)!important;}
+html.theme-dark :is(.login-action-copy h2,.login-action-copy p,.login-security-note,.login-org){color:#f7f8fb!important;}
+html.theme-dark .login-close{background:#1b2330!important;color:#f7f8fb!important;border-color:#3a4555!important;}
+html.theme-dark .mobile-bottom-nav{background:rgba(18,25,35,.98)!important;border-color:#303846!important;}
+html.theme-dark .mobile-bottom-item{color:#e7ebf1!important;}
+html.theme-dark .mobile-bottom-item.active{background:#342034!important;color:#ff9bd0!important;}
+html.theme-dark .mobile-nav-head{border-color:#303846!important;}
+html.theme-dark .mobile-nav-close{color:#fff!important;}
+
+html.theme-dark #journeyView .journey-history-table tbody tr,
+html.theme-dark #journeyView .journey-history-table tbody tr:nth-child(odd),
+html.theme-dark #journeyView .journey-history-table tbody tr.is-center-death{background:#171e2a!important;border-color:#323b49!important;}
+html.theme-dark #journeyView .journey-history-table tbody td,
+html.theme-dark #journeyView .journey-history-table tbody tr:nth-child(odd) td,
+html.theme-dark #journeyView .journey-history-table tbody tr.is-center-death td{background:transparent!important;color:#f7f8fb!important;border-color:#303a48!important;}
+html.theme-dark #journeyView .journey-history-table .history-mobile-field-label,
+html.theme-dark #journeyView .journey-history-table .history-col-birth::before,
+html.theme-dark #journeyView .journey-history-table .history-col-gender::before,
+html.theme-dark #journeyView .journey-history-table .history-col-date::before,
+html.theme-dark #journeyView .journey-history-table .history-col-status::before{color:#c2c9d4!important;}
+html.theme-dark #journeyView .journey-status{color:#fff!important;border-color:#536071!important;background:#26303e!important;}
+html.theme-dark #journeyView .journey-status.is-tracking{background:#173a3d!important;border-color:#37686a!important;}
+html.theme-dark #journeyView .journey-status.is-treatment{background:#29402a!important;border-color:#526c4e!important;}
+html.theme-dark #journeyView .journey-status.is-followup{background:#473a18!important;border-color:#79672c!important;}
+html.theme-dark #journeyView .journey-status.is-transfer{background:#342846!important;border-color:#644f7b!important;}
+html.theme-dark #journeyView .journey-status.is-returned{background:#173a3d!important;border-color:#37686a!important;}
+html.theme-dark #journeyView .journey-status.is-death{background:#47232c!important;border-color:#7a4050!important;}
+
+/* Additional module surfaces to keep themes truly full-screen and consistent. */
+html.theme-eye-comfort :is(.admin-overview-card,.entry-selected-card,.journey-dashboard-card,.journey-form-card,.delete-daily-card,.display-name-card,.report-preview-card,.notification-device-card,.center-death-dialog){background:#fffaf0!important;border-color:#e9decd!important;}
+html.theme-dark :is(.admin-overview-card,.entry-selected-card,.journey-dashboard-card,.journey-form-card,.delete-daily-card,.display-name-card,.report-preview-card,.notification-device-card,.center-death-dialog){background:#171e2a!important;border-color:#323b49!important;color:#f7f8fb!important;}
+html.theme-dark :is(.journey-detail-dialog,.journey-update-dialog){color:#f7f8fb!important;}
+
+/* Dedicated sign-in screen inherits the selected full-screen theme too. */
+html.theme-eye-comfort body:has(#authView.active){background:#f3ede0!important;}
+html.theme-dark body:has(#authView.active){background:#0f1420!important;color:#f7f8fb!important;}
+html.theme-dark.theme-eye-comfort body:has(#authView.active){background:#151711!important;}

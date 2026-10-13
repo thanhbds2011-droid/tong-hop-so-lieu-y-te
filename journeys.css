@@ -2127,7 +2127,7 @@
 @media(max-width:700px){.journey-history-actions{flex-wrap:wrap}.journey-history-edit{min-width:86px}.journey-correction-audit{font-size:11px}}
 
 /* ======================================================================
-   FINAL JOURNEY UI NORMALIZATION v10.0.15
+   FINAL JOURNEY UI NORMALIZATION v10.0.16
    UI-only normalization. No journey business logic, permissions, realtime,
    markers, audit, Firebase schema or event behavior is changed here.
    ====================================================================== */
@@ -2503,3 +2503,77 @@
 
 /* Fail-safe: application state always wins over presentation rules. */
 #journeyView [hidden]{display:none!important;}
+
+/* ======================================================================
+   v10.0.16 — HISTORY ICON ACTIONS + NAME ALIGNMENT
+   Presentation only. Existing data-kind values and journey handlers remain.
+   ====================================================================== */
+@media (min-width:981px){
+  #journeyView .journey-history-table .history-col-name,
+  #journeyView .journey-history-table thead th:nth-child(2){text-align:center!important;}
+  #journeyView .journey-history-table .history-name-row{display:flex!important;align-items:center;justify-content:center;text-align:center!important;}
+  #journeyView .journey-history-table .history-col-name strong{text-align:center!important;}
+  #journeyView .journey-history-table .history-col-actions,
+  #journeyView .journey-history-table thead th:nth-child(7){width:158px!important;min-width:158px!important;max-width:158px!important;}
+}
+
+#journeyView .journey-history-actions{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  width:auto!important;
+}
+#journeyView .journey-history-icon-btn{
+  appearance:none;
+  width:42px;
+  min-width:42px;
+  height:42px;
+  padding:0;
+  border-radius:11px;
+  border:1px solid #e4e8ef;
+  background:#fff;
+  color:#345b80;
+  display:inline-grid;
+  place-items:center;
+  cursor:pointer;
+  transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+#journeyView .journey-history-icon-btn svg{width:18px;height:18px;pointer-events:none;}
+#journeyView .journey-history-icon-btn:hover{transform:translateY(-1px);box-shadow:0 5px 12px rgba(16,42,67,.08);}
+#journeyView .journey-history-icon-btn:focus-visible{outline:3px solid rgba(255,102,183,.26);outline-offset:2px;}
+#journeyView .journey-history-icon-btn.is-view{color:#0f69b4;border-color:#bcd8ec;background:#f4faff;}
+#journeyView .journey-history-icon-btn.is-view:hover{background:#eaf6ff;border-color:#7fbae3;}
+#journeyView .journey-history-icon-btn.is-edit{color:#d92f78;border-color:#f2c4dc;background:#fff4fa!important;}
+#journeyView .journey-history-icon-btn.is-edit:hover{background:#ffe9f5!important;border-color:#ff66b7!important;color:#b92f77!important;}
+#journeyView .journey-history-icon-btn.is-delete{color:#e2383f;border-color:#f2bdc0;background:#fff6f6;}
+#journeyView .journey-history-icon-btn.is-delete:hover{background:#ffe8e9;border-color:#ef858a;color:#bf1e27;}
+
+@media (min-width:981px) and (max-width:1279px){
+  #journeyView .journey-history-table .history-col-actions,
+  #journeyView .journey-history-table thead th:nth-child(7){width:150px!important;min-width:150px!important;max-width:150px!important;}
+  #journeyView .journey-history-icon-btn{width:40px;min-width:40px;height:40px;}
+}
+
+@media (max-width:980px){
+  #journeyView .journey-history-table .journey-history-actions{justify-content:flex-start!important;width:100%!important;}
+  #journeyView .journey-history-icon-btn{width:44px;min-width:44px;height:44px;}
+}
+
+/* Dark theme support is defined globally in production-ui.css; preserve icon semantics. */
+html.theme-dark #journeyView .journey-history-icon-btn{background:#1b2330;border-color:#3a4555;color:#eef2f7;}
+html.theme-dark #journeyView .journey-history-icon-btn.is-view{background:#172635;border-color:#345d7d;color:#8fd0ff;}
+html.theme-dark #journeyView .journey-history-icon-btn.is-edit{background:#30202b!important;border-color:#70405a!important;color:#ff9bcf!important;}
+html.theme-dark #journeyView .journey-history-icon-btn.is-delete{background:#321d22;border-color:#754048;color:#ff9aa2;}
+
+/* Fail-safe: application state always wins over presentation. */
+#journeyView [hidden]{display:none!important;}
+@media (max-width:980px){
+  #journeyView .journey-history-table .journey-history-actions{
+    display:flex!important;
+    grid-template-columns:none!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:8px!important;
+  }
+}

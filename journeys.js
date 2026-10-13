@@ -136,6 +136,8 @@ function validBirthYear(value) {
 function iconSvg(name, className = 'journey-btn-icon') {
   const icons = {
     eye: '<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.5"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 17h.01"/>',
+    trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/>',
     edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/>',
     home: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>',
     pin: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
@@ -804,9 +806,10 @@ function historyDiagnosis(item) {
 }
 function historyActionHtml(item) {
   const admin = canDelete();
-  const edit = admin ? `<button class="small-btn btn-soft journey-history-action journey-history-edit" data-kind="edit" data-id="${esc(item.id)}" type="button">${iconSvg('edit')}<span>Sửa</span></button>` : '';
-  const menu = admin ? `<details class="journey-action-menu"><summary aria-label="Thao tác khác">${iconSvg('dots')}</summary><div class="journey-action-popover"><button class="journey-history-action journey-menu-delete" data-kind="journey-delete" data-id="${esc(item.id)}" type="button"><span>Xóa</span></button></div></details>` : '';
-  return `<div class="journey-history-actions"><button class="small-btn btn-soft journey-history-action" data-kind="view" data-id="${esc(item.id)}" type="button">${iconSvg('eye')}<span>Xem</span></button>${edit}${menu}</div>`;
+  const view = `<button class="journey-history-icon-btn journey-history-action is-view" data-kind="view" data-id="${esc(item.id)}" type="button" aria-label="Xem chi tiết" title="Xem chi tiết">${iconSvg('info')}</button>`;
+  const edit = admin ? `<button class="journey-history-icon-btn journey-history-action journey-history-edit is-edit" data-kind="edit" data-id="${esc(item.id)}" type="button" aria-label="Sửa hành trình" title="Sửa hành trình">${iconSvg('edit')}</button>` : '';
+  const remove = admin ? `<button class="journey-history-icon-btn journey-history-action journey-menu-delete is-delete" data-kind="journey-delete" data-id="${esc(item.id)}" type="button" aria-label="Xóa hành trình" title="Xóa hành trình">${iconSvg('trash')}</button>` : '';
+  return `<div class="journey-history-actions">${view}${edit}${remove}</div>`;
 }
 
 function openHistoryCorrection(caseId) {

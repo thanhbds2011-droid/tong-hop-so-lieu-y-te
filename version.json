@@ -1,7 +1,7 @@
 {
-  "version": "10.0.15",
-  "releasedAt": "2026-10-12",
-  "title": "Chuẩn hóa họ tên và sửa trực tiếp hành trình trong Lịch sử",
-  "businessBaseline": "v10.0.12 approved medical pattern + v10.0.11 login hotfix + v10.0.9 journey/home-return flow",
-  "message": "Chuẩn hóa tên người khi lưu/hiển thị; ADMIN có nút Sửa tại Lịch sử để điều chỉnh sự kiện cuối, tái projection CLOSED↔OPEN, khôi phục hanhTrinhDangMo và giữ audit. Không thay đổi Firebase Rules hay Apps Script Gateway."
+  "version": "10.0.16",
+  "releasedAt": "2026-10-13",
+  "title": "Giao diện thao tác icon, bảo vệ mắt và chế độ tối toàn màn hình",
+  "businessBaseline": "v10.0.15 journey UI normalization + v10.0.14 correction hotfix + v10.0.13 history correction",
+  "message": "UI/UX only: thu gọn thao tác Lịch sử thành icon, căn giữa họ tên, bổ sung Bảo vệ mắt và Chế độ tối toàn ứng dụng có lưu localStorage. Không thay đổi Firebase Rules, Apps Script Gateway hay luồng nghiệp vụ."
 }
