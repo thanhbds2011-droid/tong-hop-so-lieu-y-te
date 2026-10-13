@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.16
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.17
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -927,3 +927,291 @@ html.theme-dark :is(.journey-detail-dialog,.journey-update-dialog){color:#f7f8fb
 html.theme-eye-comfort body:has(#authView.active){background:#f3ede0!important;}
 html.theme-dark body:has(#authView.active){background:#0f1420!important;color:#f7f8fb!important;}
 html.theme-dark.theme-eye-comfort body:has(#authView.active){background:#151711!important;}
+
+/* ======================================================================
+   v10.0.17 — FINAL DARK THEME COMPLETENESS + VIETNAMESE TYPOGRAPHY
+   UI/CSS-only hardening. No business/data/permission logic is changed.
+   This block intentionally loads last so legacy light surfaces cannot leak
+   into dark mode after realtime/dynamic rendering.
+   ====================================================================== */
+
+/* ---------- Dark surfaces that previously retained light hard-coded fills ---------- */
+html.theme-dark :is(
+  .dashboard-filter-panel,
+  .dashboard-other-metrics,
+  .dashboard-other-metrics>summary,
+  .dashboard-period-badge,
+  .entry-simple-panel,
+  .entry-selected-card,
+  .entry-selected-facts>div,
+  .entry-today-panel,
+  .entry-recent-panel,
+  .entry-today-item,
+  .entry-side-summary-item,
+  .data-history-note,
+  .loading-box,
+  .offline-card,
+  .admin-tabs,
+  .admin-tab.active,
+  .admin-account-section,
+  .admin-account-card,
+  .admin-row-popover,
+  .report-preview-table-wrap,
+  .report-preview-empty,
+  .report-preview-footer,
+  .journey-dashboard-card,
+  .journey-create-mode-actions,
+  .journey-form-card,
+  .journey-readonly-place
+){
+  background:#171e2a!important;
+  border-color:#323b49!important;
+  color:#f7f8fb!important;
+}
+
+/* Entry > Hôm nay: retain semantic accent without any white/pastel glare. */
+html.theme-dark .entry-today-item{
+  background:#231b27!important;
+  border-color:#513248!important;
+}
+html.theme-dark .entry-today-item:nth-child(2n){
+  background:#182230!important;
+  border-color:#30465f!important;
+}
+html.theme-dark .entry-today-item>span,
+html.theme-dark .entry-today-item>small{color:#d7dde6!important;}
+html.theme-dark .entry-today-item>strong{color:#ff65af!important;}
+html.theme-dark .entry-today-item.is-blue>strong{color:#75b8ff!important;}
+html.theme-dark .entry-today-item.is-green>strong{color:#65d39d!important;}
+
+/* Dashboard / summary badges and secondary counters. */
+html.theme-dark .dashboard-period-badge{
+  background:#352239!important;
+  color:#ff9bd0!important;
+  border:1px solid #65405a!important;
+}
+html.theme-dark .dashboard-other-metrics>summary{
+  background:#1d2532!important;
+  color:#f3b8d6!important;
+}
+html.theme-dark .dashboard-other-metrics>summary strong{
+  background:#2b3442!important;
+  color:#ff9bd0!important;
+  border:1px solid #465162!important;
+}
+html.theme-dark .dashboard-notification-item>span,
+html.theme-dark .dashboard-recent-item>.recent-icon{
+  background:#352239!important;
+  color:#ff9bd0!important;
+}
+
+/* Icons must not become pale white islands in a dark surface. */
+html.theme-dark :is(.page-title-icon,.section-icon,.summary-icon,.dashboard-range-icon,.journey-section-icon){
+  background:#302034!important;
+  color:#ff9bd0!important;
+  border-color:#5d3a55!important;
+  box-shadow:inset 0 0 0 1px rgba(255,155,208,.08)!important;
+}
+html.theme-dark .page-title-icon.is-home{background:#28213b!important;color:#c5a8ff!important;}
+html.theme-dark .page-title-icon.is-entry,
+html.theme-dark .section-icon.is-entry{background:#332d1f!important;color:#ffd27d!important;}
+html.theme-dark .summary-icon.is-transfer{background:#352239!important;color:#ff83c1!important;}
+html.theme-dark .summary-icon.is-death{background:#3b232b!important;color:#ff8fa7!important;}
+
+/* Status chips / automatic-data chips use dark-compatible tints. */
+html.theme-dark .status-chip{
+  color:#eef2f7!important;
+  background:#26303e!important;
+  border-color:#536071!important;
+}
+html.theme-dark .status-chip.is-auto{background:#2d2740!important;border-color:#5e517c!important;color:#d8c5ff!important;}
+html.theme-dark .status-chip.is-complete{background:#173a3d!important;border-color:#37686a!important;color:#9fe0d8!important;}
+html.theme-dark .status-chip.is-adjusted{background:#473a18!important;border-color:#79672c!important;color:#ffe19a!important;}
+
+/* Journey: tabs, badges, pills, readonly places and dynamically-rendered cards. */
+html.theme-dark #journeyView .journey-tab-badge{
+  background:#3b2840!important;
+  color:#ffb5dc!important;
+  border:1px solid #754b68!important;
+}
+html.theme-dark #journeyView .journey-type-pill{
+  background:#252e3c!important;
+  color:#f1f4f8!important;
+  border-color:#536071!important;
+}
+html.theme-dark #journeyView .journey-readonly-place{
+  background:#182a2b!important;
+  color:#a9dfd8!important;
+  border-color:#355c5a!important;
+}
+html.theme-dark #journeyView .journey-readonly-place>span{color:#8fd4ca!important;}
+html.theme-dark #journeyView .journey-readonly-place strong{color:#dff8f4!important;}
+html.theme-dark #journeyView .journey-create-mode-actions{background:#1b2330!important;border-color:#323b49!important;}
+html.theme-dark #journeyView .journey-create-mode-btn{background:transparent!important;color:#e7ebf1!important;border-color:transparent!important;}
+html.theme-dark #journeyView .journey-create-mode-btn.active{background:#38223a!important;color:#ff9bd0!important;border-color:#754b68!important;}
+html.theme-dark #journeyView :is(.journey-dashboard-open,.journey-dashboard-transfer,.journey-dashboard-death){
+  background:#171e2a!important;
+  border-color:#323b49!important;
+}
+html.theme-dark #journeyView .journey-dashboard-open{box-shadow:inset 3px 0 0 #3d7771!important;}
+html.theme-dark #journeyView .journey-dashboard-transfer{box-shadow:inset 3px 0 0 #a04d82!important;}
+html.theme-dark #journeyView .journey-dashboard-death{box-shadow:inset 3px 0 0 #9a4c5d!important;}
+html.theme-dark #journeyView :is(.journey-kpi-label,.journey-dashboard-card small){color:#c2c9d4!important;}
+html.theme-dark #journeyView .journey-dashboard-card strong{color:#fff!important;}
+
+/* Native/read-only/disabled controls: never leave a bright white patch in dark mode. */
+html.theme-dark :is(
+  button:disabled,
+  .btn:disabled,
+  .small-btn:disabled,
+  .icon-btn:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  input[readonly],
+  textarea[readonly],
+  [aria-disabled="true"]
+){
+  background:#232c3a!important;
+  color:#9da8b7!important;
+  border-color:#3a4555!important;
+  box-shadow:none!important;
+  opacity:1!important;
+}
+html.theme-dark :is(input:disabled,select:disabled,textarea:disabled,input[readonly],textarea[readonly])::placeholder{
+  color:#7f8a99!important;
+  opacity:1!important;
+}
+html.theme-dark :is(button:disabled,.btn:disabled,.small-btn:disabled,.icon-btn:disabled) svg{
+  color:#9da8b7!important;
+  stroke:currentColor!important;
+  opacity:.9!important;
+}
+
+/* Menu / icon buttons / row actions remain dark even if legacy light rules are specific. */
+html.theme-dark :is(
+  .journey-action-menu>summary,
+  .journey-card-actions .icon-btn,
+  .admin-row-menu>summary,
+  .admin-action,
+  .admin-report-action,
+  .category-action,
+  .notification-text-button,
+  .data-history-close,
+  .category-close,
+  .adjust-close,
+  .confirm-close,
+  .source-detail-close,
+  .person-detail-close
+){
+  background:#1b2330!important;
+  color:#eef2f7!important;
+  border-color:#3a4555!important;
+}
+html.theme-dark :is(.admin-row-popover,.journey-action-popover){background:#171e2a!important;border-color:#3a4555!important;color:#f7f8fb!important;}
+
+/* Report preview and legacy report surfaces may still be opened by compatibility flows. */
+html.theme-dark :is(.report-preview-table,.report-summary-table){background:#171e2a!important;color:#f7f8fb!important;}
+html.theme-dark :is(.report-preview-table th,.report-summary-table th){background:#202836!important;color:#f7f8fb!important;border-color:#35404f!important;}
+html.theme-dark :is(.report-preview-table td,.report-summary-table td){background:#171e2a!important;color:#f7f8fb!important;border-color:#303a48!important;}
+html.theme-dark :is(.report-preview-table tbody tr:nth-child(even) td,.report-summary-table tbody tr:nth-child(even) td){background:#1a2230!important;}
+html.theme-dark .report-preview-empty{background:#171e2a!important;color:#c2c9d4!important;border-color:#3a4555!important;}
+html.theme-dark .report-preview-footer{background:#171e2a!important;border-color:#323b49!important;}
+html.theme-dark .report-summary-notice{background:#192536!important;color:#cfe1f5!important;border-color:#30465f!important;}
+html.theme-dark .report-summary-status{background:#26303e!important;color:#e7ebf1!important;border-color:#536071!important;}
+
+/* Admin/auxiliary surfaces that are generated dynamically. */
+html.theme-dark :is(.admin-account-card,.admin-account-section,.admin-table,.category-table,.admin-user-table,.admin-report-table){background:#171e2a!important;color:#f7f8fb!important;border-color:#323b49!important;}
+html.theme-dark .admin-tab.active{background:#252e3c!important;color:#ff9bd0!important;}
+html.theme-dark .admin-section-count{background:#252e3c!important;color:#e7ebf1!important;border-color:#3a4555!important;}
+html.theme-dark .admin-account-avatar{background:#352239!important;color:#ff9bd0!important;}
+html.theme-dark :is(.admin-role-select,.admin-report-role-select){background:#111824!important;color:#fff!important;border-color:#394556!important;}
+html.theme-dark .admin-account-card.is-pending{background:#292619!important;}
+html.theme-dark :is(.toast,.inline-state,.loading-box){border-color:#3a4555!important;}
+html.theme-dark .toast.ok{background:#1c2b20!important;color:#bfe5c6!important;}
+html.theme-dark .inline-state.warn{background:#332c19!important;color:#ffe09a!important;}
+
+/* Modal/card sticky headers and footers must follow the dark surface. */
+html.theme-dark :is(
+  .data-history-head,
+  .confirm-actions,
+  .actions,
+  .adjust-actions,
+  .journey-dialog-footer,
+  .journey-correction-footer,
+  .person-detail-footer,
+  .source-detail-footer
+){
+  background:#171e2a!important;
+  border-color:#323b49!important;
+  color:#f7f8fb!important;
+}
+
+/* ----------------------------------------------------------------------
+   Vietnamese typography / italic overhang protection.
+   Do not mutate the underlying Firebase value; presentation only.
+   ---------------------------------------------------------------------- */
+.journey-location{
+  overflow:visible!important;
+  min-height:1.55em;
+}
+.journey-location>strong,
+.journey-location-italic>strong{
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere;
+  word-break:normal;
+  line-height:1.5!important;
+  padding-inline-end:.32em;
+  padding-block:.04em .08em;
+}
+.journey-location-italic>strong{
+  display:block;
+  font-style:italic;
+  font-weight:820;
+}
+.journey-location-label{
+  line-height:1.5!important;
+  padding-block:.04em .08em;
+}
+
+@media (max-width:760px){
+  .journey-location{align-items:flex-start!important;flex-wrap:wrap;row-gap:3px;}
+  .journey-location>strong,
+  .journey-location-italic>strong{line-height:1.55!important;padding-inline-end:.38em;}
+}
+
+/* Combined mode stays warm while inheriting all dark-completeness coverage. */
+html.theme-dark.theme-eye-comfort :is(
+  .entry-today-item,
+  .dashboard-filter-panel,
+  .dashboard-other-metrics,
+  .dashboard-other-metrics>summary,
+  .entry-simple-panel,
+  .entry-selected-card,
+  .entry-selected-facts>div,
+  .entry-today-panel,
+  .entry-recent-panel,
+  .journey-dashboard-card,
+  .journey-form-card,
+  .journey-readonly-place,
+  .report-preview-footer,
+  .admin-account-card,
+  .admin-account-section
+){
+  background:#1d201a!important;
+  border-color:#3d4035!important;
+}
+html.theme-dark.theme-eye-comfort :is(button:disabled,.btn:disabled,input:disabled,select:disabled,textarea:disabled,input[readonly],textarea[readonly],[aria-disabled="true"]){
+  background:#25271f!important;
+  color:#aeb29f!important;
+  border-color:#474a3c!important;
+}
+
+/* Patient/person glyphs also had a legacy light-pink background with !important. */
+html.theme-dark #journeyView .journey-person-icon{
+  background:#302034!important;
+  color:#ff9bd0!important;
+  box-shadow:inset 0 0 0 1px #5d3a55!important;
+}

@@ -35,7 +35,7 @@ const REPORT_ROOT = 'baoCaoYTe';
 const YTE_APP_ROOT = 'yTeApp';
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '10.0.16';
+const APP_RUNTIME_VERSION = '10.0.17';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -3278,7 +3278,7 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.16'},'*');setupDates();updateRangeFields();
+      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.17'},'*');setupDates();updateRangeFields();
       document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       setupProductionUiBindings();
       if($('headerUserSummary'))$('headerUserSummary').addEventListener('click',function(){setAccountMenu($('headerAccountMenu').hidden)});
