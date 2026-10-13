@@ -2125,3 +2125,381 @@
 .journey-correction-audit{margin-top:10px;padding:10px 12px;border:1px solid #f0d7e4;border-radius:10px;background:#fff7fb;display:grid;gap:3px;font-size:11.5px;color:#5f5260}
 .journey-correction-audit strong{color:#b92f77;font-size:12px}.journey-correction-audit span{line-height:1.45}.journey-correction-audit-row{display:grid;gap:2px;padding-top:7px;margin-top:5px;border-top:1px dashed #efdbe6}
 @media(max-width:700px){.journey-history-actions{flex-wrap:wrap}.journey-history-edit{min-width:86px}.journey-correction-audit{font-size:11px}}
+
+/* ======================================================================
+   FINAL JOURNEY UI NORMALIZATION v10.0.15
+   UI-only normalization. No journey business logic, permissions, realtime,
+   markers, audit, Firebase schema or event behavior is changed here.
+   ====================================================================== */
+
+/* ---- Shared vertical rhythm and control sizing ---- */
+#journeyView{
+  --journey-space-xs:8px;
+  --journey-space-sm:12px;
+  --journey-space-md:16px;
+  --journey-space-lg:22px;
+  --journey-control-h:44px;
+}
+
+#journeyView .unified-care-head{margin-bottom:var(--journey-space-md)!important;}
+#journeyView .unified-care-workspace{min-width:0;}
+#journeyView #transferJourneyPanel{min-width:0;}
+#journeyView .journey-dashboard{gap:var(--journey-space-sm);margin-bottom:var(--journey-space-md)!important;}
+#journeyView .journey-subtabs{
+  min-height:52px;
+  margin-bottom:var(--journey-space-md)!important;
+  padding:4px;
+  gap:4px;
+  align-items:stretch;
+}
+#journeyView .journey-subtab{
+  min-height:42px!important;
+  padding:8px 14px;
+  gap:8px;
+  border-radius:9px;
+  line-height:1.2;
+}
+#journeyView .journey-subtab svg{width:17px;height:17px;flex:0 0 17px;}
+#journeyView .journey-tab-badge{min-width:22px;height:22px;padding-inline:6px;}
+
+#journeyView .journey-toolbar{margin-bottom:var(--journey-space-sm);gap:var(--journey-space-sm);}
+#journeyView .journey-search input,
+#journeyView .journey-history-filters input,
+#journeyView .journey-history-filters select,
+#journeyView .journey-history-filter-actions .btn,
+#journeyView .journey-toolbar-actions .btn{
+  min-height:var(--journey-control-h)!important;
+  height:var(--journey-control-h);
+  border-radius:11px;
+  font-size:13px;
+}
+#journeyView .journey-toolbar-actions .icon-btn,
+#journeyView .journey-history-filter-actions .icon-btn{
+  width:var(--journey-control-h)!important;
+  min-width:var(--journey-control-h)!important;
+  height:var(--journey-control-h)!important;
+  padding:0!important;
+}
+
+/* ---- Tracking cards: identical spacing and action heights ---- */
+#journeyView #journeyTrackingList{gap:var(--journey-space-sm);}
+#journeyView .journey-card{
+  gap:var(--journey-space-sm);
+  padding:14px 16px;
+  border-radius:14px;
+}
+#journeyView .journey-card-title{gap:var(--journey-space-sm);}
+#journeyView .journey-card-details{margin-top:10px;}
+#journeyView .journey-card-actions{gap:8px;}
+#journeyView .journey-card-actions .small-btn,
+#journeyView .journey-card-actions .btn,
+#journeyView .journey-primary-action{
+  min-height:42px;
+  height:42px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+#journeyView .journey-card-actions .journey-action-menu > summary{
+  width:42px;
+  height:42px;
+  border-radius:11px;
+}
+
+/* ---- History header / filters use the same content edges ---- */
+#journeyView .desktop-history-heading{
+  margin:0 0 var(--journey-space-sm);
+  padding:0 0 var(--journey-space-sm);
+}
+#journeyView .journey-history-filter-shell{
+  margin:0 0 var(--journey-space-sm);
+  gap:var(--journey-space-sm);
+}
+#journeyView .journey-history-search{max-width:none;width:100%;}
+#journeyView .journey-history-search input{min-height:var(--journey-control-h)!important;height:var(--journey-control-h);}
+#journeyView .journey-history-advanced .journey-history-filters{
+  grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) minmax(210px,1.35fr) auto;
+  gap:var(--journey-space-sm);
+  align-items:end;
+}
+#journeyView .journey-history-date label,
+#journeyView .journey-history-status-field label{gap:7px;}
+#journeyView .journey-history-filter-actions{gap:8px;align-items:end;}
+#journeyView .journey-history-filter-actions .journey-history-clear{min-width:92px;}
+
+/* ---- History table: current seven-column schema only ---- */
+#journeyView .journey-history-table-wrap{
+  width:100%;
+  overflow:visible;
+  border-radius:14px;
+}
+#journeyView .journey-history-table{
+  width:100%;
+  table-layout:fixed;
+}
+#journeyView .journey-history-table thead th,
+#journeyView .journey-history-table tbody td{
+  vertical-align:middle;
+}
+#journeyView .journey-history-table thead th{
+  height:46px;
+  padding:12px 10px;
+  line-height:1.2;
+}
+#journeyView .journey-history-table tbody td{
+  padding:13px 10px;
+  line-height:1.35;
+}
+#journeyView .journey-history-table tbody tr{height:64px;}
+
+#journeyView .journey-history-table .history-col-stt,
+#journeyView .journey-history-table thead th:nth-child(1){
+  width:48px!important;
+  min-width:48px!important;
+  max-width:48px!important;
+  text-align:center!important;
+}
+#journeyView .journey-history-table .history-col-name,
+#journeyView .journey-history-table thead th:nth-child(2){
+  width:auto!important;
+  text-align:left!important;
+}
+#journeyView .journey-history-table .history-col-name strong{
+  font-size:14px;
+  line-height:1.35;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+#journeyView .journey-history-table .history-col-birth,
+#journeyView .journey-history-table thead th:nth-child(3){width:92px!important;text-align:center!important;}
+#journeyView .journey-history-table .history-col-gender,
+#journeyView .journey-history-table thead th:nth-child(4){width:88px!important;text-align:center!important;}
+#journeyView .journey-history-table .history-col-date,
+#journeyView .journey-history-table thead th:nth-child(5){width:118px!important;text-align:center!important;}
+#journeyView .journey-history-table .history-col-status,
+#journeyView .journey-history-table thead th:nth-child(6){width:178px!important;text-align:center!important;}
+#journeyView .journey-history-table .history-col-actions,
+#journeyView .journey-history-table thead th:nth-child(7){
+  width:224px!important;
+  min-width:224px!important;
+  max-width:224px!important;
+  text-align:center!important;
+}
+#journeyView .journey-history-table .journey-status{
+  min-height:28px;
+  padding:5px 10px;
+  margin-inline:auto;
+  white-space:normal;
+  text-align:center;
+  line-height:1.2;
+}
+#journeyView .journey-history-table .journey-history-actions{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:nowrap;
+  gap:8px;
+}
+#journeyView .journey-history-table .journey-history-actions .small-btn{
+  min-width:76px;
+  min-height:42px;
+  height:42px;
+  padding:0 12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border-radius:11px;
+  font-size:12.5px;
+  line-height:1;
+  white-space:nowrap;
+}
+#journeyView .journey-history-table .journey-history-actions .small-btn svg{
+  width:16px;
+  height:16px;
+  flex:0 0 16px;
+}
+#journeyView .journey-history-table .journey-action-menu{flex:0 0 42px;}
+#journeyView .journey-history-table .journey-action-menu > summary{
+  width:42px!important;
+  min-width:42px;
+  height:42px!important;
+  border-radius:11px;
+}
+
+/* Medium desktop: preserve all controls without squeezing name/status columns. */
+@media (min-width:981px) and (max-width:1279px){
+  #journeyView .journey-history-table .history-col-stt,
+  #journeyView .journey-history-table thead th:nth-child(1){width:42px!important;min-width:42px!important;max-width:42px!important;}
+  #journeyView .journey-history-table .history-col-birth,
+  #journeyView .journey-history-table thead th:nth-child(3){width:78px!important;}
+  #journeyView .journey-history-table .history-col-gender,
+  #journeyView .journey-history-table thead th:nth-child(4){width:76px!important;}
+  #journeyView .journey-history-table .history-col-date,
+  #journeyView .journey-history-table thead th:nth-child(5){width:104px!important;}
+  #journeyView .journey-history-table .history-col-status,
+  #journeyView .journey-history-table thead th:nth-child(6){width:150px!important;}
+  #journeyView .journey-history-table .history-col-actions,
+  #journeyView .journey-history-table thead th:nth-child(7){width:206px!important;min-width:206px!important;max-width:206px!important;}
+  #journeyView .journey-history-table .journey-history-actions{gap:6px;}
+  #journeyView .journey-history-table .journey-history-actions .small-btn{min-width:70px;padding-inline:9px;}
+  #journeyView .journey-history-table .journey-action-menu{flex-basis:40px;}
+  #journeyView .journey-history-table .journey-action-menu > summary{width:40px!important;min-width:40px;height:40px!important;}
+}
+
+/* Tablet: switch history to clean cards rather than squeezing the 7-column table. */
+@media (max-width:980px){
+  #journeyView .journey-dashboard{gap:10px;}
+  #journeyView .journey-subtabs{margin-bottom:14px!important;}
+  #journeyView .journey-history-table-wrap{border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible;}
+  #journeyView .journey-history-table,
+  #journeyView .journey-history-table tbody,
+  #journeyView .journey-history-table tr,
+  #journeyView .journey-history-table td{display:block;width:100%!important;max-width:none!important;min-width:0!important;}
+  #journeyView .journey-history-table thead{display:none;}
+  #journeyView .journey-history-table tbody{display:grid;gap:12px;}
+  #journeyView .journey-history-table tbody tr{
+    height:auto;
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:0 16px;
+    padding:14px 16px!important;
+    border:1px solid #e7dfe6!important;
+    border-radius:14px!important;
+    background:#fff!important;
+    box-shadow:0 5px 18px rgba(18,14,28,.03)!important;
+  }
+  #journeyView .journey-history-table tbody td,
+  #journeyView .journey-history-table tbody tr:nth-child(odd) td,
+  #journeyView .journey-history-table tbody tr.is-center-death td{
+    display:block!important;
+    padding:7px 0!important;
+    border:0!important;
+    background:transparent!important;
+    text-align:left!important;
+  }
+  #journeyView .journey-history-table .history-col-stt{display:none!important;}
+  #journeyView .journey-history-table .history-col-name{
+    grid-column:1/-1;
+    padding-top:0!important;
+    padding-bottom:10px!important;
+    border-bottom:1px solid #f0e9ef!important;
+  }
+  #journeyView .journey-history-table .history-col-name::before{display:none!important;content:none!important;}
+  #journeyView .journey-history-table .history-name-row{
+    display:grid!important;
+    grid-template-columns:84px minmax(0,1fr);
+    align-items:start;
+    gap:8px;
+    text-align:left!important;
+  }
+  #journeyView .journey-history-table .history-mobile-field-label{
+    display:inline!important;
+    color:#766c79!important;
+    font-size:12px!important;
+    font-weight:800!important;
+    white-space:nowrap!important;
+  }
+  #journeyView .journey-history-table .history-col-name strong{
+    font-size:15px!important;
+    line-height:1.35;
+    text-align:left!important;
+    white-space:normal!important;
+  }
+  #journeyView .journey-history-table .history-col-birth,
+  #journeyView .journey-history-table .history-col-gender{
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:center;
+    gap:8px;
+    color:#120e1c;
+    font-size:13.5px;
+    font-weight:700;
+  }
+  #journeyView .journey-history-table .history-col-birth::before,
+  #journeyView .journey-history-table .history-col-gender::before,
+  #journeyView .journey-history-table .history-col-date::before,
+  #journeyView .journey-history-table .history-col-status::before{
+    display:inline!important;
+    margin:0!important;
+    color:#766c79!important;
+    font-size:12px!important;
+    font-weight:800!important;
+    white-space:nowrap!important;
+  }
+  #journeyView .journey-history-table .history-col-birth::before{content:'Năm sinh:'!important;}
+  #journeyView .journey-history-table .history-col-gender::before{content:'Giới tính:'!important;}
+  #journeyView .journey-history-table .history-col-date{
+    grid-column:1/-1;
+    display:grid!important;
+    grid-template-columns:84px minmax(0,1fr);
+    align-items:center;
+    gap:8px;
+    padding-top:10px!important;
+  }
+  #journeyView .journey-history-table .history-col-date::before{content:'Ngày:'!important;}
+  #journeyView .journey-history-table .history-col-status{
+    grid-column:1/-1;
+    display:grid!important;
+    grid-template-columns:84px minmax(0,1fr);
+    align-items:center;
+    gap:8px;
+    padding-top:10px!important;
+    border-top:1px solid #f0e9ef!important;
+  }
+  #journeyView .journey-history-table .history-col-status::before{content:'Trạng thái:'!important;}
+  #journeyView .journey-history-table .history-col-status .journey-status{justify-self:start;margin:0;}
+  #journeyView .journey-history-table .history-col-actions{
+    grid-column:1/-1;
+    padding-top:10px!important;
+    border-top:1px solid #f0e9ef!important;
+  }
+  #journeyView .journey-history-table .history-col-actions::before{display:none!important;content:none!important;}
+  #journeyView .journey-history-table .journey-history-actions{
+    width:100%;
+    justify-content:flex-start!important;
+    gap:8px;
+  }
+  #journeyView .journey-history-table .journey-history-actions .small-btn{min-width:86px;}
+
+  #journeyView .journey-history-advanced .journey-history-filters{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+  }
+  #journeyView .journey-history-status-field{grid-column:1/-1!important;}
+  #journeyView .journey-history-filter-actions{grid-column:1/-1!important;}
+}
+
+/* Mobile: one-column filter flow, dense but readable journey cards. */
+@media (max-width:520px){
+  #journeyView{--journey-space-sm:10px;--journey-space-md:14px;--journey-control-h:44px;}
+  #journeyView .journey-dashboard{gap:8px;}
+  #journeyView .journey-subtabs{min-height:48px;padding:3px;gap:3px;}
+  #journeyView .journey-subtab{min-height:40px!important;padding:7px 8px;font-size:11.5px;gap:6px;}
+  #journeyView .journey-tab-badge{min-width:20px;height:20px;font-size:10.5px;}
+  #journeyView .journey-card{padding:13px 13px;gap:10px;}
+  #journeyView .journey-card-actions{width:100%;justify-content:flex-end;}
+  #journeyView .journey-history-advanced .journey-history-filters{grid-template-columns:1fr!important;}
+  #journeyView .journey-history-status-field,
+  #journeyView .journey-history-filter-actions{grid-column:1!important;}
+  #journeyView .journey-history-table tbody tr{grid-template-columns:1fr;padding:13px!important;}
+  #journeyView .journey-history-table .history-col-name,
+  #journeyView .journey-history-table .history-col-birth,
+  #journeyView .journey-history-table .history-col-gender,
+  #journeyView .journey-history-table .history-col-date,
+  #journeyView .journey-history-table .history-col-status,
+  #journeyView .journey-history-table .history-col-actions{grid-column:1!important;}
+  #journeyView .journey-history-table .history-name-row,
+  #journeyView .journey-history-table .history-col-date,
+  #journeyView .journey-history-table .history-col-status{grid-template-columns:82px minmax(0,1fr);}
+  #journeyView .journey-history-table .history-col-birth,
+  #journeyView .journey-history-table .history-col-gender{grid-template-columns:82px minmax(0,1fr);}
+  #journeyView .journey-history-table .journey-history-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;align-items:center;}
+  #journeyView .journey-history-table .journey-history-actions .small-btn{width:100%;min-width:0;height:44px;}
+  #journeyView .journey-history-table .journey-action-menu,
+  #journeyView .journey-history-table .journey-action-menu > summary{width:44px!important;min-width:44px;height:44px!important;}
+}
+
+/* Fail-safe: application state always wins over presentation rules. */
+#journeyView [hidden]{display:none!important;}
