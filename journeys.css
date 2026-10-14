@@ -2577,3 +2577,7 @@ html.theme-dark #journeyView .journey-history-icon-btn.is-delete{background:#321
     gap:8px!important;
   }
 }
+
+/* YC-YTE-006: chỉ hiển thị hướng dẫn cho hồ sơ chuyển viện hồi cứu trước ngày tử vong. */
+.journey-historical-notice:not([hidden]) { padding: 13px 16px; border: 1px solid #efc1d7; background: #fff3fa; color: #8b2457; border-radius: 12px; line-height: 1.55; }
+[data-theme="dark"] .journey-historical-notice:not([hidden]), .dark-mode .journey-historical-notice:not([hidden]) { background: #352332; border-color: #74445a; color: #ffe6f1; }

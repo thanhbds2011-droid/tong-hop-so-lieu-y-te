@@ -35,7 +35,7 @@ const REPORT_ROOT = 'baoCaoYTe';
 const YTE_APP_ROOT = 'yTeApp';
 const PUBLIC_REPORT_STATS_ROOT = `${REPORT_ROOT}/congKhaiThongKe`;
 const PERSON_DETAIL_ROOT = `${ROOT}/chiTietChiTieu`;
-const APP_RUNTIME_VERSION = '10.0.17';
+const APP_RUNTIME_VERSION = '10.0.20';
 
 const firebaseApp = initializeApp(APP_CONFIG.FIREBASE);
 const firebaseAuth = getAuth(firebaseApp);
@@ -2090,6 +2090,14 @@ var AUTO_SYNC_MS = 300000;
       return 'home';
     }
 
+    async function requestViewNavigation(name){
+      if(currentViewName()==='entry'&&name!=='entry'&&quickEntryDirty()){
+        var confirmed=await confirmAction({title:'Rời màn hình Nhập liệu?',message:'Bạn có số liệu chưa lưu. Nếu chuyển màn hình, phần đang nhập có thể bị mất. Bạn muốn tiếp tục không?',confirmText:'Tiếp tục chuyển',cancelText:'Ở lại nhập liệu',danger:true});
+        if(!confirmed)return false;
+      }
+      showView(name);
+      return true;
+    }
     function showView(name){
       setAccountMenu(false);
       var isAdmin=isAnyAppAdmin();
@@ -2110,7 +2118,6 @@ var AUTO_SYNC_MS = 300000;
       if(name==='admin')showAdminSection(state.adminSection||'users');
 
       if(window.YTE_REPORTS&&typeof window.YTE_REPORTS.onViewChanged==='function')window.YTE_REPORTS.onViewChanged(name);
-      document.querySelectorAll('.mobile-bottom-item').forEach(function(button){var active=button.getAttribute('data-view')===name;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false')});
     }
 
     function setupDates(){
@@ -2172,7 +2179,7 @@ var AUTO_SYNC_MS = 300000;
     }
     function aggregate(){var totals={};state.records.forEach(function(record){totals[record.code]=(totals[record.code]||0)+Number(record.value||0)});return totals}
     function recordedCodeMap(){var map={};state.records.forEach(function(record){map[record.code]=true});return map}
-    function renderAll(){var totals=aggregate();renderSummary(totals);renderProductionDashboardExtras();}
+    function renderAll(){var totals=aggregate();renderSummary(totals);}
     function categoryPriority(c){
       if(c.derivedKind==='transfer')return 0;
       if((c.personDetailKind||personDetailKindFromCategory(c))==='tb')return 1;
@@ -2223,54 +2230,6 @@ var AUTO_SYNC_MS = 300000;
       if(person==='tb')return 'blue';if(person==='center')return 'green';
       return ['pink','blue','rose','green'][index%4];
     }
-    // Pure calendar bucketing over the selected range. A missing date is a real
-    // zero after the public range has loaded; a historical month is never called a day.
-    function buildDashboardTrendBuckets(from,to,categories,records){
-      var dayMs=86400000,start=Date.parse(from+'T00:00:00Z'),end=Date.parse(to+'T00:00:00Z');
-      if(!Number.isFinite(start)||!Number.isFinite(end)||end<start)return{period:'Theo phạm vi',buckets:[],max:0,hasRecords:false};
-      var span=Math.floor((end-start)/dayMs)+1;
-      var mode=span<=14?'day':span<=98?'week':span<=730?'month':span<=2920?'quarter':'year';
-      var buckets=[],lookup=new Map(),codes=new Map(categories.map(function(c,i){return[c.code,i]}));
-      function dateIso(ms){return new Date(ms).toISOString().slice(0,10)}
-      function make(key,label,description){if(!lookup.has(key)){lookup.set(key,buckets.length);buckets.push({key:key,label:label,description:description,values:categories.map(function(){return 0})})}}
-      if(mode==='day'||mode==='week'){
-        var step=(mode==='day'?1:7)*dayMs;
-        for(var tick=start;tick<=end;tick+=step){var iso=dateIso(tick),last=dateIso(Math.min(end,tick+step-dayMs));make(mode==='day'?iso:String(Math.floor((tick-start)/step)),mode==='day'?fmtDate(iso).slice(0,5):fmtDate(iso).slice(0,5),mode==='day'?fmtDate(iso):fmtDate(iso)+' – '+fmtDate(last))}
-      }else if(mode==='month'){
-        for(var year=Number(from.slice(0,4)),month=Number(from.slice(5,7));year*12+month<=Number(to.slice(0,4))*12+Number(to.slice(5,7));month++){if(month>12){year++;month=1}var mm=String(month).padStart(2,'0');make(year+'-'+mm,mm+'/'+year,'Tháng '+mm+'/'+year)}
-      }else if(mode==='quarter'){
-        for(var yr=Number(from.slice(0,4)),q=Math.ceil(Number(from.slice(5,7))/3);yr*4+q<=Number(to.slice(0,4))*4+Math.ceil(Number(to.slice(5,7))/3);q++){if(q>4){yr++;q=1}make(yr+'-Q'+q,'Q'+q+'/'+yr,'Quý '+q+'/'+yr)}
-      }else{
-        for(var y=Number(from.slice(0,4));y<=Number(to.slice(0,4));y++)make(String(y),String(y),'Năm '+y)
-      }
-      var hasRecords=false,max=0;
-      (records||[]).forEach(function(r){
-        if(!r||r.date<from||r.date>to||!codes.has(r.code))return;
-        var value=Number(r.value);if(!Number.isFinite(value)||value<0)return;
-        var key=mode==='day'?r.date:mode==='week'?String(Math.floor((Date.parse(r.date+'T00:00:00Z')-start)/(7*dayMs))):mode==='month'?r.date.slice(0,7):mode==='quarter'?r.date.slice(0,4)+'-Q'+Math.ceil(Number(r.date.slice(5,7))/3):r.date.slice(0,4);
-        var index=lookup.get(key);if(index===undefined)return;
-        buckets[index].values[codes.get(r.code)]+=value;hasRecords=true;
-      });
-      buckets.forEach(function(bucket){bucket.values.forEach(function(value){max=Math.max(max,value)})});
-      var names={day:'ngày',week:'tuần',month:'tháng',quarter:'quý',year:'năm'};
-      return{period:buckets.length+' '+names[mode],buckets:buckets,max:max,hasRecords:hasRecords};
-    }
-    function renderProductionDashboardExtras(){
-      var categories=keyDashboardCategories(), totals=aggregate();
-      var records=(state.records||[]).slice().sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''))||Number(a.updatedAt||0)-Number(b.updatedAt||0)});
-      var trend=buildDashboardTrendBuckets(state.from,state.to,categories,records);
-      if($('dashboardTrendPeriod'))$('dashboardTrendPeriod').textContent=trend.period;
-      if($('dashboardChartScope'))$('dashboardChartScope').textContent=($('contentFilter').value==='all'?'Chỉ hiển thị tối đa 4 chỉ tiêu trọng tâm; xem tất cả chỉ tiêu ở phía trên.':'Đang hiển thị chỉ tiêu được lọc.');
-      if($('dashboardChartLegend'))$('dashboardChartLegend').innerHTML=categories.map(function(c,i){return '<span><i class="legend-dot is-'+metricAccent(c,i)+'"></i>'+esc(c.name)+'</span>'}).join('');
-      if($('dashboardTrendChart')){
-        if(!trend.buckets.length||!categories.length){$('dashboardTrendChart').innerHTML='<div class="dashboard-chart-empty">Chưa có dữ liệu để hiển thị biểu đồ.</div>'}
-        else if(!trend.hasRecords||trend.max===0){$('dashboardTrendChart').innerHTML='<div class="dashboard-chart-empty">Không có phát sinh của các chỉ tiêu trong phạm vi đang xem.</div>'}
-        else{
-          var max=trend.max,half=Math.round(max/2);
-          $('dashboardTrendChart').innerHTML='<div class="trend-plot" role="img" aria-label="Biểu đồ xu hướng '+esc(trend.period)+'; số liệu theo ngày nghiệp vụ trong phạm vi đã chọn"><div class="trend-axis" aria-hidden="true"><span>'+max.toLocaleString('vi-VN')+'</span><span>'+half.toLocaleString('vi-VN')+'</span><span>0</span></div><div class="trend-viewport"><div class="trend-columns" style="--trend-points:'+trend.buckets.length+'">'+trend.buckets.map(function(bucket){return '<div class="trend-day"><div class="trend-bars">'+bucket.values.map(function(value,ci){return '<i class="trend-bar is-'+metricAccent(categories[ci],ci)+'" title="'+esc(bucket.description+' · '+categories[ci].name+': '+value.toLocaleString('vi-VN')+' '+(categories[ci].unit||''))+'" style="--bar-height:'+(value?Math.max(2,Math.round(value/max*100)):0)+'%"></i>'}).join('')+'</div><span title="'+esc(bucket.description)+'">'+esc(bucket.label)+'</span></div>'}).join('')+'</div></div></div>';
-        }
-      }
-    }
     function renderEntrySideExtras(){
       var categories=keyDashboardCategories();
       if($('entryTodaySummary')){
@@ -2288,10 +2247,92 @@ var AUTO_SYNC_MS = 300000;
       }catch(error){toast(error.message||'Không thể xuất Excel.','err')}
     }
     function setupProductionUiBindings(){
-      document.querySelectorAll('.mobile-bottom-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
       if($('mobileNavLogout'))$('mobileNavLogout').addEventListener('click',logout);
       if($('btnDashboardExport'))$('btnDashboardExport').addEventListener('click',exportDashboardExcel);
-      if($('globalSearch'))$('globalSearch').addEventListener('input',function(){var q=$('globalSearch').value||'',view=currentViewName(),target=view==='admin'?'adminSearch':view==='journey'?'journeyTrackingSearch':'';if(target&&$(target)){ $(target).value=q;$(target).dispatchEvent(new Event('input',{bubbles:true})) }});
+      initializeGlobalIndicatorSearch();
+    }
+
+    // Global quick search: only the public indicator catalog and authorized navigation.
+    // No private patient records are loaded for suggestions.
+    function initializeGlobalIndicatorSearch(){
+      var sources=[{input:$('globalSearch'),list:$('globalSearchResults')},{input:$('mobileGlobalSearch'),list:$('mobileSearchResults')}].filter(function(item){return item.input&&item.list});
+      var savedFilter=null, selectedCode=null, activeIndex=-1;
+      function normalize(text){return String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/\s+/g,' ').trim()}
+      function accessibleViews(){
+        var output=[{type:'view',name:'Tổng quan',group:'Chức năng',view:'dashboard'}];
+        if(canInputTongHop())output.push({type:'view',name:'Nhập liệu',group:'Chức năng',view:'entry'});
+        if(hasReportAccess())output.push({type:'view',name:'Chuyển viện',group:'Chức năng',view:'journey'});
+        return output;
+      }
+      function matching(q){
+        var term=normalize(q);if(!term)return[];
+        var catalog=dashboardAvailableCategories().map(function(c){return{type:'indicator',name:c.name||c.code,group:c.group||'Chỉ tiêu',unit:c.unit||'',code:c.code,status:c.status||''}});
+        return catalog.concat(accessibleViews()).filter(function(r){return normalize(r.name+' '+r.group+' '+(r.unit||'')).includes(term)}).sort(function(a,b){
+          function score(r){var n=normalize(r.name);return n===term?0:n.startsWith(term)?1:2}
+          return score(a)-score(b)||a.name.localeCompare(b.name,'vi');
+        }).slice(0,12);
+      }
+      function clearLists(){sources.forEach(function(source){source.list.hidden=true;source.list.innerHTML='';source.input.setAttribute('aria-expanded','false');source.input.removeAttribute('aria-activedescendant')});activeIndex=-1}
+      function clearSelection(restore){
+        if(restore&&selectedCode&&savedFilter!==null&&$('contentFilter')&&$('contentFilter').value===selectedCode){
+          var select=$('contentFilter');
+          select.value=Array.from(select.options).some(function(o){return o.value===savedFilter})?savedFilter:'all';
+          renderAll();
+        }
+        selectedCode=null;savedFilter=null;
+      }
+      window.YTE_CANCEL_SEARCH_RESTORE=function(){clearSelection(false)};
+      async function choose(item){
+        if(!item)return;
+        if(currentViewName()==='entry'&&quickEntryDirty()) {
+          var confirmed=await confirmAction({title:'Rời màn hình Nhập liệu?',message:'Số liệu đang nhập chưa lưu. Bạn có muốn chuyển tới kết quả tìm kiếm?',confirmText:'Chuyển màn hình',cancelText:'Tiếp tục nhập',danger:true});
+          if(!confirmed)return;
+        }
+        if(!item)return;
+        clearLists();sources.forEach(function(s){s.input.value=item.type==='indicator'?item.name:''});
+        if(item.type==='view'){
+          clearSelection(false);showView(item.view);
+        }else{
+          if(savedFilter===null)savedFilter=$('contentFilter').value||'all';
+          var filter=$('contentFilter');
+          if(!Array.from(filter.options).some(function(o){return o.value===item.code})){
+            populateContentFilter();
+          }
+          if(Array.from(filter.options).some(function(o){return o.value===item.code})){
+            selectedCode=item.code;filter.value=item.code;showView('dashboard');renderAll();
+            var results=document.querySelector('#dashboardView .dashboard-results-panel');
+            if(results)results.scrollIntoView({behavior:'smooth',block:'start'});
+          }
+        }
+        if(window.YTE_CLOSE_MOBILE_NAV)window.YTE_CLOSE_MOBILE_NAV();
+      }
+      function renderSuggestions(source){
+        var value=source.input.value,items=matching(value);
+        if(source.input.id==='globalSearch'){var view=currentViewName(),target=view==='admin'?'adminSearch':view==='journey'?'journeyTrackingSearch':'';if(target&&$(target)){$(target).value=value;$(target).dispatchEvent(new Event('input',{bubbles:true}))}}
+        sources.forEach(function(other){if(other!==source){other.input.value=value;other.list.hidden=true;other.list.innerHTML='';other.input.setAttribute('aria-expanded','false')}});
+        if(!value.trim()){
+          clearLists();clearSelection(true);return;
+        }
+        source.list.hidden=false;source.input.setAttribute('aria-expanded','true');
+        source.list.innerHTML=items.length?items.map(function(item,i){return'<button type="button" class="search-result-option" role="option" id="'+source.list.id+'-option-'+i+'" data-index="'+i+'"><strong>'+esc(item.name)+'</strong><small>'+esc(item.group+(item.unit?' · '+item.unit:'')+(item.status&&/ngừng|inactive/i.test(item.status)?' · Ngừng sử dụng':''))+'</small></button>'}).join(''):'<div class="search-result-empty" role="status">Không tìm thấy chỉ tiêu hoặc chức năng phù hợp.</div>';
+        activeIndex=-1;
+      }
+      sources.forEach(function(source){
+        source.input.addEventListener('input',function(){renderSuggestions(source)});
+        source.input.addEventListener('keydown',function(e){
+          var items=matching(source.input.value);if(e.key==='Escape'){clearLists();return}
+          if(!items.length)return;
+          if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+            e.preventDefault();activeIndex=(activeIndex+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;
+            source.list.querySelectorAll('[role="option"]').forEach(function(el,i){var selected=i===activeIndex;el.classList.toggle('is-highlighted',selected);el.setAttribute('aria-selected',String(selected))});
+            source.input.setAttribute('aria-activedescendant',source.list.id+'-option-'+activeIndex);
+          }else if(e.key==='Enter'){e.preventDefault();choose(items[activeIndex<0?0:activeIndex]);}
+        });
+        source.list.addEventListener('click',function(event){var btn=event.target.closest('[data-index]');if(!btn)return;choose(matching(source.input.value)[Number(btn.dataset.index)])});
+        source.input.addEventListener('search',function(){if(!source.input.value){clearLists();clearSelection(true)}});
+      });
+      document.addEventListener('pointerdown',function(event){if(!event.target.closest('.header-search,.mobile-nav-search'))clearLists()});
+      window.addEventListener('keydown',function(event){if(event.key==='Escape')clearLists()});
     }
 
     function personBusinessDateLabel(category){
@@ -2581,7 +2622,7 @@ var AUTO_SYNC_MS = 300000;
       var tongHopAdmin=isAnyAppAdmin();
       var hasReport=hasReportAccess();
       var hasAnyAccess=loggedIn||hasReport;
-      if($('mobileNavToggle'))$('mobileNavToggle').hidden=!hasAnyAccess;
+      if($('mobileNavToggle'))$('mobileNavToggle').hidden=false;
       if(!hasAnyAccess&&window.YTE_CLOSE_MOBILE_NAV)window.YTE_CLOSE_MOBILE_NAV();
       $('btnAccount').hidden=authenticated;$('btnTopLogout').hidden=!authenticated;if(authenticated){$('btnTopLogout').title='Đăng xuất '+String((loggedIn&&state.user&&state.user.name)||(state.authUser&&state.authUser.name)||'tài khoản');}
       var fullGreetingName=authenticated?String((loggedIn&&state.user&&state.user.name)||(state.authUser&&state.authUser.name)||'Người dùng Phòng Y tế'):'';
@@ -2614,14 +2655,6 @@ var AUTO_SYNC_MS = 300000;
           $('headerUserRole').textContent=roleText;
         }
       }
-      if($('mobileBottomNav'))$('mobileBottomNav').hidden=!hasAnyAccess;
-      document.querySelectorAll('.mobile-bottom-item').forEach(function(button){
-        var view=button.getAttribute('data-view'),visible=true;
-        if(view==='dashboard')visible=hasAnyAccess;
-        else if(view==='entry')visible=canInput;
-        else if(view==='journey')visible=hasReport;
-        button.hidden=!visible;
-      });
       if($('btnSync'))$('btnSync').hidden=false;
       if($('navDashboard'))$('navDashboard').hidden=false;
       $('navEntry').hidden=!canInput;$('navAdmin').hidden=!isAdmin;if($('navJourney'))$('navJourney').hidden=!hasReport;
@@ -2785,7 +2818,7 @@ var AUTO_SYNC_MS = 300000;
       if($('entryTrainingContent'))$('entryTrainingContent').value='';
       if($('entryTrainingContentField'))$('entryTrainingContentField').hidden=true;
       if($('entrySelectedNoteRow'))$('entrySelectedNoteRow').hidden=true;
-      state.quickEntryBaseline='';
+      state.quickEntryBaseline='';state.lastQuickEntryCode='';
       if($('entrySelectedInfo'))$('entrySelectedInfo').hidden=true;
       if($('entryQuickValueField'))$('entryQuickValueField').hidden=true;
       if($('entryInlineActions'))$('entryInlineActions').hidden=true;
@@ -2799,16 +2832,11 @@ var AUTO_SYNC_MS = 300000;
     function updateQuickEntrySelection(focusValue){
       var select=$('entryCategorySelect');if(!select)return;
       var code=select.value,category=state.categories.find(function(item){return item.code===code});
-      var info=$('entrySelectedInfo'),valueField=$('entryQuickValueField'),actions=$('entryInlineActions'),save=$('btnSaveQuickEntry'),adjust=$('btnEntrySelectedAdjust'),history=$('btnEntrySelectedHistory'),del=$('btnEntrySelectedDelete');
+      var valueField=$('entryQuickValueField'),actions=$('entryInlineActions'),save=$('btnSaveQuickEntry'),adjust=$('btnEntrySelectedAdjust'),history=$('btnEntrySelectedHistory'),del=$('btnEntrySelectedDelete');
       if(!category){resetEntrySelection();return}
       var record=state.dailyByCode[code]||null,auto=!!category.derivedKind,current=auto?Number(record?record.autoValue!=null?record.autoValue:record.value||0:0):record?Number(record.value||0):null,autoValue=auto?current:null;
       var training=isTrainingCategory(category),trainingField=$('entryTrainingContentField'),trainingInput=$('entryTrainingContent');
-      info.hidden=false;actions.hidden=false;
-      $('entrySelectedName').textContent=category.name||code;$('entrySelectedGroup').textContent=category.group||'Chỉ tiêu';$('entrySelectedUnit').textContent=category.unit||'—';
-      $('entrySelectedCurrent').textContent=current==null?'Chưa ghi nhận':current.toLocaleString('vi-VN')+' '+category.unit;
-      $('entrySelectedAutoRow').hidden=!auto;$('entrySelectedAuto').textContent=auto?autoValue.toLocaleString('vi-VN')+' '+category.unit:'—';
-      $('entrySelectedUpdaterRow').hidden=auto||!(record&&record.updatedBy);$('entrySelectedUpdater').textContent=!auto&&record&&record.updatedBy?record.updatedBy:'—';
-      if($('entrySelectedNoteRow')){$('entrySelectedNoteRow').hidden=!(training&&record);$('entrySelectedNote').textContent=training&&record?(String(record.note||'').trim()||'Chưa ghi nội dung'):'—'}
+      actions.hidden=false;
       if(trainingField)trainingField.hidden=!training||!!record||auto||!!category.personDetailKind;
       if(trainingInput&&training&&!record)trainingInput.value='';
       if(auto)setEntrySelectedStatus('Tự động từ Báo cáo','is-auto');
@@ -2831,6 +2859,7 @@ var AUTO_SYNC_MS = 300000;
         save.textContent='Lưu số liệu';save.disabled=false;state.quickEntryBaseline=code+'||';
         if(focusValue)window.setTimeout(function(){$('entryQuickValue').focus();$('entryQuickValue').select()},0);
       }
+      state.lastQuickEntryCode=code;
       if($('entryQuickError'))$('entryQuickError').textContent='';
     }
     function openDerivedSource(code){
@@ -3278,14 +3307,18 @@ var AUTO_SYNC_MS = 300000;
     }
 
     async function initializeUi(){
-      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.17'},'*');setupDates();updateRangeFields();
-      document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',function(){showView(button.getAttribute('data-view'))})});
+      window.parent.postMessage({type:'YTE_APP_READY',version:'10.0.20'},'*');setupDates();updateRangeFields();
+      document.querySelectorAll('.nav-item').forEach(function(button){button.addEventListener('click',async function(event){
+        var target=button.getAttribute('data-view');
+        if(currentViewName()==='entry'&&target!=='entry'&&quickEntryDirty())event.stopPropagation();
+        if(await requestViewNavigation(target)){if(window.YTE_CLOSE_MOBILE_NAV)window.YTE_CLOSE_MOBILE_NAV()}
+      })});
       setupProductionUiBindings();
       if($('headerUserSummary'))$('headerUserSummary').addEventListener('click',function(){setAccountMenu($('headerAccountMenu').hidden)});
       if($('navAdmin'))$('navAdmin').addEventListener('click',function(){setAccountMenu(false);showView('admin')});
       document.addEventListener('click',function(event){if($('headerAccountMenu')&&!$('headerAccountMenu').hidden&&!event.target.closest('#headerAccountMenu')&&!event.target.closest('#headerUserSummary'))setAccountMenu(false)});
       document.querySelectorAll('.admin-tab').forEach(function(tab){tab.addEventListener('click',function(){showAdminSection(tab.getAttribute('data-admin-tab'))})});
-      $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=function(){setAccountMenu(false);logout()};$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=renderAll;
+      $('btnAccount').onclick=function(){showView('auth')};$('btnTopLogout').onclick=function(){setAccountMenu(false);logout()};$('btnSync').onclick=function(){syncData(false)};$('btnApply').onclick=function(){syncData(false)};$('rangeType').onchange=function(){updateRangeFields()};$('contentFilter').onchange=function(){if(window.YTE_CANCEL_SEARCH_RESTORE)window.YTE_CANCEL_SEARCH_RESTORE();renderAll();};
       $('btnGoogleLogin').onclick=loginGoogle;
       if($('btnLoginClose'))$('btnLoginClose').onclick=function(){showView('dashboard')};
       if($('btnPreviewSummary'))$('btnPreviewSummary').onclick=previewSummaryReport;
@@ -3302,7 +3335,19 @@ var AUTO_SYNC_MS = 300000;
       document.addEventListener('keydown',function(event){if(event.key!=='Escape')return;setAccountMenu(false);if($('personDetailLayer')&&!$('personDetailLayer').hidden)closePersonManager();else if($('sourceDetailLayer')&&!$('sourceDetailLayer').hidden)closeSourceDetail();else if(!$('deleteDailyLayer').hidden)closeDeleteDailyDialog();else if(!$('dataHistoryLayer').hidden)closeDataHistoryDialog();else if(!$('confirmLayer').hidden)closeConfirm(false);else if(!$('adjustLayer').hidden)closeAdjustDialog();else if(!$('categoryLayer').hidden)closeCategoryDialog()});
       window.addEventListener('beforeunload',function(event){if(!quickEntryDirty())return;event.preventDefault();event.returnValue=''});
       $('btnLoadDay').onclick=manualReloadDay;$('entryDate').onchange=handleEntryDateChange;
-      $('entryCategorySelect').onchange=function(){updateQuickEntrySelection(true)};$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else if(category&&category.personDetailKind)openPersonManager(code);else openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(code&&!(category&&category.derivedKind))openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});if($('entryTrainingContent'))$('entryTrainingContent').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
+      $('entryCategorySelect').onchange=async function(){
+        var previous=String(state.lastQuickEntryCode||''),next=this.value;
+        var oldCategory=state.categories.find(function(c){return c.code===previous});
+        if(previous&&next!==previous&&oldCategory&&!oldCategory.derivedKind&&!oldCategory.personDetailKind){
+          var oldNote=isTrainingCategory(oldCategory)?String($('entryTrainingContent').value||''):'';
+          var draft=previous+'|'+String($('entryQuickValue').value||'')+'|'+oldNote;
+          if(draft!==state.quickEntryBaseline){
+            var discarded=await confirmAction({title:'Đổi chỉ tiêu nhập liệu?',message:'Bạn đang nhập số liệu chưa lưu. Bạn có muốn bỏ phần đang nhập để chọn chỉ tiêu khác?',confirmText:'Bỏ phần đang nhập',cancelText:'Tiếp tục nhập',danger:true});
+            if(!discarded){this.value=previous;return;}
+          }
+        }
+        updateQuickEntrySelection(true);
+      };$('btnSaveQuickEntry').onclick=submitQuickEntry;$('btnEntrySelectedAdjust').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else if(category&&category.personDetailKind)openPersonManager(code);else openAdjustDialog(code)};$('btnEntrySelectedDelete').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(code&&!(category&&category.derivedKind))openDeleteDailyDialog(code)};$('btnEntrySelectedHistory').onclick=function(){var code=$('entryCategorySelect').value,category=state.categories.find(function(item){return item.code===code});if(!code)return;if(category&&category.derivedKind)openDerivedSource(code);else openDataHistoryDialog(code)};$('entryQuickValue').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});if($('entryTrainingContent'))$('entryTrainingContent').addEventListener('input',function(){if($('entryQuickError'))$('entryQuickError').textContent=''});$('entryQuickValue').addEventListener('keydown',function(event){if(event.key==='Enter'){event.preventDefault();submitQuickEntry()}});
       $('btnReloadUsers').onclick=function(){loadAdminUsers(true)};$('adminSearch').oninput=renderAdminUsers;if($('adminStatusFilter'))$('adminStatusFilter').onchange=renderAdminUsers;$('adminUsers').addEventListener('click',function(event){var button=event.target.closest('.admin-action');if(!button)return;var kind=button.getAttribute('data-kind'),id=button.getAttribute('data-id'),value=button.getAttribute('data-value'),card=button.closest('.admin-account-card');if(kind==='display-name'){openDisplayNameDialog(id);return}if(kind==='approve-selected'){var select=card&&card.querySelector('.admin-role-select');if(select)approveRegistration(id,select.value);return}if(kind==='save-role'){var roleSelect=card&&card.querySelector('.admin-role-select');if(roleSelect)adminRole(id,roleSelect.value);return}if(kind==='status')adminStatus(id,value);if(kind==='role')adminRole(id,value);if(kind==='approve-viewer')approveRegistration(id,'Xem');if(kind==='approve-entry')approveRegistration(id,'Nhập liệu');if(kind==='approve-admin')approveRegistration(id,'Quản trị');if(kind==='reject-registration')rejectRegistration(id);if(kind==='revoke')adminRevoke(id);if(kind==='delete')adminDelete(id)});
       $('displayNameCancel').onclick=closeDisplayNameDialog;$('displayNameCloseX').onclick=closeDisplayNameDialog;$('displayNameSave').onclick=saveDisplayName;$('displayNameLayer').addEventListener('click',function(event){if(event.target===$('displayNameLayer'))closeDisplayNameDialog()});
       if($('displayNameInput'))$('displayNameInput').addEventListener('blur',function(){this.value=formatPersonName(this.value)});

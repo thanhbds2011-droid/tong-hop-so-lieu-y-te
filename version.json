@@ -1,7 +1,7 @@
 {
-  "version": "10.0.17",
-  "releasedAt": "2026-10-13",
-  "title": "Giao diện thao tác icon, bảo vệ mắt và chế độ tối toàn màn hình",
-  "businessBaseline": "v10.0.15 journey UI normalization + v10.0.14 correction hotfix + v10.0.13 history correction",
-  "message": "UI/UX only: thu gọn thao tác Lịch sử thành icon, căn giữa họ tên, bổ sung Bảo vệ mắt và Chế độ tối toàn ứng dụng có lưu localStorage. Không thay đổi Firebase Rules, Apps Script Gateway hay luồng nghiệp vụ."
+  "version": "10.0.20",
+  "releasedAt": "2026-10-14",
+  "title": "Bổ sung chuyển viện hồi cứu trước ngày tử vong",
+  "businessBaseline": "v10.0.19 (YC-YTE-001–005) + YC-YTE-006, giữ trạng thái tử vong và marker độc lập",
+  "message": "YC-YTE-006: ghi nhận lượt chuyển viện trước ngày tử vong dưới dạng CLOSED hồi cứu, giữ nguyên hồ sơ tử vong; ngăn trùng/chồng lấn. Yêu cầu đối chiếu và cập nhật Firebase Rules Phòng Y tế tương ứng. Apps Script Gateway không đổi."
 }

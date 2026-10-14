@@ -25,7 +25,8 @@ const OPEN_STATUSES = ['DANG_THEO_DOI', 'TAI_KHAM', 'DANG_DIEU_TRI', 'CHUYEN_TIE
 // TAI_KHAM vẫn được giữ trong OPEN_STATUSES/label để đọc dữ liệu legacy, nhưng không còn là hình thức được phép tạo mới.
 const TRANSFER_TYPES = ['CAP_CUU', 'CHUYEN_VIEN', 'KHAC'];
 const OTHER_DESTINATION = '__OTHER__';
-const CLOSED_STATUSES = ['TU_VONG_TAI_BENH_VIEN', 'TU_VONG_TAI_NOI_KHAC', 'HOI_GIA_TAI_BENH_VIEN', 'DA_VE_TRUNG_TAM'];
+const HISTORICAL_TRANSFER_STATUS = 'CHUYEN_VIEN_HOI_CUU';
+const CLOSED_STATUSES = ['TU_VONG_TAI_BENH_VIEN', 'TU_VONG_TAI_NOI_KHAC', 'HOI_GIA_TAI_BENH_VIEN', 'DA_VE_TRUNG_TAM', HISTORICAL_TRANSFER_STATUS];
 const ALL_STATUSES = [...OPEN_STATUSES, ...CLOSED_STATUSES];
 
 const app = getApps().length ? getApp() : initializeApp(CFG.FIREBASE);
@@ -236,7 +237,8 @@ function statusLabel(status) {
     TU_VONG_TAI_BENH_VIEN: 'Tử vong tại bệnh viện',
     TU_VONG_TAI_NOI_KHAC: 'Tử vong tại nơi khác',
     HOI_GIA_TAI_BENH_VIEN: 'Hồi gia tại bệnh viện',
-    DA_VE_TRUNG_TAM: 'Đã về Trung tâm'
+    DA_VE_TRUNG_TAM: 'Đã về Trung tâm',
+    CHUYEN_VIEN_HOI_CUU: 'Chuyển viện hồi cứu'
   };
   return map[status] || status || '—';
 }
@@ -289,7 +291,8 @@ function eventLabel(type) {
     DA_VE_TRUNG_TAM: 'Đã về Trung tâm',
     HOI_GIA_TAI_BENH_VIEN: 'Hồi gia tại bệnh viện',
     TU_VONG_TAI_BENH_VIEN: 'Tử vong tại bệnh viện',
-    TU_VONG_TAI_NOI_KHAC: 'Tử vong tại nơi khác'
+    TU_VONG_TAI_NOI_KHAC: 'Tử vong tại nơi khác',
+    CHUYEN_VIEN_HOI_CUU: 'Chuyển viện hồi cứu'
   };
   return map[type] || type || 'Cập nhật';
 }
@@ -415,15 +418,79 @@ function compareIdentity(payload, item) {
   return sameProfile ? 'same' : 'different';
 }
 
-async function deceasedDuplicate(payload) {
-  for (const item of state.closedCases.filter((row) => row.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN' || row.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC')) {
-    const match = compareIdentity(payload, item);
-    if (match === 'same') return { deceased: true, label: item.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC' ? 'tử vong tại nơi khác' : 'tử vong tại bệnh viện' };
+// YC-YTE-006: chỉ căn cứ NGÀY NGHIỆP VỤ tử vong, không lấy ngày nhập dữ liệu.
+function verifiedDeathDate(item) {
+  const event = latestDeathEvent(item);
+  for (const value of [item && item.ngayTuVong, event && event.ngayTuVong, event && event.ngaySuKien]) {
+    if (validIsoBusinessDate(value)) return String(value);
   }
-  return null;
+  return '';
+}
+function samePatient(payload, item) { return compareIdentity(payload, item) === 'same'; }
+function deceasedCasesFor(payload, records = [...state.closedCases, ...state.openCases]) {
+  return records.filter((item) => samePatient(payload, item) && (
+    item.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN' || item.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC'
+  ));
+}
+// Tránh tạo ca độc lập trong khoảng thời gian người bệnh đang có ca khác đang diễn ra.
+// Ca hồi cứu chỉ ghi nhận sự kiện chuyển viện, không suy diễn ngày về Trung tâm.
+function historicalTransferDecision(payload, records = [...state.closedCases, ...state.openCases], exceptCaseId = '') {
+  const deaths = deceasedCasesFor(payload, records);
+  if (!deaths.length) return { historical: false };
+  const knownDeathDates = deaths.map(verifiedDeathDate);
+  if (knownDeathDates.some((date) => !date)) throw new Error('Đối tượng đã tử vong nhưng chưa xác định được ngày tử vong nghiệp vụ. Vui lòng kiểm tra hồ sơ trước khi nhập hồi cứu.');
+  const deathDate = knownDeathDates.sort()[0];
+  if (payload.ngayChuyenVien >= deathDate) {
+    throw new Error(`Ngày chuyển viện phải trước ngày tử vong ${formatBusinessDate(deathDate)}. Không thể lập lượt chuyển viện sau hoặc cùng ngày tử vong.`);
+  }
+  for (const item of records) {
+    if (item.id === exceptCaseId || !samePatient(payload, item)) continue;
+    const start = transferBusinessDate(item);
+    if (!validIsoBusinessDate(start)) continue;
+    if (start === payload.ngayChuyenVien) {
+      throw new Error(`Đã có lượt chuyển viện ngày ${formatBusinessDate(start)} của đối tượng này. Không được tạo trùng.`);
+    }
+    // Một ca tử vong đang bao phủ giai đoạn này phải được bổ sung bằng các sự kiện
+    // chuyển tiếp của chính hành trình, KHÔNG tăng một lượt rời Trung tâm mới.
+    const end = item.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN' || item.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC'
+      ? verifiedDeathDate(item) : (item.trangThaiHienTai === HISTORICAL_TRANSFER_STATUS ? start : historyBusinessDate(item));
+    if (item.trangThaiKyThuat === 'OPEN' && payload.ngayChuyenVien >= start) {
+      throw new Error('Đối tượng đã có hành trình đang mở. Không thể tạo thêm lượt hồi cứu chồng lấn.');
+    }
+    if (validIsoBusinessDate(end) && start <= payload.ngayChuyenVien && payload.ngayChuyenVien <= end) {
+      throw new Error(`Ngày ${formatBusinessDate(payload.ngayChuyenVien)} nằm trong hành trình đã ghi nhận (${formatBusinessDate(start)}–${formatBusinessDate(end)}). Nếu là chuyển tiếp bệnh viện thì không tạo lượt chuyển viện mới.`);
+    }
+  }
+  return { historical: true, deathDate };
+}
+function historicalCaseId(payload) {
+  // Một đối tượng/một ngày: ID quyết định giúp chống ghi trùng khi hai máy nhập đồng thời.
+  return `HTCV_HS_${payload.doiTuongKey}_${payload.ngayChuyenVien.replace(/-/g, '')}`;
+}
+function updateHistoricalNotice() {
+  const note = $('journeyHistoricalNotice');
+  if (!note) return;
+  note.hidden = true;
+  const name = String($('journeyPatient')?.value || '');
+  const gender = String($('journeyGender')?.value || '');
+  const year = Number($('journeyBirthYear')?.value || 0);
+  const date = String($('journeyTransferDate')?.value || '');
+  if (!name.trim() || !validGender(gender) || !validBirthYear(year) || !validIsoBusinessDate(date)) return;
+  const decisionData = { doiTuong: name, gioiTinh: gender, namSinh: year, ngayChuyenVien: date };
+  if (!deceasedCasesFor(decisionData).length) return;
+  note.hidden = false;
+  try {
+    const decision = historicalTransferDecision(decisionData);
+    note.textContent = decision.historical
+      ? `Đối tượng đã được ghi nhận tử vong ngày ${formatBusinessDate(decision.deathDate)}. Lượt chuyển viện ngày ${formatBusinessDate(date)} sẽ được ghi vào Lịch sử dạng “Chuyển viện hồi cứu”; không mở lại theo dõi, không thay đổi hồ sơ tử vong. Chỉ dùng cho một lượt rời Trung tâm độc lập, không dùng cho chuyển tiếp bệnh viện.`
+      : '';
+  } catch (error) {
+    note.textContent = friendlyError(error);
+  }
 }
 
 function statusClass(status) {
+  if (status === HISTORICAL_TRANSFER_STATUS) return 'is-transfer';
   if (status === 'DA_VE_TRUNG_TAM' || status === 'HOI_GIA_TAI_BENH_VIEN') return 'is-returned';
   if (status === 'TU_VONG_TAI_BENH_VIEN' || status === 'TU_VONG_TAI_NOI_KHAC') return 'is-death';
   if (status === 'CHUYEN_TIEP_BENH_VIEN_KHAC') return 'is-transfer';
@@ -613,6 +680,7 @@ function applyJourneySnapshot(journeySnap) {
   renderHistory();
   showState('journeyTrackingLoadState', '', '', false);
   scheduleStatisticsReconciliation();
+  updateHistoricalNotice();
 }
 
 function stopJourneyRealtime() {
@@ -760,14 +828,16 @@ function updateHistoryFilterLabels(allRows) {
     DA_VE_TRUNG_TAM: allRows.filter((x) => x.trangThaiHienTai === 'DA_VE_TRUNG_TAM').length,
     HOI_GIA_TAI_BENH_VIEN: allRows.filter((x) => x.trangThaiHienTai === 'HOI_GIA_TAI_BENH_VIEN').length,
     TU_VONG_TAI_BENH_VIEN: allRows.filter((x) => x.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN').length,
-    TU_VONG_TAI_NOI_KHAC: allRows.filter((x) => x.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC').length
+    TU_VONG_TAI_NOI_KHAC: allRows.filter((x) => x.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC').length,
+    CHUYEN_VIEN_HOI_CUU: allRows.filter((x) => x.trangThaiHienTai === HISTORICAL_TRANSFER_STATUS).length
   };
   const labels = {
     all: 'Tất cả',
     DA_VE_TRUNG_TAM: 'Đã về Trung tâm',
     HOI_GIA_TAI_BENH_VIEN: 'Hồi gia tại bệnh viện',
     TU_VONG_TAI_BENH_VIEN: 'Tử vong tại bệnh viện',
-    TU_VONG_TAI_NOI_KHAC: 'Tử vong tại nơi khác'
+    TU_VONG_TAI_NOI_KHAC: 'Tử vong tại nơi khác',
+    CHUYEN_VIEN_HOI_CUU: 'Chuyển viện hồi cứu'
   };
   Array.from(select.options).forEach((option) => {
     option.textContent = `${labels[option.value] || option.textContent} (${counts[option.value] || 0})`;
@@ -1013,6 +1083,7 @@ function resetCreateForm() {
   $('journeyNote').value = '';
   $('journeyCreateError').textContent = '';
   updateCreateDynamicFields();
+  updateHistoricalNotice();
   const user = auth.currentUser;
   $('journeyReporter').textContent = user ? currentDisplayName() : '—';
   state.createBaseline = formSignature(CREATE_FIELD_IDS);
@@ -1084,18 +1155,21 @@ async function createJourney() {
   $('journeyCreateError').textContent = '';
   $('journeyCreateSave').disabled = true;
   $('journeyCreateSave').textContent = 'Đang lưu...';
+  let historical = { historical: false };
   try {
     const refreshed = await loadJourneys(true);
     if (!refreshed) throw new Error('Không thể kiểm tra dữ liệu hành trình mới nhất. Vui lòng kiểm tra kết nối và thử lại để tránh tạo trùng hồ sơ.');
     const duplicate = activeDuplicate(payload);
     if (duplicate && duplicate.conflict) throw new Error(duplicate.message);
     if (duplicate && duplicate.duplicate) throw new Error(`Đối tượng đang có hành trình chưa kết thúc tại ${duplicate.item.noiHienTai || 'cơ sở y tế'}.`);
-    const deceased = await deceasedDuplicate(payload);
-    if (deceased && deceased.conflict) throw new Error(deceased.message);
-    if (deceased && deceased.deceased) throw new Error(`Đối tượng đã được ghi nhận ${deceased.label}. Không thể lập hành trình chuyển viện mới.`);
-
-    const caseId = 'HTCV_' + push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien`)).key;
-    await claimOpenIndex(payload.doiTuongKey, caseId);
+    historical = historicalTransferDecision(payload);
+    const caseId = historical.historical ? historicalCaseId(payload) : 'HTCV_' + push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien`)).key;
+    if (historical.historical) {
+      const existing = await get(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}`));
+      if (existing.exists()) throw new Error('Lượt chuyển viện hồi cứu này đã được ghi nhận. Không lưu trùng.');
+    } else {
+      await claimOpenIndex(payload.doiTuongKey, caseId);
+    }
     const stageId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/chang`)).key;
     const historyId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/lichSu`)).key;
     const businessDate = payload.ngayChuyenVien;
@@ -1119,8 +1193,8 @@ async function createJourney() {
       lyDoHienTai: payload.lyDo,
       tinhTrangChanDoanHienTai: payload.tinhTrang,
       ghiChu: payload.ghiChu,
-      trangThaiHienTai: payload.trangThai,
-      trangThaiKyThuat: 'OPEN',
+      trangThaiHienTai: historical.historical ? HISTORICAL_TRANSFER_STATUS : payload.trangThai,
+      trangThaiKyThuat: historical.historical ? 'CLOSED' : 'OPEN',
       ngayChuyenVien: businessDate,
       ngaySuKienHienTai: businessDate,
       // Giữ timestamp hệ thống để audit/ordering; không dùng làm ngày nghiệp vụ.
@@ -1151,7 +1225,7 @@ async function createJourney() {
       lyDo: payload.lyDo,
       tinhTrangChanDoan: payload.tinhTrang,
       ghiChu: payload.ghiChu,
-      trangThaiSauChang: payload.trangThai,
+      trangThaiSauChang: historical.historical ? HISTORICAL_TRANSFER_STATUS : payload.trangThai,
       ngayChuyenVien: businessDate,
       ngaySuKien: businessDate,
       thoiDiem: ts,
@@ -1164,7 +1238,7 @@ async function createJourney() {
       caseId,
       loaiSuKien: 'MO_HANH_TRINH',
       trangThaiTruoc: '',
-      trangThaiSau: payload.trangThai,
+      trangThaiSau: historical.historical ? HISTORICAL_TRANSFER_STATUS : payload.trangThai,
       noiTruoc: CENTER_NAME,
       noiSau: payload.noiDen,
       hinhThucChuyen: payload.hinhThucChuyen,
@@ -1182,7 +1256,7 @@ async function createJourney() {
     };
     updates[`${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${businessDate}/${caseId}`] = true;
     updates[`${REPORT_ROOT}/nhatKy/${businessDate.slice(0, 7)}/${logId}`] = {
-      action: 'Lập hành trình chuyển viện',
+      action: historical.historical ? 'Bổ sung lượt chuyển viện hồi cứu' : 'Lập hành trình chuyển viện',
       content: `${payload.doiTuong} · ${CENTER_NAME} → ${payload.noiDen}`,
       reportId: caseId,
       loaiBaoCao: 'CHUYEN_VIEN',
@@ -1196,17 +1270,20 @@ async function createJourney() {
     try {
       await update(ref(db), updates);
     } catch (error) {
-      await releaseOpenIndex(payload.doiTuongKey, caseId);
+      if (!historical.historical) await releaseOpenIndex(payload.doiTuongKey, caseId);
       throw error;
     }
     notifyBusinessEvent('TRANSFER_CREATED', caseId);
-    showToast('Đã lập hành trình chuyển viện.', 'ok');
+    showToast(historical.historical ? 'Đã bổ sung lượt chuyển viện vào Lịch sử; hồ sơ tử vong được giữ nguyên.' : 'Đã lập hành trình chuyển viện.', 'ok');
     resetCreateForm();
     await loadJourneys(true);
-    setSubView('tracking');
+    setSubView(historical.historical ? 'history' : 'tracking');
   } catch (error) {
     console.error(error);
-    $('journeyCreateError').textContent = friendlyError(error, 'Không thể lưu hành trình chuyển viện. Vui lòng thử lại.');
+    const denied = /permission[_ -]?denied|permission denied/i.test(String(error?.code || '') + ' ' + String(error?.message || ''));
+    $('journeyCreateError').textContent = historical.historical && denied
+      ? 'Chưa được phép lưu chuyển viện hồi cứu trên Firebase. Quản trị cần đối chiếu và cập nhật Rules Phòng Y tế theo bản đã bàn giao; dữ liệu tử vong hiện có không bị thay đổi.'
+      : friendlyError(error, 'Không thể lưu hành trình chuyển viện. Vui lòng thử lại.');
   } finally {
     $('journeyCreateSave').disabled = false;
     $('journeyCreateSave').textContent = 'Xác nhận chuyển viện';
@@ -1253,7 +1330,7 @@ async function deleteJourney(id) {
       data: raw
     };
     updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${id}`] = null;
-    if (info.doiTuongKey) updates[`${REPORT_ROOT}/hanhTrinhDangMo/${info.doiTuongKey}`] = null;
+    if (info.doiTuongKey && info.trangThaiHienTai !== HISTORICAL_TRANSFER_STATUS) updates[`${REPORT_ROOT}/hanhTrinhDangMo/${info.doiTuongKey}`] = null;
     if (transferDate) updates[`${REPORT_ROOT}/congKhaiThongKe/chuyenVienTheoNgay/${transferDate}/${id}`] = null;
     if (deathDate) updates[`${REPORT_ROOT}/congKhaiThongKe/tuVongTheoNgay/${deathDate}/${deathPrefix}${id}`] = null;
     updates[`${REPORT_ROOT}/nhatKy/${logMonth}/${logId}`] = {
@@ -1594,7 +1671,7 @@ function updateCorrectionFields() {
   const homeReturn = status === 'HOI_GIA_TAI_BENH_VIEN';
   const deathHospital = status === 'TU_VONG_TAI_BENH_VIEN';
   const deathOther = status === 'TU_VONG_TAI_NOI_KHAC';
-  const transferOrOpen = ['DANG_THEO_DOI','TAI_KHAM','DANG_DIEU_TRI','CHUYEN_TIEP_BENH_VIEN_KHAC'].includes(status);
+  const transferOrOpen = ['DANG_THEO_DOI','TAI_KHAM','DANG_DIEU_TRI','CHUYEN_TIEP_BENH_VIEN_KHAC', HISTORICAL_TRANSFER_STATUS].includes(status);
   if ($('journeyCorrectionFromField')) $('journeyCorrectionFromField').hidden = true;
   if ($('journeyCorrectionToField')) $('journeyCorrectionToField').hidden = !transferOrOpen;
   if ($('journeyCorrectionDiagnosisField')) $('journeyCorrectionDiagnosisField').hidden = returned || homeReturn;
@@ -1623,7 +1700,11 @@ function correctionEventPayload(item, source) {
   if (bounds.min && date < bounds.min) throw new Error('Ngày nghiệp vụ không được nhỏ hơn ngày của sự kiện trước (' + formatBusinessDate(bounds.min) + ').');
   if (bounds.max && date > bounds.max) throw new Error('Ngày nghiệp vụ không được lớn hơn ngày của sự kiện kế tiếp (' + formatBusinessDate(bounds.max) + ').');
   if (!ALL_STATUSES.includes(status)) throw new Error('Trạng thái không hợp lệ.');
-  if (source.loaiSuKien === 'MO_HANH_TRINH' && status !== 'DANG_THEO_DOI') throw new Error('Sự kiện mở hành trình phải giữ trạng thái Đang theo dõi.');
+  if (source.loaiSuKien === 'MO_HANH_TRINH' && status !== (source.trangThaiSau === HISTORICAL_TRANSFER_STATUS ? HISTORICAL_TRANSFER_STATUS : 'DANG_THEO_DOI')) throw new Error('Không được thay đổi loại sự kiện mở hành trình.');
+  if (status === HISTORICAL_TRANSFER_STATUS) {
+    const decision = historicalTransferDecision({ doiTuong: item.doiTuong, gioiTinh: item.gioiTinh, namSinh: item.namSinh, ngayChuyenVien: date }, [...state.openCases, ...state.closedCases], item.id);
+    if (!decision.historical) throw new Error('Lượt hồi cứu chỉ hợp lệ khi đã có hồ sơ tử vong với ngày nghiệp vụ sau ngày chuyển viện.');
+  }
   const homeReturn = status === 'HOI_GIA_TAI_BENH_VIEN';
   if (homeReturn) {
     const hospital = String(source.noiTruoc || source.noiSau || item.noiHienTai || '').trim();
@@ -1637,7 +1718,7 @@ function correctionEventPayload(item, source) {
   if (status === 'DA_VE_TRUNG_TAM') to = CENTER_NAME;
   if (status === 'TU_VONG_TAI_BENH_VIEN') deathPlace = to || item.noiHienTai || source.noiSau || '';
   if (status === 'TU_VONG_TAI_NOI_KHAC' && !deathPlace) throw new Error('Vui lòng nhập Nơi tử vong.');
-  if (['DANG_THEO_DOI','TAI_KHAM','DANG_DIEU_TRI','CHUYEN_TIEP_BENH_VIEN_KHAC'].includes(status) && !to) throw new Error('Vui lòng nhập Nơi đến / nơi hiện tại.');
+  if (['DANG_THEO_DOI','TAI_KHAM','DANG_DIEU_TRI','CHUYEN_TIEP_BENH_VIEN_KHAC', HISTORICAL_TRANSFER_STATUS].includes(status) && !to) throw new Error('Vui lòng nhập Nơi đến / nơi hiện tại.');
   if (status !== 'DA_VE_TRUNG_TAM' && !homeReturn && !diagnosis) throw new Error('Vui lòng nhập Tình trạng / Chẩn đoán.');
   if (status === 'DA_VE_TRUNG_TAM' && !returnCondition) throw new Error('Vui lòng nhập Tình trạng khi về Trung tâm.');
   return {
@@ -1673,6 +1754,13 @@ function openJourneyCorrection(eventId) {
   $('journeyCorrectionDate').value = eventBusinessDate(event, item) || todayIso();
   const dateBounds = correctionDateBounds(item, eventId);
   $('journeyCorrectionDate').min = dateBounds.min || '';
+  if (item.trangThaiHienTai === HISTORICAL_TRANSFER_STATUS) {
+    const knownDeaths = deceasedCasesFor(item).map(verifiedDeathDate).filter(Boolean).sort();
+    if (knownDeaths.length) {
+      const dayBefore = new Date(Date.parse(knownDeaths[0] + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
+      if (dayBefore < dateBounds.max) dateBounds.max = dayBefore;
+    }
+  }
   $('journeyCorrectionDate').max = dateBounds.max || todayIso();
   $('journeyCorrectionStatus').value = event.trangThaiSau || 'DANG_THEO_DOI';
   $('journeyCorrectionStatus').disabled = event.loaiSuKien === 'MO_HANH_TRINH';
@@ -1870,7 +1958,9 @@ async function saveJourneyCorrection(action) {
     if (validGender(latest.gioiTinh)) info.gioiTinh = latest.gioiTinh;
     if (validBirthYear(latest.namSinh)) info.namSinh = Number(latest.namSinh);
     updates[`${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/thongTin`] = info;
-    updates[`${REPORT_ROOT}/hanhTrinhDangMo/${latest.doiTuongKey}`] = projection.closed ? null : caseId;
+    if (latest.trangThaiHienTai !== HISTORICAL_TRANSFER_STATUS) {
+      updates[`${REPORT_ROOT}/hanhTrinhDangMo/${latest.doiTuongKey}`] = projection.closed ? null : caseId;
+    }
 
     const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${projection.finalDate.slice(0,7)}`)).key;
     updates[`${REPORT_ROOT}/nhatKy/${projection.finalDate.slice(0,7)}/${logId}`] = {
@@ -2078,7 +2168,10 @@ function initEvents() {
   $('journeyCreateSave')?.addEventListener('click', createJourney);
   $('journeyCreateCancel')?.addEventListener('click', () => requestSubView('tracking'));
   $('journeyCreateModeTransfer')?.addEventListener('click', () => { if (state.subView !== 'create') setSubView('create'); setTimeout(() => $('journeyPatient')?.focus(), 0); });
-  $('journeyPatient')?.addEventListener('blur', () => { $('journeyPatient').value = formatPersonName($('journeyPatient').value); });
+  $('journeyPatient')?.addEventListener('blur', () => { $('journeyPatient').value = formatPersonName($('journeyPatient').value); updateHistoricalNotice(); });
+  for (const id of ['journeyPatient', 'journeyGender', 'journeyBirthYear', 'journeyTransferDate']) {
+    $(id)?.addEventListener('change', updateHistoricalNotice);
+  }
   $('journeyTransferType')?.addEventListener('change', updateCreateDynamicFields);
   $('journeyTo')?.addEventListener('change', updateCreateDynamicFields);
   $('journeyTrackingSearch')?.addEventListener('input', renderTracking);

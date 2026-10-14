@@ -176,7 +176,15 @@
       if (event.target.closest('.nav-item')) setOpen(false);
     });
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && document.body.classList.contains('mobile-nav-open')) setOpen(false);
+      if (!document.body.classList.contains('mobile-nav-open')) return;
+      if (event.key === 'Escape') { setOpen(false); return; }
+      if (event.key !== 'Tab') return;
+      const focusables = [...nav.querySelectorAll(FOCUSABLE_SELECTOR)].filter((el) => !el.hidden && !!el.getClientRects().length && !el.closest('[hidden]'));
+      if (!focusables.length) { event.preventDefault(); return; }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !nav.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || !nav.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
     });
     window.addEventListener('resize', () => {
       if (!window.matchMedia(MOBILE_QUERY).matches) setOpen(false);

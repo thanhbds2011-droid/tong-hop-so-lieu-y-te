@@ -1,5 +1,5 @@
 /* ======================================================================
-   PHÒNG Y TẾ — PRODUCTION UI v10.0.17
+   PHÒNG Y TẾ — PRODUCTION UI v10.0.20
    Presentation layer only. Business/data/auth contracts remain in JS.
    Visual baseline: desktop + mobile approved 16/09/2026.
    ====================================================================== */
@@ -929,7 +929,7 @@ html.theme-dark body:has(#authView.active){background:#0f1420!important;color:#f
 html.theme-dark.theme-eye-comfort body:has(#authView.active){background:#151711!important;}
 
 /* ======================================================================
-   v10.0.17 — FINAL DARK THEME COMPLETENESS + VIETNAMESE TYPOGRAPHY
+   v10.0.20 — FINAL DARK THEME COMPLETENESS + VIETNAMESE TYPOGRAPHY
    UI/CSS-only hardening. No business/data/permission logic is changed.
    This block intentionally loads last so legacy light surfaces cannot leak
    into dark mode after realtime/dynamic rendering.
@@ -1214,4 +1214,122 @@ html.theme-dark #journeyView .journey-person-icon{
   background:#302034!important;
   color:#ff9bd0!important;
   box-shadow:inset 0 0 0 1px #5d3a55!important;
+}
+
+/* ========================================================================
+   v10.0.20 – Approved UI changes YC-YTE-001..005 (frontend only)
+   Keep Firebase flows, admin rights, journey and personal-list forms unchanged.
+   ======================================================================== */
+[hidden] { display:none!important; }
+
+/* One true category selector: no redundant heading or recap card. */
+#entryView .entry-simple-panel { min-width:0; }
+#entryView .entry-quick-category { width:100%; max-width:100%; }
+#entryView .entry-quick-category label { display:grid; gap:8px; color:var(--color-text); font-size:14px; font-weight:750; }
+#entryView #entryCategorySelect { display:block; width:100%; max-width:100%; min-height:46px; font-weight:550; }
+#entryView .entry-inline-form { min-width:0; }
+#entryView #entryQuickValueField, #entryView #entryTrainingContentField { max-width:100%; }
+#entryView .entry-inline-actions { margin-top:12px; }
+
+/* No trend panel or chart allocations remain on Dashboard. */
+#dashboardView > .dashboard-results-panel { min-width:0; }
+#dashboardView .dashboard-page-header .page-title-row { align-items:center; min-width:0; }
+#dashboardView .dashboard-page-header .page-heading { min-width:0; }
+#dashboardView .dashboard-page-header .page-title-icon { flex-shrink:0; }
+#dashboardView .dashboard-page-header h2 { line-height:1.2!important; }
+#dashboardView .dashboard-filter-panel { min-width:0; }
+#dashboardView .dashboard-filter-panel :is(.dashboard-primary-filters,.dashboard-secondary-actions) { min-width:0; }
+#dashboardView .dashboard-filter-panel .dashboard-range-row { align-items:flex-end!important; }
+#dashboardView .dashboard-secondary-actions > :is(button,details) { align-self:end; }
+#dashboardView .dashboard-secondary-actions .dashboard-more-filter > summary,
+#dashboardView .dashboard-secondary-actions > .btn,
+#dashboardView .dashboard-primary-filters > .filter-apply-btn { height:44px!important; min-height:44px!important; box-sizing:border-box; display:inline-flex; justify-content:center; align-items:center; }
+#dashboardView .dashboard-primary-filters :is(input,select) { height:44px!important; min-height:44px!important; box-sizing:border-box; }
+@media (min-width:1024px) {
+  /* Keep heading in its own balanced row; toolbar uses available content gutter. */
+  #dashboardView.active { display:block!important; }
+  #dashboardView > .dashboard-page-header { padding:0!important; margin:0 0 13px!important; }
+  #dashboardView > .dashboard-filter-panel { margin-bottom:14px!important; }
+  #dashboardView .dashboard-filter-panel .dashboard-range-row { display:flex!important; flex-wrap:wrap!important; gap:10px!important; }
+  #dashboardView .dashboard-filter-panel .dashboard-primary-filters { display:flex!important; flex:1 1 550px!important; width:auto!important; flex-wrap:wrap!important; align-items:flex-end!important; gap:9px!important; }
+  #dashboardView .dashboard-filter-panel .dashboard-primary-filters > .field:not([hidden]) { flex:1 1 128px!important; width:auto!important; min-width:120px!important; max-width:none!important; }
+  #dashboardView .dashboard-filter-panel .dashboard-primary-filters > .filter-apply-btn { flex:0 0 auto!important; min-width:112px!important; width:auto!important; }
+  #dashboardView .dashboard-filter-panel .dashboard-secondary-actions { display:flex!important; flex:0 0 auto!important; width:auto!important; margin:0!important; justify-content:flex-start!important; align-items:flex-end!important; flex-wrap:wrap!important; gap:8px!important; }
+  #dashboardView .dashboard-filter-panel .dashboard-secondary-actions > * { flex:0 0 auto!important; width:auto!important; }
+}
+@media (min-width:1300px) {
+  #dashboardView .dashboard-filter-panel .dashboard-range-row,
+  #dashboardView .dashboard-filter-panel .dashboard-primary-filters,
+  #dashboardView .dashboard-filter-panel .dashboard-secondary-actions { flex-wrap:nowrap!important; }
+  #dashboardView .dashboard-filter-panel .dashboard-primary-filters { flex:1 1 auto!important; }
+  #dashboardView .dashboard-filter-panel .dashboard-primary-filters > .field:not([hidden]) { min-width:100px!important; }
+  #dashboardView .dashboard-secondary-actions :is(.btn,summary) { white-space:nowrap!important; }
+}
+
+/* Search dropdown is populated only from catalog and accessible app sections. */
+.header-search { position:relative; overflow:visible!important; }
+.global-search-results { position:absolute; z-index:1700; top:calc(100% + 7px); left:0; right:0; max-height:min(380px,65dvh); overflow:auto; padding:6px; border:1px solid #eadce6; border-radius:14px; background:#fff; box-shadow:0 16px 38px rgba(26,38,58,.18); }
+.search-result-option { display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%; min-height:53px; padding:10px 12px; border:0; border-radius:9px; background:transparent; color:#18304c; text-align:left; cursor:pointer; }
+.search-result-option strong { font-size:13px; font-weight:750; }
+.search-result-option small { font-size:11px; color:#66778b; }
+.search-result-option:hover,.search-result-option:focus-visible,.search-result-option.is-highlighted { background:#fff0f8; outline:2px solid transparent; }
+.search-result-empty { padding:14px 10px; font-size:12px; color:#66778b; }
+.mobile-nav-search { display:none; }
+html.theme-eye-comfort .global-search-results,html.theme-eye-comfort .mobile-search-results { background:#fff9ee!important; border-color:#e8dcca!important; }
+html.theme-dark :is(.global-search-results,.mobile-search-results){background:#1b2430!important;border-color:#3d4755!important;color:#f5f5f9!important;}
+html.theme-dark .search-result-option { color:#f5f7fa!important; }
+html.theme-dark .search-result-option small { color:#bdc6d1!important; }
+html.theme-dark .search-result-option:is(:hover,:focus-visible,.is-highlighted){background:#39273b!important;}
+html.theme-dark.theme-eye-comfort :is(.global-search-results,.mobile-search-results){background:#20241d!important;border-color:#484c42!important;}
+
+@media (max-width:1023px){
+  /* Approved full-viewport menu; unlike the legacy 86vw slide-out drawer. */
+  body .nav#appNav { position:fixed!important; inset:0!important; top:0!important; left:0!important; right:0!important; bottom:0!important; width:100vw!important; max-width:none!important; height:100dvh!important; max-height:none!important; padding:calc(14px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom))!important; border:0!important; border-radius:0!important; box-shadow:none!important; overflow-y:auto!important; overscroll-behavior:contain; background:#fff9fc!important; z-index:2100!important; display:flex!important; transform:translateX(-105%)!important; }
+  body.mobile-nav-open .nav#appNav { transform:translateX(0)!important; }
+  body .mobile-nav-backdrop { z-index:2050!important; }
+  body .nav#appNav .mobile-nav-head { display:flex!important; padding-bottom:17px!important; margin-bottom:14px!important; flex-shrink:0; }
+  body .nav#appNav .mobile-nav-identity strong { font-size:19px; white-space:nowrap; }
+  body .nav#appNav .mobile-nav-close { min-width:44px; min-height:44px; display:grid; place-items:center; font-size:30px; }
+  body .nav#appNav .nav-item { min-height:60px!important; padding:14px 16px!important; border:1px solid #efe3ec!important; border-radius:13px!important; margin:3px 0; gap:14px!important; background:#fff!important; font-size:16px!important; }
+  body .nav#appNav .nav-item.active { background:#fce4f1!important; color:#ac2468!important; border-color:#f4c7e2!important; box-shadow:inset 4px 0 0 #ff66b7!important; }
+  body .nav#appNav .nav-item[hidden] { display:none!important; }
+  body .nav#appNav .nav-footer { margin-top:auto!important; padding-top:22px; }
+  body .nav#appNav .mobile-nav-search { display:block; margin:0 0 12px; min-width:0; position:relative; }
+  body .nav#appNav .mobile-nav-search label { display:block; font-weight:750; color:#6a3a5a; font-size:12px; margin-bottom:7px; }
+  body .nav#appNav .mobile-nav-search input { width:100%; height:46px; padding:10px 13px; border:1px solid #e7d4e0; border-radius:12px; background:#fff; color:#233451; }
+  body .nav#appNav .mobile-search-results:not([hidden]) { display:block; margin-top:7px; padding:6px; border:1px solid #e8d5e2; border-radius:12px; background:#fff; max-height:40dvh; overflow:auto; }
+  body .mobile-bottom-nav, #mobileBottomNav { display:none!important; }
+  body .app-shell { padding-bottom:calc(18px + env(safe-area-inset-bottom))!important; }
+  body .view.active { padding-bottom:calc(22px + env(safe-area-inset-bottom))!important; }
+  body .toast,body .app-update-banner { bottom:calc(14px + env(safe-area-inset-bottom))!important; }
+  body .header-inner .brand { flex:1 1 auto; min-width:0!important; }
+  body .header-inner .brand-copy { min-width:0; }
+  body .header-inner .brand-mobile-title { display:block!important; white-space:nowrap!important; overflow:hidden; text-overflow:ellipsis; font-size:clamp(15px,4.3vw,20px)!important; line-height:1.28!important; }
+  body .header-inner .brand-mobile.header-mobile-greeting { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  body .header-inner .mobile-nav-toggle { min-width:40px; }
+  #dashboardView .dashboard-filter-panel .dashboard-secondary-actions { margin-top:10px!important; }
+  #dashboardView .dashboard-filter-panel .dashboard-secondary-actions > * { align-self:stretch; }
+  #dashboardView .dashboard-filter-panel .dashboard-primary-filters > .field:not([hidden]) { min-width:0!important; }
+  #dashboardView .dashboard-page-header { align-items:center; }
+  #dashboardView .dashboard-page-header .page-title-row { align-items:center; }
+  .unified-care-head { display:flex!important; flex-wrap:wrap!important; gap:10px!important; }
+  .unified-care-head .page-title-row { min-width:0; flex:1 1 240px; }
+  .unified-care-head .report-head-actions { flex:0 0 auto; }
+}
+@media (max-width:400px){
+  body .header-inner { gap:4px!important; padding-inline:8px!important; }
+  body .header-inner .brand-mark-logo { width:34px!important; height:34px!important; }
+  body .header-inner .theme-toggle-button,body .header-inner .notification-bell-button { width:33px!important; min-width:33px!important; padding:6px!important; }
+  body .header-inner .mobile-nav-toggle { min-width:37px!important; width:37px!important; }
+  body .nav#appNav { padding-inline:14px!important; }
+}
+html.theme-eye-comfort body .nav#appNav { background:#fff9ef!important; }
+html.theme-dark body .nav#appNav { background:#171e2a!important; }
+html.theme-dark.theme-eye-comfort body .nav#appNav { background:#20221d!important; }
+html.theme-dark body .nav#appNav .nav-item { background:#202b38!important; border-color:#344251!important; color:#f1f4f9!important; }
+html.theme-dark body .nav#appNav .nav-item.active { background:#3b293e!important; border-color:#754366!important; color:#ffb8d9!important; }
+html.theme-dark body .nav#appNav .mobile-nav-search label { color:#e4cfdf!important; }
+/* At 320–350px the identity may use two *intentional* lines, never clipping its last syllable. */
+@media (max-width:350px){
+  body .header-inner .brand-mobile-title { white-space:normal!important; overflow:visible!important; text-overflow:clip!important; font-size:16px!important; line-height:1.15!important; }
 }
