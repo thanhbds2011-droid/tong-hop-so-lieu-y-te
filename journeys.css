@@ -2598,3 +2598,10 @@ html.theme-dark #journeyView .journey-history-icon-btn.is-delete{background:#321
 @media(max-width:600px) {.journey-retro-fields {grid-template-columns:1fr;padding:13px;gap:12px;}.journey-retro-dialog{max-height:calc(100dvh - 18px);}.journey-dialog-footer #journeyRetroAddOpen {flex:1 1 100%;}.journey-dialog-footer #journeyDetailCloseBottom {min-width:110px;}}
 /* Hộp bổ sung mở từ modal Chi tiết (z-index 220), nhưng dưới hộp xác nhận hệ thống (520). */
 #journeyRetroLayer { z-index: 230; }
+
+/* YC-YTE-008 – chọn bệnh viện và giờ nghiệp vụ trong biểu mẫu hồi cứu */
+.journey-retro-fields select,.journey-retro-fields input[type="time"] {width:100%;min-width:0;min-height:44px;}
+.journey-retro-fields .journey-retro-other[hidden] {display:none!important;}
+.journey-retro-fields .journey-retro-unknown {display:flex;gap:8px;align-items:center;margin-top:9px;font-size:13px;font-weight:500;cursor:pointer;}
+.journey-retro-unknown input[type="checkbox"] {width:17px;min-width:17px;height:17px;accent-color:var(--color-primary,#d83187);}
+.journey-hospital-hint {display:block;margin-top:5px;color:var(--color-text-2,#5d6473);font-size:12px;line-height:1.4;}

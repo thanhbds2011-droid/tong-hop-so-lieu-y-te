@@ -1,7 +1,7 @@
 {
-  "version": "10.0.21",
+  "version": "10.0.22",
   "releasedAt": "2026-10-15",
-  "title": "YC-YTE-007 – Bổ sung chuyển tiếp hồi cứu trong cùng hành trình CLOSED",
-  "businessBaseline": "v10.0.19 (YC-YTE-001–005) + YC-YTE-006, giữ trạng thái tử vong và marker độc lập",
-  "message": "Chỉ thêm sự kiện CHUYEN_TIEP vào lịch sử, giữ nguyên kết thúc, thống kê và phân quyền."
+  "title": "YC-YTE-008 – Đồng bộ tên cơ sở y tế và giờ chuyển tiếp hồi cứu",
+  "businessBaseline": "v10.0.21 (YC-YTE-001–007), giữ CLOSED/marker và phân quyền",
+  "message": "Thêm chọn bệnh viện thống nhất, Khác và gợi ý từ dữ liệu được phép đọc; lưu gioSuKien riêng với thời điểm nhập, không đổi thống kê."
 }
