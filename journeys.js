@@ -362,20 +362,7 @@ function toggleRetroDestination(selectId, fieldId) {
   const field = $(fieldId);
   if (field) field.hidden = $(selectId)?.value !== OTHER_DESTINATION;
 }
-function retroTimeToggle() {
-  const unknown = !!$('journeyRetroTimeUnknown')?.checked;
-  const time = $('journeyRetroTime');
-  if (!time) return;
-  time.disabled = unknown;
-  if (unknown) time.value = '';
-}
 function validBusinessClock(value) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || '')); }
-function retroBusinessClock() {
-  if ($('journeyRetroTimeUnknown')?.checked) return '';
-  const time = String($('journeyRetroTime')?.value || '').trim();
-  if (!validBusinessClock(time)) throw new Error('Vui lòng chọn giờ chuyển tiếp hợp lệ hoặc đánh dấu Chưa xác định giờ.');
-  return time;
-}
 
 function resolvedDestination(selectId, otherId) {
   const selected = String($(selectId)?.value || '').trim();
@@ -501,9 +488,31 @@ function effectiveHistoryEvents(item) {
       rows.push(after ? { ...event, ...after, _sourceId: event._sourceId, _corrected: true, _correction: c } : event);
     } else rows.push(event);
   });
-  rows.sort((a, b) => String(eventBusinessDate(a, item) || '').localeCompare(String(eventBusinessDate(b, item) || '')) ||
-    (validBusinessClock(a.gioSuKien) && validBusinessClock(b.gioSuKien) ? a.gioSuKien.localeCompare(b.gioSuKien) : 0) ||
-    Number(a.createdAt || 0) - Number(b.createdAt || 0));
+  rows.sort((a, b) => {
+    const dates = String(eventBusinessDate(a, item) || '').localeCompare(String(eventBusinessDate(b, item) || ''));
+    if (dates) return dates;
+    // Ngày trùng nhau: dựa trên loại sự kiện và luồng cơ sở điều trị, không dùng giờ nhập để
+    // đảo chỗ sự kiện hồi cứu. Giữ nguyên thứ tự cũ cho các dữ liệu legacy không thuộc hồi cứu.
+    if (a.hoiCuuBoSung || b.hoiCuuBoSung) {
+      if (a.loaiSuKien === 'MO_HANH_TRINH' && b.loaiSuKien !== 'MO_HANH_TRINH') return -1;
+      if (b.loaiSuKien === 'MO_HANH_TRINH' && a.loaiSuKien !== 'MO_HANH_TRINH') return 1;
+      if (CLOSED_STATUSES.includes(String(a.trangThaiSau || '')) && !CLOSED_STATUSES.includes(String(b.trangThaiSau || ''))) return 1;
+      if (CLOSED_STATUSES.includes(String(b.trangThaiSau || '')) && !CLOSED_STATUSES.includes(String(a.trangThaiSau || ''))) return -1;
+      const ab = normalizeText(a.noiSau) && normalizeText(a.noiSau) === normalizeText(b.noiTruoc);
+      const ba = normalizeText(b.noiSau) && normalizeText(b.noiSau) === normalizeText(a.noiTruoc);
+      if (ab && !ba) return -1;
+      if (ba && !ab) return 1;
+    }
+    // Giờ cũ được giữ nguyên và chỉ dùng cho các event đã có giờ xác thực.
+    if (validBusinessClock(a.gioSuKien) && validBusinessClock(b.gioSuKien))
+      return a.gioSuKien.localeCompare(b.gioSuKien);
+    if (a.hoiCuuBoSung || b.hoiCuuBoSung) {
+      // Khi không đủ liên kết cơ sở, dùng khóa ổn định để hiển thị tạm;
+      // bộ kiểm tra khoảng trống hiển thị cảnh báo, không coi thứ tự nhập là thứ tự đi viện.
+      return String(a._sourceId || '').localeCompare(String(b._sourceId || ''));
+    }
+    return Number(a.createdAt || 0) - Number(b.createdAt || 0);
+  });
   return rows;
 }
 function activeDuplicate(payload) {
@@ -2164,8 +2173,8 @@ async function saveJourneyCorrection(action) {
 
 
 // YC-YTE-007: Bổ sung hồi cứu là một event mới của case CLOSED, không sửa event kết thúc.
-const RETRO_FIELD_IDS = ['journeyRetroDate', 'journeyRetroTime', 'journeyRetroFrom', 'journeyRetroFromOther', 'journeyRetroTo', 'journeyRetroToOther', 'journeyRetroDiagnosis', 'journeyRetroNote'];
-function retroFormSignature() { return formSignature(RETRO_FIELD_IDS) + '|unknown:' + !!$('journeyRetroTimeUnknown')?.checked; }
+const RETRO_FIELD_IDS = ['journeyRetroDate', 'journeyRetroFrom', 'journeyRetroFromOther', 'journeyRetroTo', 'journeyRetroToOther', 'journeyRetroDiagnosis', 'journeyRetroNote'];
+function retroFormSignature() { return formSignature(RETRO_FIELD_IDS); }
 function closedForRetro(item) {
   return item && item.trangThaiKyThuat === 'CLOSED' &&
     ['DA_VE_TRUNG_TAM', 'HOI_GIA_TAI_BENH_VIEN', 'TU_VONG_TAI_BENH_VIEN', 'TU_VONG_TAI_NOI_KHAC'].includes(item.trangThaiHienTai);
@@ -2182,50 +2191,46 @@ function validateRetroInsertion(item, candidate) {
   }
   const start = eventBusinessDate(first, item);
   const end = eventBusinessDate(last, item);
-  const {date, from, to, time} = candidate;
+  const {date, from, to} = candidate;
   if (!validIsoBusinessDate(date) || date > todayIso()) throw new Error('Ngày chuyển tiếp không hợp lệ.');
-  if (!start || !end || date <= start || date >= end) {
-    throw new Error(`Ngày chuyển tiếp phải sau ${formatBusinessDate(start)} và trước ngày kết thúc ${formatBusinessDate(end)}.`);
-  }
+  if (!start || !end) throw new Error('Chưa xác định được ngày bắt đầu hoặc ngày kết thúc hành trình.');
+  if (date < start) throw new Error(`Ngày ${formatBusinessDate(date)} sớm hơn ngày chuyển viện ban đầu ${formatBusinessDate(start)} đã lưu. Vui lòng kiểm tra hoặc điều chỉnh sự kiện mở hành trình trước khi bổ sung; hệ thống không tự thay ngày bắt đầu.`);
+  if (date > end) throw new Error(`Ngày chuyển tiếp không thể sau ngày kết thúc ${formatBusinessDate(end)}.`);
   if (!from || !to || from.length > 300 || to.length > 300) throw new Error('Vui lòng nhập đầy đủ nơi đi và nơi đến (không quá 300 ký tự).');
   if (normalizeText(from) === normalizeText(to)) throw new Error('Nơi đi và nơi đến phải khác nhau.');
   if (normalizeText(from) === normalizeText(CENTER_NAME)) throw new Error('Đây là chuyển tiếp giữa các bệnh viện; không được chọn Trung tâm làm nơi đi.');
   if (normalizeText(to) === normalizeText(CENTER_NAME)) throw new Error('Đây là chuyển tiếp giữa các bệnh viện; không được chọn Trung tâm làm nơi đến.');
-  // Nếu có nhiều chuyển tiếp cùng ngày, chỉ cho thêm khi các giờ nghiệp vụ
-  // đều được xác thực và không trùng; không dùng createdAt để phỏng đoán giờ.
+  // Chỉ cần ngày: xác định thứ tự cùng ngày từ liên kết bệnh viện, không yêu cầu giờ.
+  // Kiểm tra tên nơi đi/nơi đến và chặn chặng trùng; không sử dụng giờ nhập để giả định thứ tự nghiệp vụ.
   const sameDay = events.filter((event) => eventBusinessDate(event, item) === date);
-  if (sameDay.length && (!validBusinessClock(time) || sameDay.some((event) => !validBusinessClock(event.gioSuKien)))) {
-    throw new Error('Ngày này đã có sự kiện nhưng thiếu giờ thực tế. Cần bổ sung giờ đã xác minh cho các sự kiện cùng ngày trước khi lưu chuyển tiếp.');
-  }
-  if (sameDay.some((event) => event.gioSuKien === time)) {
-    throw new Error('Đã có sự kiện cùng ngày, cùng giờ. Vui lòng kiểm tra tránh nhập trùng.');
+  const sameDayTransfers = sameDay.filter((event) => event.loaiSuKien === 'CHUYEN_TIEP');
+  // Có thể nhập theo thứ tự bất kỳ trong cùng ngày. Chỉ chặn khi hai chặng
+  // cùng ngày khẳng định nơi đi/đến mâu thuẫn, hoặc trùng chính xác.
+  // Thiếu liên kết thì lưu từng phần, thông báo khi xem timeline; không bịa giờ.
+  if (sameDayTransfers.some((event) =>
+    (normalizeText(event.noiTruoc) === normalizeText(from) && normalizeText(event.noiSau) !== normalizeText(to)) ||
+    (normalizeText(event.noiSau) === normalizeText(to) && normalizeText(event.noiTruoc) !== normalizeText(from)))) {
+    throw new Error('Ngày này đã có chặng chuyển tiếp dùng cùng nơi đi hoặc nơi đến nhưng khác nội dung. Vui lòng kiểm tra để tránh sai thứ tự khi không nhập giờ.');
   }
   if (events.some((event) => event.loaiSuKien === 'CHUYEN_TIEP' &&
       normalizeText(event.noiTruoc) === normalizeText(from) && normalizeText(event.noiSau) === normalizeText(to))) {
     throw new Error('Chặng chuyển tiếp này đã được ghi nhận trong hành trình.');
   }
-  const next = events.find((event) => {
-    const eventDate = eventBusinessDate(event, item);
-    return eventDate > date || (eventDate === date && validBusinessClock(time) &&
-      validBusinessClock(event.gioSuKien) && event.gioSuKien > time);
-  });
-  const endPlace = String(last.noiTuVong || last.noiSau || item.noiHienTai || '').trim();
-  const nextDate = eventBusinessDate(next, item);
-  const nextIsClosed = next && CLOSED_STATUSES.includes(String(next.trangThaiSau || ''));
-  if (next && nextDate === date && next.loaiSuKien === 'CHUYEN_TIEP' &&
-      normalizeText(to) !== normalizeText(next.noiTruoc)) {
-    throw new Error('Chặng chuyển tiếp cùng ngày phải đến đúng bệnh viện xuất phát của chặng tiếp theo.');
-  }
-  if (nextIsClosed && nextDate && Date.parse(nextDate + 'T00:00:00Z') - Date.parse(date + 'T00:00:00Z') === 86400000 &&
-    item.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN' && endPlace && normalizeText(to) !== normalizeText(endPlace)) {
-    throw new Error('Nơi đến trước ngày kết thúc không khớp nơi kết thúc hành trình. Vui lòng kiểm tra bệnh viện.');
-  }
+  // Nếu thiếu chặng nối đến nơi kết thúc, cho lưu từng phần và cảnh báo ở timeline.
   return { events, first, last, start, end };
 }
 function retroTimelineGaps(item) {
   if (!retroEventsPresent(item)) return false;
   const steps = effectiveHistoryEvents(item).filter((event) => ['MO_HANH_TRINH','CHUYEN_TIEP'].includes(event.loaiSuKien));
-  return steps.some((step, i) => i > 0 && normalizeText(step.noiTruoc) !== normalizeText(steps[i - 1].noiSau));
+  if (steps.some((step, i) => i > 0 && normalizeText(step.noiTruoc) !== normalizeText(steps[i - 1].noiSau))) return true;
+  const events = effectiveHistoryEvents(item);
+  const ending = events[events.length - 1];
+  if (ending && ['TU_VONG_TAI_BENH_VIEN', 'HOI_GIA_TAI_BENH_VIEN'].includes(ending.trangThaiSau)) {
+    const endPlace = String(ending.noiTuVong || ending.noiSau || item.noiHienTai || '').trim();
+    const lastPlace = String(steps[steps.length - 1]?.noiSau || '').trim();
+    if (endPlace && lastPlace && normalizeText(endPlace) !== normalizeText(lastPlace)) return true;
+  }
+  return false;
 }
 function openJourneyRetro() {
   const item = state.selectedCase;
@@ -2233,8 +2238,8 @@ function openJourneyRetro() {
   const events = effectiveHistoryEvents(item);
   const first = events[0], last = events[events.length - 1];
   const start = eventBusinessDate(first, item), end = eventBusinessDate(last, item);
-  if (!start || !end || Date.parse(end + 'T00:00:00Z') - Date.parse(start + 'T00:00:00Z') <= 86400000) {
-    showToast('Hành trình không có ngày trống giữa ngày bắt đầu và ngày kết thúc để bổ sung chuyển tiếp.', 'err'); return;
+  if (!start || !end || start > end) {
+    showToast('Không xác định được khoảng ngày hợp lệ của hành trình. Vui lòng kiểm tra Lịch sử.', 'err'); return;
   }
   state.retroCaseId = item.id;
   state.retroFromDetail = true;
@@ -2242,17 +2247,15 @@ function openJourneyRetro() {
   $('journeyRetroSubtitle').textContent = `Hành trình vẫn kết thúc ngày ${formatBusinessDate(end)} (${statusLabel(item.trangThaiHienTai)}).`;
   const dateField = $('journeyRetroDate');
   const d = new Date(Date.parse(end + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
-  dateField.value = d;
-  dateField.min = new Date(Date.parse(start + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10);
-  dateField.max = d;
+  dateField.value = d >= start ? d : end;
+  // Cho phép duyệt cả tháng/năm trước. Ngày quá sớm/quá muộn được kiểm tra rõ khi lưu.
+  dateField.removeAttribute('min');
+  dateField.max = todayIso();
   refreshHospitalChoices();
   $('journeyRetroFrom').value = '';
   $('journeyRetroTo').value = '';
   $('journeyRetroFromOther').value = '';
   $('journeyRetroToOther').value = '';
-  $('journeyRetroTime').value = '';
-  $('journeyRetroTimeUnknown').checked = true;
-  retroTimeToggle();
   toggleRetroDestination('journeyRetroFrom', 'journeyRetroFromOtherField');
   toggleRetroDestination('journeyRetroTo', 'journeyRetroToOtherField');
   $('journeyRetroDiagnosis').value = '';
@@ -2286,7 +2289,6 @@ async function saveJourneyRetro() {
   try {
     const caseId = state.retroCaseId;
     const date = String($('journeyRetroDate').value || '').trim();
-    const time = retroBusinessClock();
     const from = retroHospitalSelection('journeyRetroFrom', 'journeyRetroFromOther');
     const to = retroHospitalSelection('journeyRetroTo', 'journeyRetroToOther');
     const diagnosis = String($('journeyRetroDiagnosis').value || '').trim();
@@ -2310,12 +2312,10 @@ async function saveJourneyRetro() {
     const snapshot = await get(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}`));
     if (!snapshot.exists()) throw new Error('Không tìm thấy hành trình, vui lòng tải lại.');
     const latest = caseFromRaw(caseId, snapshot.val());
-    const {events} = validateRetroInsertion(latest, { date, from, to, time });
-    const predecessor = [...events].reverse().find((event) => {
-      const eventDate = eventBusinessDate(event, latest);
-      return eventDate < date || (eventDate === date && validBusinessClock(time) &&
-        validBusinessClock(event.gioSuKien) && event.gioSuKien < time);
-    });
+    const {events} = validateRetroInsertion(latest, { date, from, to });
+    const predecessor = [...events].reverse().find((event) =>
+      eventBusinessDate(event, latest) < date ||
+      (eventBusinessDate(event, latest) === date && normalizeText(event.noiSau) === normalizeText(from)));
     const eventId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/lichSu`)).key;
     const stageId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/chang`)).key;
     const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${date.slice(0, 7)}`)).key;
@@ -2337,7 +2337,7 @@ async function saveJourneyRetro() {
       id: eventId, caseId, loaiSuKien: 'CHUYEN_TIEP',
       trangThaiTruoc: String(predecessor?.trangThaiSau || 'DANG_THEO_DOI'),
       trangThaiSau: 'CHUYEN_TIEP_BENH_VIEN_KHAC',
-      noiTruoc: from, noiSau: to, ngaySuKien: date, gioSuKien: time,
+      noiTruoc: from, noiSau: to, ngaySuKien: date,
       ngayTuVong: '', noiTuVong: '',
       hinhThucChuyen: canonicalTransferType(latest),
       hinhThucChuyenKhac: String(latest.hinhThucChuyenKhac || ''),
@@ -2351,12 +2351,12 @@ async function saveJourneyRetro() {
       hinhThucChuyenKhac: String(latest.hinhThucChuyenKhac || ''),
       lyDo: diagnosis.slice(0, 1000), tinhTrangChanDoan: diagnosis,
       ghiChu: note, trangThaiSauChang: 'CHUYEN_TIEP_BENH_VIEN_KHAC',
-      ngaySuKien: date, gioSuKien: time, hoiCuuBoSung: true, thoiDiem: ts,
+      ngaySuKien: date, hoiCuuBoSung: true, thoiDiem: ts,
       uid: user.uid, email, displayName
     };
     updates[`${REPORT_ROOT}/nhatKy/${date.slice(0, 7)}/${logId}`] = {
       action: 'Bổ sung chuyển tiếp hồi cứu',
-      content: `${formatPersonName(latest.doiTuong)} · ${from} → ${to} · ${formatBusinessDate(date)}${time ? ' ' + time : ' (chưa rõ giờ)'}`.slice(0, 1000),
+      content: `${formatPersonName(latest.doiTuong)} · ${from} → ${to} · ${formatBusinessDate(date)}`.slice(0, 1000),
       reportId: caseId, loaiBaoCao: 'CHUYEN_VIEN', dataDate: date,
       uid: user.uid, email, displayName, role: roleForLog(), createdAt: ts
     };
@@ -2453,7 +2453,7 @@ function openDetail(id) {
     return `<div class="journey-timeline-item">
       <div class="journey-timeline-dot"></div>
       <div class="journey-timeline-card">
-        <div class="journey-timeline-head"><strong>${esc(timelineTitle(event))}</strong><span>${esc(businessDateText)}${validBusinessClock(event.gioSuKien) ? ' · ' + esc(event.gioSuKien) : (event.hoiCuuBoSung ? ' · chưa xác định giờ' : '')} <small class="journey-audit-time">· nhập ${esc(fmtDateTime(event.createdAt))}</small></span></div>
+        <div class="journey-timeline-head"><strong>${esc(timelineTitle(event))}</strong><span>${esc(businessDateText)} <small class="journey-audit-time">· nhập ${esc(fmtDateTime(event.createdAt))}</small></span></div>
         <div class="journey-timeline-status ${statusClass(event.trangThaiSau)}">${esc(timelineBadge(event, item))}</div>
         ${event.hoiCuuBoSung ? '<div class="journey-retro-indicator">Bổ sung hồi cứu</div>' : ''}
         ${lines.join('')}
@@ -2569,7 +2569,6 @@ function initEvents() {
   $('journeyRetroClose')?.addEventListener('click', requestCloseJourneyRetro);
   $('journeyRetroCancel')?.addEventListener('click', requestCloseJourneyRetro);
   $('journeyRetroSave')?.addEventListener('click', saveJourneyRetro);
-  $('journeyRetroTimeUnknown')?.addEventListener('change', retroTimeToggle);
   for (const [selector, field, input, hint] of [
     ['journeyRetroFrom','journeyRetroFromOtherField','journeyRetroFromOther','journeyRetroFromHint'],
     ['journeyRetroTo','journeyRetroToOtherField','journeyRetroToOther','journeyRetroToHint']

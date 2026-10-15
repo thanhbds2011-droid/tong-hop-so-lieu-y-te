@@ -1,26 +1,26 @@
 'use strict';
 
-const APP_VERSION = '10.0.22';
+const APP_VERSION = '10.0.23';
 const CACHE_PREFIX = 'tong-hop-so-lieu-y-te-firebase-';
 const CACHE_NAME = CACHE_PREFIX + 'v' + APP_VERSION;
 const LEGACY_CACHE_NAMES = new Set(['yte-tan-hiep-v5']);
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=10.0.22',
-  './reports.css?v=10.0.22',
-  './journeys.css?v=10.0.22',
-  './production-ui.css?v=10.0.22',
-  './app-config.js?v=10.0.22',
-  './theme.js?v=10.0.22',
-  './ui.js?v=10.0.22',
-  './update-manager.js?v=10.0.22',
-  './notifications.js?v=10.0.22',
-  './app.js?v=10.0.22',
+  './styles.css?v=10.0.23',
+  './reports.css?v=10.0.23',
+  './journeys.css?v=10.0.23',
+  './production-ui.css?v=10.0.23',
+  './app-config.js?v=10.0.23',
+  './theme.js?v=10.0.23',
+  './ui.js?v=10.0.23',
+  './update-manager.js?v=10.0.23',
+  './notifications.js?v=10.0.23',
+  './app.js?v=10.0.23',
   './report-preview.js',
   './excel-export.js',
-  './reports.js?v=10.0.22',
-  './journeys.js?v=10.0.22',
+  './reports.js?v=10.0.23',
+  './journeys.js?v=10.0.23',
   './version.json',
   './manifest.webmanifest',
   './offline.html',
