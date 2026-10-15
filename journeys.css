@@ -2581,3 +2581,20 @@ html.theme-dark #journeyView .journey-history-icon-btn.is-delete{background:#321
 /* YC-YTE-006: chỉ hiển thị hướng dẫn cho hồ sơ chuyển viện hồi cứu trước ngày tử vong. */
 .journey-historical-notice:not([hidden]) { padding: 13px 16px; border: 1px solid #efc1d7; background: #fff3fa; color: #8b2457; border-radius: 12px; line-height: 1.55; }
 [data-theme="dark"] .journey-historical-notice:not([hidden]), .dark-mode .journey-historical-notice:not([hidden]) { background: #352332; border-color: #74445a; color: #ffe6f1; }
+
+/* YC-YTE-007 – Hồi cứu chuyển tiếp trong hành trình đã kết thúc */
+.journey-retro-dialog {width:min(700px,calc(100% - 16px));max-height:calc(100dvh - 28px);overflow:auto;}
+.journey-retro-fields {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:18px;}
+.journey-retro-fields .field {min-width:0;}
+.journey-retro-fields .field.full,.journey-retro-description,.journey-retro-fields .adjust-error {grid-column:1/-1;}
+.journey-retro-fields input,.journey-retro-fields textarea {width:100%;min-width:0;}
+.journey-retro-description {font-size:12px;line-height:1.5;color:var(--color-text-2,#5d6473);margin:0;}
+.journey-retro-indicator {margin-top:6px;font-size:11px;font-weight:700;color:var(--color-primary,#b92f77);}
+.journey-retro-gap {border:1px solid #e8c8d9;background:var(--color-surface-2,#fff6fa);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--color-text,#38506a);}
+.journey-correction-audit-section {padding:10px 14px;margin:12px 0;border:1px solid #eddbec;border-radius:12px;background:var(--color-surface-2,#fffafb);color:var(--color-text,#38506a);}
+.journey-correction-audit-section summary {font-size:13px;font-weight:750;cursor:pointer;}
+.journey-correction-audit-section .journey-correction-audit {margin-top:10px;}
+.journey-dialog-footer {gap:10px;flex-wrap:wrap;}
+@media(max-width:600px) {.journey-retro-fields {grid-template-columns:1fr;padding:13px;gap:12px;}.journey-retro-dialog{max-height:calc(100dvh - 18px);}.journey-dialog-footer #journeyRetroAddOpen {flex:1 1 100%;}.journey-dialog-footer #journeyDetailCloseBottom {min-width:110px;}}
+/* Hộp bổ sung mở từ modal Chi tiết (z-index 220), nhưng dưới hộp xác nhận hệ thống (520). */
+#journeyRetroLayer { z-index: 230; }

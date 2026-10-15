@@ -1,7 +1,7 @@
 {
-  "version": "10.0.20",
-  "releasedAt": "2026-10-14",
-  "title": "Bổ sung chuyển viện hồi cứu trước ngày tử vong",
+  "version": "10.0.21",
+  "releasedAt": "2026-10-15",
+  "title": "YC-YTE-007 – Bổ sung chuyển tiếp hồi cứu trong cùng hành trình CLOSED",
   "businessBaseline": "v10.0.19 (YC-YTE-001–005) + YC-YTE-006, giữ trạng thái tử vong và marker độc lập",
-  "message": "YC-YTE-006: ghi nhận lượt chuyển viện trước ngày tử vong dưới dạng CLOSED hồi cứu, giữ nguyên hồ sơ tử vong; ngăn trùng/chồng lấn. Yêu cầu đối chiếu và cập nhật Firebase Rules Phòng Y tế tương ứng. Apps Script Gateway không đổi."
+  "message": "Chỉ thêm sự kiện CHUYEN_TIEP vào lịch sử, giữ nguyên kết thúc, thống kê và phân quyền."
 }

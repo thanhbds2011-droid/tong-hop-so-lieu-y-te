@@ -59,6 +59,9 @@ const state = {
   correctionEventId: '',
   correctionEvent: null,
   correctionFromDetail: false,
+  retroCaseId: '',
+  retroBaseline: '',
+  retroFromDetail: false,
   reconcileTimer: null,
   reconciling: false
 };
@@ -498,7 +501,22 @@ function statusClass(status) {
   if (status === 'DANG_THEO_DOI') return 'is-tracking';
   return 'is-followup';
 }
+function retroEventsPresent(item) {
+  return Object.values(item && item.lichSu || {}).some((event) => event && event.hoiCuuBoSung === true);
+}
 function journeyRouteHtml(item) {
+  if (retroEventsPresent(item)) {
+    const events = effectiveHistoryEvents(item).filter((event) =>
+      ['MO_HANH_TRINH', 'CHUYEN_TIEP'].includes(event.loaiSuKien));
+    const places = [CENTER_NAME];
+    events.forEach((event) => {
+      const from = String(event.noiTruoc || '').trim();
+      const to = String(event.noiSau || '').trim();
+      if (from && normalizeText(from) !== normalizeText(places[places.length - 1])) places.push(from);
+      if (to && normalizeText(to) !== normalizeText(places[places.length - 1])) places.push(to);
+    });
+    return places.map((place, index) => `${index ? '<b class="journey-route-arrow">→</b>' : ''}<strong class="journey-route-place">${esc(place)}</strong>`).join('');
+  }
   const stages = Object.values(item.chang || {}).sort((a, b) => Number(a.thuTu || 0) - Number(b.thuTu || 0));
   if (!stages.length) return `<strong class="journey-route-place">${esc(CENTER_NAME)}</strong><b class="journey-route-arrow">→</b><strong class="journey-route-place">${esc(item.noiHienTai || '—')}</strong>`;
   const places = [stages[0].noiDi || CENTER_NAME];
@@ -509,9 +527,11 @@ function journeyRouteHtml(item) {
   return places.map((place, index) => `${index ? '<b class="journey-route-arrow">→</b>' : ''}<strong class="journey-route-place">${esc(place)}</strong>`).join('');
 }
 function routeSearchText(item) {
+  if (retroEventsPresent(item)) return effectiveHistoryEvents(item).map((event) => `${event.noiTruoc || ''} ${event.noiSau || ''}`).join(' ');
   const stages = Object.values(item.chang || {});
   return stages.map((stage) => `${stage.noiDi || ''} ${stage.noiDen || ''}`).join(' ');
 }
+
 function formSignature(ids) {
   return ids.map((id) => {
     const el = $(id);
@@ -855,6 +875,12 @@ function latestJourneyStage(item) {
 }
 function historyTreatmentPlace(item) {
   if (!item) return '—';
+  if (retroEventsPresent(item)) {
+    if (item.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC' && String(item.noiTuVong || '').trim()) return String(item.noiTuVong).trim();
+    if (item.trangThaiHienTai !== 'DA_VE_TRUNG_TAM') return String(item.noiHienTai || '—');
+    const transfers = effectiveHistoryEvents(item).filter((event) => ['MO_HANH_TRINH','CHUYEN_TIEP'].includes(event.loaiSuKien));
+    return String(transfers[transfers.length - 1]?.noiSau || item.noiHienTai || '—');
+  }
   if (item.trangThaiHienTai === 'TU_VONG_TAI_NOI_KHAC' && String(item.noiTuVong || '').trim()) return String(item.noiTuVong).trim();
   const stages = Object.values(item.chang || {}).sort((a, b) => Number(a.thuTu || 0) - Number(b.thuTu || 0));
   for (let i = stages.length - 1; i >= 0; i -= 1) {
@@ -865,6 +891,7 @@ function historyTreatmentPlace(item) {
 }
 function historyDiagnosis(item) {
   if (!item) return '—';
+  if (retroEventsPresent(item)) return String(item.tinhTrangChanDoanHienTai || item.lyDoHienTai || '—');
   const latest = latestJourneyStage(item);
   return String(
     latest && latest.tinhTrangChanDoan ||
@@ -2027,6 +2054,191 @@ async function saveJourneyCorrection(action) {
 }
 
 
+// YC-YTE-007: Bổ sung hồi cứu là một event mới của case CLOSED, không sửa event kết thúc.
+const RETRO_FIELD_IDS = ['journeyRetroDate', 'journeyRetroFrom', 'journeyRetroTo', 'journeyRetroDiagnosis', 'journeyRetroNote'];
+function retroFormSignature() { return formSignature(RETRO_FIELD_IDS); }
+function closedForRetro(item) {
+  return item && item.trangThaiKyThuat === 'CLOSED' &&
+    ['DA_VE_TRUNG_TAM', 'HOI_GIA_TAI_BENH_VIEN', 'TU_VONG_TAI_BENH_VIEN', 'TU_VONG_TAI_NOI_KHAC'].includes(item.trangThaiHienTai);
+}
+function validateRetroInsertion(item, candidate) {
+  if (!closedForRetro(item)) throw new Error('Chỉ được bổ sung chuyển tiếp vào hành trình đã kết thúc hợp lệ.');
+  const events = effectiveHistoryEvents(item);
+  if (events.length < 2 || events[0].loaiSuKien !== 'MO_HANH_TRINH') {
+    throw new Error('Hành trình chưa có đầy đủ sự kiện bắt đầu và kết thúc.');
+  }
+  const first = events[0], last = events[events.length - 1];
+  if (!CLOSED_STATUSES.includes(last.trangThaiSau) || last.trangThaiSau !== item.trangThaiHienTai) {
+    throw new Error('Trạng thái cuối cùng đã thay đổi hoặc không khớp. Vui lòng tải lại Lịch sử.');
+  }
+  const start = eventBusinessDate(first, item);
+  const end = eventBusinessDate(last, item);
+  const {date, from, to} = candidate;
+  if (!validIsoBusinessDate(date) || date > todayIso()) throw new Error('Ngày chuyển tiếp không hợp lệ.');
+  if (!start || !end || date <= start || date >= end) {
+    throw new Error(`Ngày chuyển tiếp phải sau ${formatBusinessDate(start)} và trước ngày kết thúc ${formatBusinessDate(end)}.`);
+  }
+  if (!from || !to || from.length > 300 || to.length > 300) throw new Error('Vui lòng nhập đầy đủ nơi đi và nơi đến (không quá 300 ký tự).');
+  if (normalizeText(from) === normalizeText(to)) throw new Error('Nơi đi và nơi đến phải khác nhau.');
+  if (normalizeText(from) === normalizeText(CENTER_NAME)) throw new Error('Đây là chuyển tiếp giữa các bệnh viện; không được chọn Trung tâm làm nơi đi.');
+  if (normalizeText(to) === normalizeText(CENTER_NAME)) throw new Error('Đây là chuyển tiếp giữa các bệnh viện; không được chọn Trung tâm làm nơi đến.');
+  // Không có thông tin giờ nghiệp vụ; không tự suy diễn thứ tự hai sự kiện cùng ngày.
+  if (events.some((event) => eventBusinessDate(event, item) === date)) {
+    throw new Error('Ngày này đã có sự kiện. Nếu có nhiều sự kiện cùng ngày, cần điều chỉnh thủ công với thời gian nghiệp vụ rõ ràng; không tự sắp xếp theo giờ nhập.');
+  }
+  if (events.some((event) => event.loaiSuKien === 'CHUYEN_TIEP' &&
+      normalizeText(event.noiTruoc) === normalizeText(from) && normalizeText(event.noiSau) === normalizeText(to))) {
+    throw new Error('Chặng chuyển tiếp này đã được ghi nhận trong hành trình.');
+  }
+  const next = events.find((event) => eventBusinessDate(event, item) > date);
+  const endPlace = String(last.noiTuVong || last.noiSau || item.noiHienTai || '').trim();
+  const nextDate = eventBusinessDate(next, item);
+  const nextIsClosed = next && CLOSED_STATUSES.includes(String(next.trangThaiSau || ''));
+  if (nextIsClosed && nextDate && Date.parse(nextDate + 'T00:00:00Z') - Date.parse(date + 'T00:00:00Z') === 86400000 &&
+    item.trangThaiHienTai === 'TU_VONG_TAI_BENH_VIEN' && endPlace && normalizeText(to) !== normalizeText(endPlace)) {
+    throw new Error('Nơi đến trước ngày kết thúc không khớp nơi kết thúc hành trình. Vui lòng kiểm tra bệnh viện.');
+  }
+  return { events, first, last, start, end };
+}
+function retroTimelineGaps(item) {
+  if (!retroEventsPresent(item)) return false;
+  const steps = effectiveHistoryEvents(item).filter((event) => ['MO_HANH_TRINH','CHUYEN_TIEP'].includes(event.loaiSuKien));
+  return steps.some((step, i) => i > 0 && normalizeText(step.noiTruoc) !== normalizeText(steps[i - 1].noiSau));
+}
+function openJourneyRetro() {
+  const item = state.selectedCase;
+  if (!isGlobalAdmin() || !closedForRetro(item)) return;
+  const events = effectiveHistoryEvents(item);
+  const first = events[0], last = events[events.length - 1];
+  const start = eventBusinessDate(first, item), end = eventBusinessDate(last, item);
+  if (!start || !end || Date.parse(end + 'T00:00:00Z') - Date.parse(start + 'T00:00:00Z') <= 86400000) {
+    showToast('Hành trình không có ngày trống giữa ngày bắt đầu và ngày kết thúc để bổ sung chuyển tiếp.', 'err'); return;
+  }
+  state.retroCaseId = item.id;
+  state.retroFromDetail = true;
+  $('journeyRetroTitle').textContent = `Bổ sung chuyển tiếp – ${formatPersonName(item.doiTuong)}`;
+  $('journeyRetroSubtitle').textContent = `Hành trình vẫn kết thúc ngày ${formatBusinessDate(end)} (${statusLabel(item.trangThaiHienTai)}).`;
+  const dateField = $('journeyRetroDate');
+  const d = new Date(Date.parse(end + 'T00:00:00Z') - 86400000).toISOString().slice(0, 10);
+  dateField.value = d;
+  dateField.min = new Date(Date.parse(start + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10);
+  dateField.max = d;
+  $('journeyRetroFrom').value = '';
+  $('journeyRetroTo').value = '';
+  $('journeyRetroDiagnosis').value = '';
+  $('journeyRetroNote').value = '';
+  $('journeyRetroError').textContent = '';
+  state.retroBaseline = retroFormSignature();
+  $('journeyRetroLayer').hidden = false;
+  setBodyModalState(true);
+  window.setTimeout(() => dateField.focus(), 0);
+}
+function closeJourneyRetro() {
+  $('journeyRetroLayer').hidden = true;
+  state.retroCaseId = '';
+  state.retroBaseline = '';
+  state.retroFromDetail = false;
+  setBodyModalState(!$('journeyDetailLayer')?.hidden);
+}
+async function requestCloseJourneyRetro() {
+  if (state.retroBaseline && retroFormSignature() !== state.retroBaseline) {
+    const discard = await confirmDiscard();
+    if (!discard) return;
+  }
+  closeJourneyRetro();
+}
+async function saveJourneyRetro() {
+  if (!isGlobalAdmin() || !state.retroCaseId) return;
+  const user = auth.currentUser;
+  if (!user) return;
+  const button = $('journeyRetroSave');
+  if (button) button.disabled = true;
+  try {
+    const caseId = state.retroCaseId;
+    const date = String($('journeyRetroDate').value || '').trim();
+    const from = String($('journeyRetroFrom').value || '').trim();
+    const to = String($('journeyRetroTo').value || '').trim();
+    const diagnosis = String($('journeyRetroDiagnosis').value || '').trim();
+    const note = String($('journeyRetroNote').value || '').trim();
+    if (!diagnosis || diagnosis.length > 1500) throw new Error('Vui lòng nhập Tình trạng / chẩn đoán (tối đa 1.500 ký tự).');
+    if (note.length > 2000) throw new Error('Ghi chú không được quá 2.000 ký tự.');
+    // Đọc lại bản gốc ngay trước khi ghi, không tin dữ liệu modal có thể đã cũ.
+    const snapshot = await get(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}`));
+    if (!snapshot.exists()) throw new Error('Không tìm thấy hành trình, vui lòng tải lại.');
+    const latest = caseFromRaw(caseId, snapshot.val());
+    const {events} = validateRetroInsertion(latest, { date, from, to });
+    const predecessor = [...events].reverse().find((event) => eventBusinessDate(event, latest) < date);
+    const eventId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/lichSu`)).key;
+    const stageId = push(ref(db, `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}/chang`)).key;
+    const logId = push(ref(db, `${REPORT_ROOT}/nhatKy/${date.slice(0, 7)}`)).key;
+    const email = normalizeEmail(user.email);
+    const displayName = await resolveCurrentDisplayName();
+    const ts = serverTimestamp();
+    const nextOrder = Math.max(1, Number(latest.thuTuChang || 1), ...Object.values(latest.chang || {}).map((st) => Number(st && st.thuTu || 0))) + 1;
+    // Dùng một multi-path update: write rules kiểm soát version tăng đúng 1.
+    // Nếu có người ghi cùng lúc và version thay đổi, toàn bộ update bị từ chối.
+    const updates = {};
+    const base = `${REPORT_ROOT}/hanhTrinhChuyenVien/${caseId}`;
+    updates[`${base}/thongTin/version`] = Number(latest.version || 1) + 1;
+    updates[`${base}/thongTin/thuTuChang`] = nextOrder;
+    updates[`${base}/thongTin/updatedAt`] = ts;
+    updates[`${base}/thongTin/updatedByUid`] = user.uid;
+    updates[`${base}/thongTin/updatedByEmail`] = email;
+    updates[`${base}/thongTin/updatedByName`] = displayName;
+    updates[`${base}/lichSu/${eventId}`] = {
+      id: eventId, caseId, loaiSuKien: 'CHUYEN_TIEP',
+      trangThaiTruoc: String(predecessor?.trangThaiSau || 'DANG_THEO_DOI'),
+      trangThaiSau: 'CHUYEN_TIEP_BENH_VIEN_KHAC',
+      noiTruoc: from, noiSau: to, ngaySuKien: date,
+      ngayTuVong: '', noiTuVong: '',
+      hinhThucChuyen: canonicalTransferType(latest),
+      hinhThucChuyenKhac: String(latest.hinhThucChuyenKhac || ''),
+      lyDo: diagnosis.slice(0, 1000), tinhTrangChanDoan: diagnosis,
+      ghiChu: note, tinhTrangKhiVe: '',
+      hoiCuuBoSung: true, uid: user.uid, email, displayName, createdAt: ts
+    };
+    updates[`${base}/chang/${stageId}`] = {
+      id: stageId, caseId, thuTu: nextOrder, noiDi: from, noiDen: to,
+      hinhThucChuyen: canonicalTransferType(latest),
+      hinhThucChuyenKhac: String(latest.hinhThucChuyenKhac || ''),
+      lyDo: diagnosis.slice(0, 1000), tinhTrangChanDoan: diagnosis,
+      ghiChu: note, trangThaiSauChang: 'CHUYEN_TIEP_BENH_VIEN_KHAC',
+      ngaySuKien: date, hoiCuuBoSung: true, thoiDiem: ts,
+      uid: user.uid, email, displayName
+    };
+    updates[`${REPORT_ROOT}/nhatKy/${date.slice(0, 7)}/${logId}`] = {
+      action: 'Bổ sung chuyển tiếp hồi cứu',
+      content: `${formatPersonName(latest.doiTuong)} · ${from} → ${to} · ${formatBusinessDate(date)}`.slice(0, 1000),
+      reportId: caseId, loaiBaoCao: 'CHUYEN_VIEN', dataDate: date,
+      uid: user.uid, email, displayName, role: roleForLog(), createdAt: ts
+    };
+    // Không ghi marker chuyển viện/tử vong, không ghi hanhTrinhDangMo, không đổi CLOSED/status cuối.
+    await update(ref(db), updates);
+    closeJourneyRetro();
+    showToast('Đã bổ sung chuyển tiếp vào Lịch sử; hành trình kết thúc được giữ nguyên.', 'ok');
+    await loadJourneys(true);
+    setSubView('history');
+    const refreshed = findCase(caseId);
+    if (refreshed) openDetail(caseId);
+  } catch (error) {
+    console.error('[Journey retrospective insert failed]', error);
+    $('journeyRetroError').textContent = friendlyError(error, 'Không thể bổ sung chuyển tiếp. Vui lòng kiểm tra quyền hoặc thử tải lại Lịch sử.');
+  } finally { if (button) button.disabled = false; }
+}
+function correctionAuditSection(item) {
+  const records = Object.values(item.dieuChinh || {}).filter(Boolean).sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
+  if (!records.length) return '';
+  const content = records.map((row) => {
+    const before = correctionJson(row.beforeJson) || {};
+    const after = correctionJson(row.afterJson) || {};
+    const beforeStatus = statusLabel(before.trangThaiSau || before.trangThaiHienTai || '');
+    const afterStatus = row.action === 'DELETE' ? 'Đã xóa sự kiện' : statusLabel(after.trangThaiSau || after.trangThaiHienTai || '');
+    return `<div class="journey-correction-audit-row"><strong>${esc(beforeStatus)} → ${esc(afterStatus)}</strong>` +
+      `<span>Lý do: ${esc(row.reason || '—')}</span><span>${esc(preferredName(row.uid, row.displayName || row.email))} · ${esc(fmtDateTime(row.createdAt))}</span></div>`;
+  }).join('');
+  return `<details class="journey-correction-audit-section"><summary>Lịch sử điều chỉnh (${records.length}) – Nhấn để xem</summary><div class="journey-correction-audit">${content}</div></details>`;
+}
+
 function correctionAuditHtml(event, item) {
   if (!event || !item) return '';
   const rows = Object.values(item.dieuChinh || {})
@@ -2071,6 +2283,7 @@ function openDetail(id) {
       <div><span>Tình trạng / chẩn đoán</span><strong>${esc(historyDiagnosis(item))}</strong></div>
     </div>`;
   const events = effectiveHistoryEvents(item);
+  $('journeyRetroAddOpen').hidden = !(isGlobalAdmin() && closedForRetro(item));
   $('journeyTimeline').innerHTML = events.length ? events.map((event) => {
     const note = String(event.ghiChu || '').trim();
     const diagnosis = String(event.tinhTrangChanDoan || '').trim();
@@ -2094,13 +2307,13 @@ function openDetail(id) {
       <div class="journey-timeline-card">
         <div class="journey-timeline-head"><strong>${esc(timelineTitle(event))}</strong><span>${esc(businessDateText)} <small class="journey-audit-time">· nhập ${esc(fmtDateTime(event.createdAt))}</small></span></div>
         <div class="journey-timeline-status ${statusClass(event.trangThaiSau)}">${esc(timelineBadge(event, item))}</div>
+        ${event.hoiCuuBoSung ? '<div class="journey-retro-indicator">Bổ sung hồi cứu</div>' : ''}
         ${lines.join('')}
         <div class="journey-timeline-by">${personLabel}: ${esc(preferredName(event.uid, event.displayName))}${event._corrected ? ' · <span class="journey-corrected-mark">Đã điều chỉnh</span>' : ''}</div>
-        ${correctionAuditHtml(event, item)}
         ${isGlobalAdmin() ? `<div class="journey-timeline-admin"><button class="btn btn-soft journey-correct-event" data-event-id="${esc(event._sourceId)}" type="button">Điều chỉnh sự kiện</button></div>` : ''}
       </div>
     </div>`;
-  }).join('') : '<div class="journey-empty">Chưa có lịch sử hành trình.</div>';
+  }).join('') + (retroTimelineGaps(item) ? '<div class="journey-retro-gap">Diễn biến giữa các bệnh viện chưa được bổ sung đầy đủ. Có thể tiếp tục bổ sung theo ngày thực tế.</div>' : '') + correctionAuditSection(item) : '<div class="journey-empty">Chưa có lịch sử hành trình.</div>';
   $('journeyDetailLayer').hidden = false;
   setBodyModalState(true);
   window.setTimeout(() => $('journeyDetailCloseBottom')?.focus(), 0);
@@ -2204,6 +2417,11 @@ function initEvents() {
     if (kind === 'journey-delete') deleteJourney(button.getAttribute('data-id'));
   });
   $('journeyTimeline')?.addEventListener('click', (event) => { const button = event.target.closest('.journey-correct-event'); if (button) openJourneyCorrection(button.getAttribute('data-event-id')); });
+  $('journeyRetroAddOpen')?.addEventListener('click', openJourneyRetro);
+  $('journeyRetroClose')?.addEventListener('click', requestCloseJourneyRetro);
+  $('journeyRetroCancel')?.addEventListener('click', requestCloseJourneyRetro);
+  $('journeyRetroSave')?.addEventListener('click', saveJourneyRetro);
+  $('journeyRetroLayer')?.addEventListener('click', (event) => { if (event.target === $('journeyRetroLayer')) void requestCloseJourneyRetro(); });
   $('journeyCorrectionClose')?.addEventListener('click', closeJourneyCorrection);
   $('journeyCorrectionCancel')?.addEventListener('click', closeJourneyCorrection);
   $('journeyCorrectionSave')?.addEventListener('click', () => saveJourneyCorrection('UPDATE'));
@@ -2219,12 +2437,13 @@ function initEvents() {
   $('journeyDetailCloseBottom')?.addEventListener('click', closeDetail);
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    if (!$('journeyCorrectionLayer')?.hidden) closeJourneyCorrection();
+    if (!$('journeyRetroLayer')?.hidden) void requestCloseJourneyRetro();
+    else if (!$('journeyCorrectionLayer')?.hidden) closeJourneyCorrection();
     else if (!$('journeyUpdateLayer')?.hidden) closeUpdateDialog(false);
     else if (!$('journeyDetailLayer')?.hidden) closeDetail();
   });
   window.addEventListener('beforeunload', (event) => {
-    if (!isCreateDirty() && !(!$('journeyUpdateLayer')?.hidden && isUpdateDirty())) return;
+    if (!isCreateDirty() && !(!$('journeyUpdateLayer')?.hidden && isUpdateDirty()) && !(!$('journeyRetroLayer')?.hidden && state.retroBaseline && state.retroBaseline !== retroFormSignature())) return;
     event.preventDefault();
     event.returnValue = '';
   });
@@ -2245,7 +2464,7 @@ window.YTE_JOURNEYS = {
   openHistoryFilter,
   captureUpdateContext: () => ({ subView: state.subView || 'tracking' }),
   restoreUpdateContext: (ctx) => { if (ctx && ctx.subView) setSubView(ctx.subView); },
-  hasUnsavedChanges: () => isCreateDirty() || (!($('journeyUpdateLayer')?.hidden) && isUpdateDirty())
+  hasUnsavedChanges: () => isCreateDirty() || (!($('journeyUpdateLayer')?.hidden) && isUpdateDirty()) || (!($('journeyRetroLayer')?.hidden) && state.retroBaseline && state.retroBaseline !== retroFormSignature())
 };
 
 function start() {
